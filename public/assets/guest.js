@@ -1,13 +1,11 @@
 /* Hotel Portal Norte 170 — sitio público para huéspedes */
 (() => {
-const G = {hotel:{}, rooms:[], avail:{}, loaded:false, q:null, type:"", mine:[]};
+const G = {hotel:{}, rooms:[], avail:{}, loaded:false, q:null, type:"", mine:[], rule:0};
 const MINE_KEY = "pn170_solicitudes";
 
 /* ---------- iconos (trazos propios) ---------- */
 const P = {
-  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
-  grid:'<rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><rect x="14" y="14" width="6" height="6" rx="1.2"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.5 3.5 5.2"/>',
   bed:'<path d="M3 19V6M3 14h18v5M21 14v-1.5A3.5 3.5 0 0 0 17.5 9H11v5"/><circle cx="7" cy="11" r="2"/>',
@@ -17,7 +15,6 @@ const P = {
   tv:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
   bus:'<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/><circle cx="8" cy="14.5" r=".9"/><circle cx="16" cy="14.5" r=".9"/>',
   key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/>',
-  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   pin:'<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
   bag:'<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   plane:'<path d="M10.5 21 12 15l7 3 1-2-7-5V5.5a1.5 1.5 0 0 0-3 0V11l-7 5 1 2 7-3 .5 6z"/>',
@@ -43,33 +40,36 @@ function guestOk(r,q){
   if(!freeG(r.id,q.in,q.out)) return {ok:false,why:"Ocupada en tus fechas"};
   return {ok:true};
 }
-function typeIcon(t){t=(t||"").toLowerCase();if(/senc|indiv/.test(t))return "user";if(/fam|trip/.test(t))return "users";if(/confort|suite|queen/.test(t))return "bed";return "users";}
 function amenIcon(t){t=t.toLowerCase();
   if(/wi-?fi|internet/.test(t))return "wifi"; if(/cocina|nevera|estufa/.test(t))return "kitchen"; if(/tv|pantalla|televis/.test(t))return "tv";
   if(/escritorio|trabajo|laptop/.test(t))return "laptop"; if(/baño|ducha|toalla|jab/.test(t))return "shower"; if(/recep|check|llave/.test(t))return "key";
-  if(/idioma|inglés|ingles/.test(t))return "chat"; if(/limpieza|aseo/.test(t))return "shield"; if(/armario|closet/.test(t))return "door"; return "shield";}
+  if(/idioma|inglés|ingles/.test(t))return "chat"; if(/armario|closet/.test(t))return "door"; return "shield";}
 function nearIcon(t){t=t.toLowerCase();
   if(/portal|transmilenio|estación|estacion|bus/.test(t))return "bus"; if(/centro comercial|unicentro|santaf|hacienda|mall|andino/.test(t))return "bag";
   if(/aeropuerto/.test(t))return "plane"; if(/parque/.test(t))return "tree"; if(/restaur|café|cafe|comida/.test(t))return "kitchen"; return "pin";}
 function loadMine(){try{G.mine=JSON.parse(localStorage.getItem(MINE_KEY)||"[]");}catch(_){G.mine=[];}}
 function storeMine(){try{localStorage.setItem(MINE_KEY,JSON.stringify(G.mine.slice(-10)));}catch(_){}}
 
-/* Ilustración de respaldo para la portada: cerros orientales de Bogotá */
-const HERO_SVG = `<svg viewBox="0 0 1440 700" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ilustración de los cerros de Bogotá">
-  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFDDB8"/><stop offset=".6" stop-color="#FFF0DC"/><stop offset="1" stop-color="#FFF8EE"/></linearGradient></defs>
-  <rect width="1440" height="700" fill="url(#sky)"/>
-  <circle cx="1130" cy="170" r="70" fill="#FFC86B" opacity=".85"/>
-  <g fill="#fff" opacity=".85"><ellipse cx="980" cy="120" rx="90" ry="18"/><ellipse cx="1040" cy="108" rx="60" ry="16"/><ellipse cx="1300" cy="230" rx="80" ry="14"/></g>
-  <path d="M520 470 L700 300 L800 360 L930 240 L1060 330 L1180 220 L1310 300 L1440 250 L1440 700 L520 700 Z" fill="#D3E6AE"/>
-  <path d="M380 540 L560 410 L690 470 L840 360 L990 450 L1120 380 L1260 440 L1440 380 L1440 700 L380 700 Z" fill="#AFD178"/>
-  <path d="M260 610 L470 520 L640 560 L820 480 L1010 560 L1190 500 L1440 540 L1440 700 L260 700 Z" fill="#7FB047"/>
-  <g fill="#8A4E27">
-    <rect x="760" y="560" width="46" height="90"/><rect x="812" y="530" width="38" height="120"/><rect x="856" y="575" width="54" height="75"/>
-    <rect x="918" y="545" width="34" height="105"/><rect x="958" y="590" width="60" height="60"/><rect x="1026" y="520" width="42" height="130"/>
-    <rect x="1074" y="570" width="58" height="80"/><rect x="1140" y="548" width="36" height="102"/><rect x="1182" y="585" width="70" height="65"/>
-    <rect x="1260" y="535" width="44" height="115"/><rect x="1310" y="575" width="62" height="75"/><rect x="1380" y="555" width="60" height="95"/>
+/* Ilustración de respaldo: atardecer sobre los cerros de Bogotá */
+const SCENE = (id) => `<svg viewBox="0 0 1440 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs><linearGradient id="sky${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B2238"/><stop offset=".45" stop-color="#2E4E72"/><stop offset=".78" stop-color="#C98A6E"/><stop offset="1" stop-color="#F2B88A"/></linearGradient></defs>
+  <rect width="1440" height="760" fill="url(#sky${id})"/>
+  <circle cx="1040" cy="470" r="80" fill="#FFD08A" opacity=".85"/>
+  <path d="M480 520 L660 380 L770 430 L900 330 L1030 410 L1160 320 L1300 390 L1440 340 L1440 760 L480 760 Z" fill="#35577A" opacity=".9"/>
+  <path d="M300 590 L500 470 L640 520 L800 430 L960 510 L1110 450 L1270 500 L1440 450 L1440 760 L300 760 Z" fill="#203F5F"/>
+  <path d="M0 640 L220 570 L420 610 L620 540 L840 610 L1040 560 L1260 600 L1440 570 L1440 760 L0 760 Z" fill="#132E48"/>
+  <g fill="#0A1E31">
+    <rect x="700" y="600" width="46" height="100"/><rect x="752" y="570" width="38" height="130"/><rect x="796" y="615" width="54" height="85"/>
+    <rect x="858" y="585" width="34" height="115"/><rect x="898" y="630" width="60" height="70"/><rect x="966" y="560" width="42" height="140"/>
+    <rect x="1014" y="610" width="58" height="90"/><rect x="1080" y="588" width="36" height="112"/><rect x="1122" y="625" width="70" height="75"/>
+    <rect x="1200" y="575" width="44" height="125"/><rect x="1250" y="615" width="62" height="85"/><rect x="1320" y="595" width="60" height="105"/><rect x="1386" y="620" width="54" height="80"/>
   </g>
-  <rect x="0" y="648" width="1440" height="52" fill="#5E3519"/>
+  <g fill="#FFC56B" opacity=".9">
+    <rect x="712" y="620" width="6" height="8"/><rect x="726" y="642" width="6" height="8"/><rect x="764" y="592" width="6" height="8"/><rect x="776" y="620" width="6" height="8"/>
+    <rect x="874" y="606" width="6" height="8"/><rect x="980" y="584" width="6" height="8"/><rect x="992" y="612" width="6" height="8"/><rect x="1094" y="606" width="6" height="8"/>
+    <rect x="1212" y="596" width="6" height="8"/><rect x="1226" y="626" width="6" height="8"/><rect x="1334" y="616" width="6" height="8"/><rect x="1350" y="640" width="6" height="8"/>
+  </g>
+  <rect x="0" y="700" width="1440" height="60" fill="#071827"/>
 </svg>`;
 
 /* ---------- carga ---------- */
@@ -104,27 +104,36 @@ $("#search").addEventListener("submit",e=>{
 $("#cats").addEventListener("click",e=>{const b=e.target.closest("button[data-type]");if(!b)return;G.type=b.dataset.type;renderCats();renderRooms();});
 
 /* ---------- render ---------- */
-function render(){ renderHero(); renderCats(); renderRooms(); renderAmen(); renderNear(); renderRules(); renderContact(); renderMine(); }
+function render(){ renderHero(); renderPerks(); renderCats(); renderRooms(); renderNear(); renderWhy(); renderRule(); renderDirect(); renderFooter(); renderMine(); }
 
+function coverPhoto(){return G.hotel.heroPhoto || sortRooms().flatMap(r=>r.photos||[])[0];}
 function renderHero(){
-  const h=G.hotel, hero=$("#hero");
+  const h=G.hotel, photo=coverPhoto();
   document.title = hName()+" · Habitaciones en Suba, Bogotá";
-  $("#logoText").innerHTML=nameHTML(shortName());
-  const photo=h.heroPhoto || sortRooms().flatMap(r=>r.photos||[])[0];
-  hero.classList.toggle("photo",!!photo);
-  $("#heroBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : HERO_SVG;
+  $("#brandName").textContent=shortName();
+  $("#heroBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : SCENE("h");
   if(h.tagline) $("#heroTitle").textContent=h.tagline;
   const lead = h.description ? h.description.split(/(?<=\.)\s/)[0] : "";
   if(lead && lead.length<170) $("#heroLead").textContent=lead;
-  $("#heroCaption").innerHTML=`<b>${esc((h.zone||"Suba, Bogotá").split(",")[0])}</b>${esc(h.address||"")}`;
-  const wa=waNum(); const nw=$("#navWa");
+  $("#heroCaption").innerHTML=`<b>Más que una estancia</b>${esc((h.zone||"Suba, Bogotá").split(",")[0])} · ${esc(h.address||"Bogotá")}`;
+  const wa=waNum(), nw=$("#navWa");
   if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;}
+}
+function renderPerks(){
+  const h=G.hotel, am=(h.amenities||[]).join(" ").toLowerCase();
+  const items=[
+    {ic:"bed",t:"Habitaciones privadas",s:`${G.rooms.length||10} habitaciones con cama, armario y escritorio`},
+    {ic:"wifi",t:"Wi‑Fi y zona de trabajo",s:/wi-?fi/.test(am)?"Wi‑Fi gratis en todo el alojamiento":"Conexión para trabajar"},
+    {ic:"kitchen",t:"Cocina compartida",s:/cocina/.test(am)?"Estufa, nevera y lavaplatos":"Espacios comunes"},
+    {ic:"bus",t:"Bien conectado",s:"A pocos pasos del Portal Norte"},
+    {ic:"key",t:"Llegada sencilla",s:`Check-in desde las ${h.checkinFrom||"15:00"}`},
+  ];
+  $("#perks").innerHTML=items.map(x=>`<div class="perk"><span class="circ">${ico(x.ic)}</span><div><b>${esc(x.t)}</b><small>${esc(x.s)}</small></div></div>`).join("");
 }
 function renderCats(){
   const types=[...new Set(sortRooms().map(r=>r.type).filter(Boolean))];
   if(G.type && !types.includes(G.type)) G.type="";
-  $("#cats").innerHTML=[["","Todas","grid"],...types.map(t=>[t,t,typeIcon(t)])]
-    .map(([k,label,ic])=>`<button type="button" data-type="${esc(k)}" aria-pressed="${G.type===k}">${ico(ic)}${esc(label)}</button>`).join("");
+  $("#cats").innerHTML=[["","Todas"],...types.map(t=>[t,t])].map(([k,l])=>`<button type="button" data-type="${esc(k)}" aria-pressed="${G.type===k}">${esc(l)}</button>`).join("");
 }
 function renderRooms(){
   const q=G.q, n=diff(q.in,q.out), pax=q.ad+q.ch;
@@ -132,55 +141,71 @@ function renderRooms(){
   const withSt=rooms.map(r=>({r,st:guestOk(r,q)})).sort((a,b)=>(b.st.ok-a.st.ok));
   if(G.loaded){
     const free=withSt.filter(x=>x.st.ok).length;
-    $("#roomsSub").textContent=`${free} de ${rooms.length} disponibles${G.type?" · "+G.type:""} · ${fd(q.in,{weekday:"short"})} → ${fd(q.out,{weekday:"short"})} · ${n} noche${n>1?"s":""} · ${pax} persona${pax>1?"s":""}`;
+    $("#roomsSub").innerHTML=`<b style="color:var(--fg)">${free} de ${rooms.length} disponibles</b><br>${fd(q.in,{weekday:"short"})} → ${fd(q.out,{weekday:"short"})} · ${n} noche${n>1?"s":""} · ${pax} persona${pax>1?"s":""}`;
   }
   $("#rooms").innerHTML=withSt.map(({r,st})=>{const c=(r.photos||[])[0], rate=Number(r.rate)||0;return `
     <article class="card ${st.ok?"":"off"}" data-room="${esc(r.id)}" tabindex="0" aria-label="${esc(r.name||r.type)}">
-      <div class="img">${c?`<img src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph"><img src="/assets/logo-mark.png" alt="">${esc(r.number)}</div>`}
-        <span class="badge ${st.ok?"":"no"}">${st.ok?`${n} noche${n>1?"s":""} · disponible`:esc(st.why)}</span>
-        ${(r.photos||[]).length>1?`<span class="num-tag">${r.photos.length} fotos</span>`:""}</div>
+      <div class="img">${c?`<img class="photo" src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph"><img src="/assets/logo-mark.png" alt="">${esc(r.number)}</div>`}
+        <span class="badge ${st.ok?"ok":"no"}">${st.ok?"Disponible":esc(st.why)}</span></div>
       <div class="body">
-        <div class="type">${esc(r.type||"Habitación")} · Hab. ${esc(r.number)}</div>
         <h3>${esc(r.name||r.type||"Habitación")}</h3>
-        <p class="desc">${esc(r.description||"")}</p>
-        <div class="meta"><span>${ico("users")}${r.capacity||"?"} pers.</span><span>${ico("bed")}${esc(r.beds||"")}</span>
-          <span class="price"><b>${cop(rate*n)}</b><small>${cop(rate)} / noche</small></span><span class="go">${ico("arrow")}</span></div>
+        <div class="meta"><span>${ico("user")}${r.capacity||"?"} pers.</span><i></i><span>${esc(r.beds||"")}</span></div><div class="meta">Baño ${esc(r.bath||"")}</div>
+        <div class="cfoot"><span class="price"><b>${cop(rate)}</b> <small>/ noche</small>${n>1?`<br><small>${cop(rate*n)} por ${n} noches</small>`:""}</span><span class="go">${ico("arrow")}</span></div>
       </div>
     </article>`;}).join("") || `<div class="empty">${G.loaded?"No hay habitaciones de este tipo.":"Cargando habitaciones…"}</div>`;
-}
-function renderAmen(){
-  const items=(G.hotel.amenities||[]).map(a=>{const label=a.split("(")[0].replace(/\s+en\s+habitaciones.*$/i,"").trim();return {label:label.length>56?label.slice(0,54)+"…":label,ic:amenIcon(a)};});
-  items.push({label:"A pasos del Portal Norte",ic:"bus"});
-  $("#amen").innerHTML=items.slice(0,10).map(x=>`<div class="tile">${ico(x.ic)}<span>${esc(x.label)}</span></div>`).join("");
 }
 function renderNear(){
   const h=G.hotel;
   $("#addrLine").textContent=[h.address,h.zone].filter(Boolean).join(" · ") || "Suba, Bogotá";
   if(h.address) $("#mapLink").href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(h.address+", Bogotá");
-  $("#near").innerHTML=(h.nearby||[]).map(x=>{const [t,...m]=x.split(" · ");return `<div class="it"><span class="circ">${ico(nearIcon(x))}</span><div><b>${esc(t)}</b><small>${esc(m.join(" · "))}</small></div></div>`;}).join("")
+  const photo=coverPhoto();
+  $("#locBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : SCENE("l");
+  $("#near").innerHTML=(h.nearby||[]).map(x=>{const [t,...m]=x.split(" · ");return `<div class="it"><div class="tile">${ico(nearIcon(x))}</div><div class="txt"><b>${esc(t)}</b><small>${esc(m.join(" · "))}</small></div></div>`;}).join("")
     || `<div class="empty">${G.loaded?"Pronto agregaremos los lugares cercanos.":"Cargando…"}</div>`;
 }
-function renderRules(){
-  const h=G.hotel;
-  const times=`<div class="panel"><h3>${ico("clock")}Horarios</h3><dl class="kv" style="margin-top:12px"><dt>Llegada</dt><dd class="num">${esc(h.checkinFrom||"15:00")} – ${esc(h.checkinTo||"18:00")}</dd><dt>Salida</dt><dd class="num">hasta ${esc(h.checkout||"11:00")}</dd>${h.payments?`<dt>Pagos</dt><dd>${esc(h.payments)}</dd>`:""}</dl></div>`;
-  const pol=(h.policies||[]);
-  const half=Math.ceil(pol.length/2);
-  const list=(a)=>`<ul class="plain" style="margin-top:12px">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
-  $("#rules").innerHTML=times+(pol.length?`<div class="panel"><h3>${ico("shield")}Normas de la casa</h3>${list(pol.slice(0,half))}</div><div class="panel"><h3>${ico("key")}Tu llegada</h3>${list(pol.slice(half))}</div>`:"");
+function renderWhy(){
+  const h=G.hotel, am=(h.amenities||[]);
+  const feats=[
+    {ic:"bus",t:"Transporte a la mano",s:"Portal Norte y rutas hacia la Sabana"},
+    {ic:"laptop",t:"Para trabajar",s:"Escritorio y Wi‑Fi en la habitación"},
+    {ic:"key",t:"Check-in guiado",s:h.frontDesk?String(h.frontDesk).split(";")[0]:"Te enviamos las instrucciones antes"},
+    {ic:"chat",t:"Reserva directa",s:waNum()?"Confirma por WhatsApp":"Solicita tu reserva en línea"},
+  ];
+  $("#feats").innerHTML=feats.map(x=>`<div class="feat">${ico(x.ic)}<div><b>${esc(x.t)}</b><small>${esc(x.s)}</small></div></div>`).join("");
+  const rooms=sortRooms(), withPhoto=rooms.find(r=>(r.photos||[]).length);
+  const img = withPhoto ? withPhoto.photos[0] : h.heroPhoto;
+  $("#whyBg").innerHTML = img ? `<img src="${photoUrl(img)}" alt="">` : SCENE("w");
+  void am;
 }
-function renderContact(){
-  const h=G.hotel, wa=waNum();
-  $("#ctaNum").textContent = h.whatsapp ? h.whatsapp : (h.phone || "WhatsApp próximamente");
-  const btn=$("#ctaBtn");
-  if(wa){btn.href=`https://wa.me/${wa}`;btn.target="_blank";btn.rel="noopener";btn.textContent="Escribir por WhatsApp";}
-  $("#ctaNote").textContent = wa ? "Te confirmamos disponibilidad y forma de pago por WhatsApp." : "Mientras tanto, solicita tu reserva desde las habitaciones.";
-  $("#footContact").innerHTML=[h.address&&esc(h.address),h.phone&&`Tel. <span class="num">${esc(h.phone)}</span>`,h.whatsapp&&`WhatsApp <span class="num">${esc(h.whatsapp)}</span>`,h.email&&esc(h.email)].filter(Boolean).map(x=>`<li class="muted">${x}</li>`).join("");
-  $("#footTag").textContent = h.zone ? `Habitaciones privadas en ${h.zone}.` : "Habitaciones privadas en Suba, Bogotá.";
+function rules(){return (G.hotel.policies||[]).length?G.hotel.policies:["Pronto publicaremos las normas de la casa."];}
+function renderRule(){
+  const list=rules(); if(G.rule>=list.length) G.rule=0;
+  $("#ruleText").textContent=list[G.rule];
+  $("#ruleCount").textContent=`${G.rule+1} / ${list.length}`;
+  const h=G.hotel;
+  $("#ruleTimes").innerHTML=`<div>Llegada<b>${esc(h.checkinFrom||"15:00")}–${esc(h.checkinTo||"18:00")}</b></div><div>Salida<b>${esc(h.checkout||"11:00")}</b></div>`;
+}
+$("#rulePrev").onclick=()=>{const n=rules().length;G.rule=(G.rule-1+n)%n;renderRule();};
+$("#ruleNext").onclick=()=>{const n=rules().length;G.rule=(G.rule+1)%n;renderRule();};
+function renderDirect(){
+  const h=G.hotel, wa=waNum(), btn=$("#ctaBtn");
+  if(wa){btn.href=`https://wa.me/${wa}`;btn.target="_blank";btn.rel="noopener";btn.innerHTML=`Escribir por WhatsApp ${ico("arrow")}`;}
+  $("#directLead").textContent = wa ? `Escríbenos al ${h.whatsapp}: te confirmamos disponibilidad, llegada y forma de pago.` : "Solicita tu reserva desde cada habitación y te confirmamos disponibilidad, llegada y forma de pago.";
+  const rates=G.rooms.map(r=>Number(r.rate)||0).filter(Boolean);
+  const minRate=rates.length?Math.min(...rates):0;
+  const k=minRate>=1000?`$${Math.round(minRate/1000)}k`:cop(minRate);
+  $("#directBg").innerHTML=SCENE("d");
+  $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
+    .map(([v,l])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
+}
+function renderFooter(){
+  const h=G.hotel;
+  $("#footContact").innerHTML=[h.address&&esc(h.address),h.phone&&`Tel. <span class="num">${esc(h.phone)}</span>`,h.whatsapp&&`WhatsApp <span class="num">${esc(h.whatsapp)}</span>`,h.email&&esc(h.email)].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
   $("#copy").textContent=`© ${new Date().getFullYear()} ${hName()} · Bogotá, Colombia`;
 }
 function renderMine(){
   const mine=G.mine.slice().reverse();
-  $("#mineSec").hidden=!mine.length; $("#footMine").parentElement.hidden=!mine.length;
+  $("#mineSec").hidden=!mine.length; $("#footMine").hidden=!mine.length;
   $("#mine").innerHTML=mine.map(m=>{const st=m.status==="aceptada"?["Confirmada","ok"]:m.status==="rechazada"?["No disponible","bad"]:["En revisión","warn"];
     return `<div class="li"><div class="who"><b>${esc(m.room||"Habitación")}</b><small>${fd(m.checkIn,{weekday:"short"})} → ${fd(m.checkOut,{weekday:"short"})} · <span class="num">${esc(m.id)}</span></small></div><span class="pill ${st[1]}">${st[0]}</span></div>`;}).join("");
 }

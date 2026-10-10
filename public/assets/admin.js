@@ -54,11 +54,11 @@ function setSync(state,txt){const s=$("#sync");s.className="sync "+state;s.query
 /* ---------- sesión ---------- */
 function logout(msg){
   S.token=null; try{localStorage.removeItem(TOKEN_KEY);}catch(_){}
-  $("#app").hidden=true; $("#login").hidden=false; closeModal();
+  $("#app").hidden=true; $("#login").hidden=false; closeModal(); document.body.classList.add("is-login");
   const e=$("#loginErr"); if(msg){e.textContent=msg;e.hidden=false;}else e.hidden=true;
   $("#pw").value=""; try{$("#pw").focus();}catch(_){}
 }
-function startApp(){ $("#login").hidden=true; $("#app").hidden=false; setTab(S.tab); loadState(); }
+function startApp(){ document.body.classList.remove("is-login"); $("#login").hidden=true; $("#app").hidden=false; setTab(S.tab); loadState(); }
 $("#loginForm").addEventListener("submit", async e=>{
   e.preventDefault(); const btn=$("#loginBtn"); btn.disabled=true; btn.textContent="Ingresando…"; $("#loginErr").hidden=true;
   try{

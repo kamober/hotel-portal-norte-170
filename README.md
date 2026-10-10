@@ -73,20 +73,19 @@ Logo definitivo: hongo-casa con puerta de madera y pasto. Archivos en `public/as
 | `apple-touch-icon.png`, `icon-512.png` | Ícono del celular y foto de perfil (fondo crema) |
 | `og-image.png` | Imagen al compartir el enlace |
 
-Paleta (tomada del logo, variables en `public/assets/styles.css`):
+Paleta (variables en `public/assets/styles.css`): marino para bandas y textos, rojo del logo para acciones, crema para fondos.
 
 | Color | Hex | Uso |
 |---|---|---|
-| Rojo hongo | `#E2362B` | Color de marca, ilustraciones |
-| Rojo acción | `#C62D24` | Botones y enlaces (contraste AA con texto blanco) |
-| Rojo profundo | `#BA221E` | Hover y sombras |
-| Crema | `#FBEFD9` | Fondos de marca, chips del logo |
-| Madera | `#B86D41` / `#9D582C` | Acentos cálidos, estado «confirmada» |
-| Pasto | `#98C055` / `#3E7A1F` | Disponibilidad y estados positivos |
-| Tinta | `#1C1A17` | Texto y trazos |
-| Fondo | `#FFFBF4` | Fondo general |
+| Marino | `#0E2A42` / `#091C2E` | Encabezados, bandas oscuras, pie, panel de administración |
+| Rojo acción | `#C62D24` | Botones y enlaces (del sombrero del logo) |
+| Rojo hongo | `#E2362B` | Pestaña activa y acentos |
+| Crema / arena | `#FBEFD9` / `#F4EDE2` | Fondos de marca y secciones claras |
+| Fondo | `#FAF7F2` | Fondo general |
+| Madera | `#9D582C` | Acentos cálidos |
+| Pasto | `#3E7A1F` | Disponibilidad y estados positivos |
 
-Tipografía: Fredoka (títulos, redondeada como las letras del logo) y Plus Jakarta Sans (texto).
+Tipografía: Source Serif 4 (títulos, con cursiva de acento) y Plus Jakarta Sans (texto).
 
 ## Mantenimiento
 

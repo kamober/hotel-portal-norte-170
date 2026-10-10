@@ -1,24 +1,25 @@
 /* Hotel Portal Norte 170 — estilos compartidos (sitio público y administración) */
-/* Paleta tomada del logo: sombrero rojo, crema, puerta de madera, pasto y trazo negro */
+/* Marino para bandas y textos, rojo del logo para acciones, crema para fondos */
 :root{
-  --brand-red:#E2362B; --brand-red-deep:#BA221E; --cream:#FBEFD9; --wood:#B86D41; --wood-deep:#9D582C; --grass:#98C055; --grass-deep:#3E7A1F;
-  --ink:#1C1A17; --ink-muted:#6B625A;
-  --bg:#FFFBF4; --surface:#FFFFFF; --sunk:#FBF3E7; --line:#EEE2D1; --fg:#1C1A17; --muted:#6B625A;
-  --accent:#C62D24; --accent-hover:#A8221B; --accent-ink:#FFFFFF; --accent-soft:#FDE7E3; --band:#FFF5E8;
-  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B3261E; --bad-soft:#FBE3E0; --ok:#3E7A1F; --ok-soft:#E8F3D9; --info:#8A4E27; --info-soft:#F6E7DA;
+  --navy:#0E2A42; --navy-deep:#091C2E; --navy-soft:#E4EBF2;
+  --brand-red:#E2362B; --cream:#FBEFD9; --sand:#F4EDE2; --wood:#B86D41; --wood-deep:#9D582C; --grass:#98C055; --grass-deep:#3E7A1F;
+  --ink:#0E2A42; --ink-muted:#5E6B78;
+  --bg:#FAF7F2; --surface:#FFFFFF; --sunk:#F3EEE6; --line:#E6DED2; --fg:#0E2A42; --muted:#5E6B78;
+  --accent:#C62D24; --accent-hover:#A8221B; --accent-ink:#FFFFFF; --accent-soft:#FBE6E2; --band:#F4EDE2;
+  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B3261E; --bad-soft:#FBE3E0; --ok:#3E7A1F; --ok-soft:#E8F3D9; --info:#1F4E79; --info-soft:#E4EBF2;
   --ch-directo:#3E7A1F; --ch-booking:#2F5D95; --ch-airbnb:#C24D6A; --ch-expedia:#B98A12; --ch-hotels:#B3261E; --ch-otro:#6B6F7A;
-  --display:"Fredoka","Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
   --body:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  --r:14px; --cell:46px; --shadow:0 10px 30px rgba(60,32,12,.10);
+  --r:12px; --cell:46px; --shadow:0 12px 32px rgba(14,42,66,.10);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#15110E; --surface:#1F1915; --sunk:#29211B; --line:#3A2F27; --fg:#F4ECE2; --muted:#B5A898;
-  --accent:#FF6A5C; --accent-hover:#FF8577; --accent-ink:#1A0F0C; --accent-soft:#3A1E1A; --band:#1B1612;
-  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#FF8A7E; --bad-soft:#3D2222; --ok:#8FC66A; --ok-soft:#23301A; --info:#E0A27A; --info-soft:#3A2A1F;
+  --bg:#081521; --surface:#0F2236; --sunk:#152B42; --line:#22394F; --fg:#ECF1F6; --muted:#9FB0C2;
+  --accent:#FF6A5C; --accent-hover:#FF8577; --accent-ink:#1A0F0C; --accent-soft:#3A1E1A; --band:#0C1C2D; --navy-soft:#152B42;
+  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#FF8A7E; --bad-soft:#3D2222; --ok:#8FC66A; --ok-soft:#23301A; --info:#8FB8E6; --info-soft:#152B42;
   --ch-directo:#8FC66A; --ch-booking:#6F9BD6; --ch-airbnb:#E07D96; --ch-expedia:#D9AE42; --ch-hotels:#FF8A7E; --ch-otro:#9BA0AB;
-  --shadow:0 10px 30px rgba(0,0,0,.4);
+  --shadow:0 12px 32px rgba(0,0,0,.45);
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
