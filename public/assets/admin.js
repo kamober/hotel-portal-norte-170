@@ -300,7 +300,11 @@ function renderHotel(){
   const link=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:`<span class="muted">Sin enlace</span>`;
   const types={};S.rooms.forEach(r=>{const k=r.type||"Sin tipo";types[k]=types[k]||{n:0,min:Infinity,max:0,beds:r.beds,cap:r.capacity};types[k].n++;types[k].min=Math.min(types[k].min,Number(r.rate)||0);types[k].max=Math.max(types[k].max,Number(r.rate)||0);});
   $("#aloj").innerHTML=`
-  <div class="panel"><div class="eyebrow">Descripción (se muestra en el sitio)</div><p style="margin:.4em 0 0;max-width:72ch">${esc(h.description||"")}</p></div>
+  <div class="facts">
+    <div class="panel"><div class="eyebrow">Foto de portada del sitio</div><div class="hero-ph" style="margin-top:8px">${h.heroPhoto?`<img src="${photoUrl(h.heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted);font-size:.86rem">Sin portada: se muestra la ilustración</div>`}</div></div>
+    <div class="panel"><div class="eyebrow">Frase de portada</div><p style="margin:.3em 0 .8em;font-family:var(--display);font-size:1.3rem;font-weight:700">${esc(h.tagline||"Tu base en el norte de Bogotá")}</p>
+      <div class="eyebrow">Descripción (se muestra en el sitio)</div><p style="margin:.4em 0 0;max-width:72ch">${esc(h.description||"")}</p></div>
+  </div>
   <div class="facts">
     <div class="panel"><h3>Datos generales</h3><dl class="kv" style="margin-top:10px">
       <dt>Nombre</dt><dd>${esc(h.name)}</dd><dt>Nombre en OTAs</dt><dd>${esc(h.otaName||"—")}</dd>
@@ -630,7 +634,14 @@ function openHotelForm(){
       <label class="f">Check-in hasta<input type="time" id="hoCi2" value="${esc(h.checkinTo||"18:00")}"></label>
       <label class="f">Check-out<input type="time" id="hoCo" value="${esc(h.checkout||"11:00")}"></label>
       <label class="f">Medios de pago<input id="hoPay" value="${esc(h.payments||"")}"></label>
-    </div><label class="f">Descripción (sitio público)<textarea id="hoDesc" rows="4">${esc(h.description||"")}</textarea></label></fieldset>
+    </div>
+    <label class="f">Frase de portada (sitio público)<input id="hoTag" value="${esc(h.tagline||"")}" placeholder="Tu base en el norte de Bogotá"></label>
+    <label class="f">Descripción (sitio público)<textarea id="hoDesc" rows="4">${esc(h.description||"")}</textarea></label></fieldset>
+    <fieldset><legend>Foto de portada del sitio</legend>
+      <div class="hero-ph" id="hoHero"></div>
+      <div class="grp"><label class="btn">Subir foto de portada<input type="file" id="hoHeroUp" accept="image/jpeg,image/png,image/webp" hidden></label><button class="btn danger sm" id="hoHeroRm" type="button">Quitar portada</button></div>
+      <div class="muted" style="font-size:.78rem">Usa una foto horizontal y luminosa de la fachada o de la mejor habitación. Sin portada, el sitio muestra una ilustración de los cerros de Bogotá.</div>
+      <div id="hoHeroNote"></div></fieldset>
     <fieldset><legend>Listas (una línea por elemento)</legend><div class="grid g2">
       <label class="f">Servicios<textarea id="hoAm" rows="6">${lines(h.amenities)}</textarea></label>
       <label class="f">Políticas<textarea id="hoPol" rows="6">${lines(h.policies)}</textarea></label>
@@ -641,11 +652,22 @@ function openHotelForm(){
     </div></fieldset>`;
   openModal("Editar ficha del alojamiento", body, `<button class="btn" id="hoCancel">Cerrar</button><button class="btn primary" id="hoSave">Guardar ficha</button>`, ov=>{
     ov.querySelector("#hoCancel").onclick=closeModal;
+    let heroPhoto=h.heroPhoto||"";
+    const drawHero=()=>{ov.querySelector("#hoHero").innerHTML=heroPhoto?`<img src="${photoUrl(heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted)">Sin foto de portada</div>`;ov.querySelector("#hoHeroRm").hidden=!heroPhoto;};
+    drawHero();
+    ov.querySelector("#hoHeroUp").addEventListener("change",async e=>{
+      const file=e.target.files[0]; e.target.value=""; if(!file) return;
+      const note=ov.querySelector("#hoHeroNote"); note.innerHTML=`<div class="note">Subiendo portada…</div>`;
+      try{const blob=await shrink(file);const res=await api("POST","admin/photos",undefined,blob);heroPhoto=res.id;drawHero();note.innerHTML=`<div class="note ok">Portada cargada. Guarda la ficha para publicarla.</div>`;}
+      catch(err){note.innerHTML=`<div class="note bad">${esc(err.message)}</div>`;}
+    });
+    ov.querySelector("#hoHeroRm").onclick=()=>{heroPhoto="";drawHero();ov.querySelector("#hoHeroNote").innerHTML=`<div class="note">Portada quitada. Guarda la ficha para aplicar el cambio.</div>`;};
     ov.querySelector("#hoSave").onclick=async()=>{
       const v=s=>ov.querySelector(s).value.trim(), L=s=>ov.querySelector(s).value.split("\n").map(x=>x.trim()).filter(Boolean);
       const channels={};ov.querySelectorAll("[data-chl]").forEach(i=>channels[i.dataset.chl]=i.value.trim());
       const rec=Object.assign({},h,{name:v("#hoName"),otaName:v("#hoOta"),address:v("#hoAddr"),zone:v("#hoZone"),phone:v("#hoPhone"),whatsapp:v("#hoWa"),email:v("#hoMail"),
         frontDesk:v("#hoDesk"),checkinFrom:v("#hoCi1"),checkinTo:v("#hoCi2"),checkout:v("#hoCo"),payments:v("#hoPay"),description:ov.querySelector("#hoDesc").value.trim(),
+        tagline:v("#hoTag"),heroPhoto,
         amenities:L("#hoAm"),policies:L("#hoPol"),nearby:L("#hoNear"),channels});
       try{await save("hotel/info",rec);toast("Ficha guardada");closeModal();}catch(_){}
     };

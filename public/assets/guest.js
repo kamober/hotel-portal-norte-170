@@ -1,9 +1,37 @@
 /* Hotel Portal Norte 170 — sitio público para huéspedes */
 (() => {
-const G = {hotel:{}, rooms:[], avail:{}, loaded:false, q:null, mine:[]};
+const G = {hotel:{}, rooms:[], avail:{}, loaded:false, q:null, type:"", mine:[]};
 const MINE_KEY = "pn170_solicitudes";
 
+/* ---------- iconos (trazos propios) ---------- */
+const P = {
+  search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  grid:'<rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><rect x="14" y="14" width="6" height="6" rx="1.2"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c1.8.7 3 2.5 3.5 5.2"/>',
+  bed:'<path d="M3 19V6M3 14h18v5M21 14v-1.5A3.5 3.5 0 0 0 17.5 9H11v5"/><circle cx="7" cy="11" r="2"/>',
+  wifi:'<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19.3" r=".9"/>',
+  kitchen:'<path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 7v3H17"/>',
+  laptop:'<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>',
+  tv:'<rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  bus:'<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/><circle cx="8" cy="14.5" r=".9"/><circle cx="16" cy="14.5" r=".9"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  pin:'<path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+  bag:'<path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  plane:'<path d="M10.5 21 12 15l7 3 1-2-7-5V5.5a1.5 1.5 0 0 0-3 0V11l-7 5 1 2 7-3 .5 6z"/>',
+  tree:'<path d="M12 21v-6M7 15h10l-5-11-5 11z"/>',
+  chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.3L4 20z"/>',
+  shower:'<path d="M4 11a8 8 0 0 1 16 0H4z"/><path d="M12 3v1M8 15v1M12 15v2M16 15v1M10 19v1M14 19v1"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/>',
+  door:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><circle cx="15" cy="12" r=".9"/>',
+};
+const ico = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${P[n]||P.pin}</svg>`;
+
+/* ---------- datos y helpers ---------- */
 const hName = () => G.hotel.name || "Hotel Portal Norte 170";
+const shortName = () => hName().replace(/^Hotel\s+/i,"");
 const sortRooms = () => G.rooms.slice().sort((a,b)=>String(a.number).localeCompare(String(b.number),"es",{numeric:true}));
 const roomById = id => G.rooms.find(r=>r.id===id);
 function freeG(roomId,a,b){return !(G.avail[roomId]||[]).some(x=>x.i<b && a<x.o);}
@@ -12,11 +40,37 @@ function guestOk(r,q){
   const pax=q.ad+q.ch;
   if((Number(r.capacity)||1)<pax) return {ok:false,why:`Máximo ${r.capacity} pers.`};
   if(r.status==="mantenimiento") return {ok:false,why:"No disponible"};
-  if(!freeG(r.id,q.in,q.out)) return {ok:false,why:"Ocupada en esas fechas"};
+  if(!freeG(r.id,q.in,q.out)) return {ok:false,why:"Ocupada en tus fechas"};
   return {ok:true};
 }
+function typeIcon(t){t=(t||"").toLowerCase();if(/senc|indiv/.test(t))return "user";if(/fam|trip/.test(t))return "users";if(/confort|suite|queen/.test(t))return "bed";return "users";}
+function amenIcon(t){t=t.toLowerCase();
+  if(/wi-?fi|internet/.test(t))return "wifi"; if(/cocina|nevera|estufa/.test(t))return "kitchen"; if(/tv|pantalla|televis/.test(t))return "tv";
+  if(/escritorio|trabajo|laptop/.test(t))return "laptop"; if(/baño|ducha|toalla|jab/.test(t))return "shower"; if(/recep|check|llave/.test(t))return "key";
+  if(/idioma|inglés|ingles/.test(t))return "chat"; if(/limpieza|aseo/.test(t))return "shield"; if(/armario|closet/.test(t))return "door"; return "shield";}
+function nearIcon(t){t=t.toLowerCase();
+  if(/portal|transmilenio|estación|estacion|bus/.test(t))return "bus"; if(/centro comercial|unicentro|santaf|hacienda|mall|andino/.test(t))return "bag";
+  if(/aeropuerto/.test(t))return "plane"; if(/parque/.test(t))return "tree"; if(/restaur|café|cafe|comida/.test(t))return "kitchen"; return "pin";}
 function loadMine(){try{G.mine=JSON.parse(localStorage.getItem(MINE_KEY)||"[]");}catch(_){G.mine=[];}}
 function storeMine(){try{localStorage.setItem(MINE_KEY,JSON.stringify(G.mine.slice(-10)));}catch(_){}}
+
+/* Ilustración de respaldo para la portada: cerros orientales de Bogotá */
+const HERO_SVG = `<svg viewBox="0 0 1440 700" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ilustración de los cerros de Bogotá">
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFD6FF"/><stop offset=".65" stop-color="#E9F1FF"/><stop offset="1" stop-color="#F7FAFF"/></linearGradient></defs>
+  <rect width="1440" height="700" fill="url(#sky)"/>
+  <circle cx="1130" cy="170" r="70" fill="#FFF6DD" opacity=".9"/>
+  <g fill="#fff" opacity=".85"><ellipse cx="980" cy="120" rx="90" ry="18"/><ellipse cx="1040" cy="108" rx="60" ry="16"/><ellipse cx="1300" cy="230" rx="80" ry="14"/></g>
+  <path d="M520 470 L700 300 L800 360 L930 240 L1060 330 L1180 220 L1310 300 L1440 250 L1440 700 L520 700 Z" fill="#A9C2EE"/>
+  <path d="M380 540 L560 410 L690 470 L840 360 L990 450 L1120 380 L1260 440 L1440 380 L1440 700 L380 700 Z" fill="#7C9DDC"/>
+  <path d="M260 610 L470 520 L640 560 L820 480 L1010 560 L1190 500 L1440 540 L1440 700 L260 700 Z" fill="#4F75C4"/>
+  <g fill="#23458F">
+    <rect x="760" y="560" width="46" height="90"/><rect x="812" y="530" width="38" height="120"/><rect x="856" y="575" width="54" height="75"/>
+    <rect x="918" y="545" width="34" height="105"/><rect x="958" y="590" width="60" height="60"/><rect x="1026" y="520" width="42" height="130"/>
+    <rect x="1074" y="570" width="58" height="80"/><rect x="1140" y="548" width="36" height="102"/><rect x="1182" y="585" width="70" height="65"/>
+    <rect x="1260" y="535" width="44" height="115"/><rect x="1310" y="575" width="62" height="75"/><rect x="1380" y="555" width="60" height="95"/>
+  </g>
+  <rect x="0" y="648" width="1440" height="52" fill="#1B377A"/>
+</svg>`;
 
 /* ---------- carga ---------- */
 async function load(){
@@ -26,84 +80,122 @@ async function load(){
     const j=await r.json();
     G.hotel=j.hotel||{}; G.rooms=j.rooms||[]; G.avail=j.avail||{}; G.loaded=true;
     $("#gNoDb").hidden=true; render();
-  }catch(_){ $("#gNoDb").hidden=false; if(!G.loaded) $("#gRoomsSub").textContent="Sin conexión"; }
+  }catch(_){ $("#gNoDb").hidden=false; if(!G.loaded) $("#roomsSub").textContent="No pudimos cargar las habitaciones."; }
 }
 async function refreshMine(){
-  if(!G.mine.length){render();return;}
+  if(!G.mine.length) return;
   await Promise.all(G.mine.map(async m=>{
-    try{const r=await fetch(`/api/requests/${encodeURIComponent(m.id)}?p=${encodeURIComponent(m.p)}`);if(r.ok){const j=await r.json();m.status=j.status;m.room=j.room;m.checkIn=j.checkIn;m.checkOut=j.checkOut;}}catch(_){}
+    try{const r=await fetch(`/api/requests/${encodeURIComponent(m.id)}?p=${encodeURIComponent(m.p)}`);if(r.ok){const j=await r.json();Object.assign(m,{status:j.status,room:j.room,checkIn:j.checkIn,checkOut:j.checkOut});}}catch(_){}
   }));
-  storeMine(); render();
+  storeMine(); renderMine();
 }
 
-/* ---------- búsqueda ---------- */
+/* ---------- búsqueda y filtros ---------- */
 function initSearch(){const t=todayISO();G.q={in:t,out:addDays(t,1),ad:1,ch:0};$("#gIn").value=G.q.in;$("#gOut").value=G.q.out;$("#gIn").min=t;$("#gOut").min=addDays(t,1);}
-$("#gIn").addEventListener("change",()=>{const v=$("#gIn").value;$("#gOut").min=addDays(v,1);if($("#gOut").value<=v)$("#gOut").value=addDays(v,1);});
-$("#gSearch").addEventListener("submit",e=>{
+$("#gIn").addEventListener("change",()=>{const v=$("#gIn").value;if(!v)return;$("#gOut").min=addDays(v,1);if($("#gOut").value<=v)$("#gOut").value=addDays(v,1);});
+$("#search").addEventListener("submit",e=>{
   e.preventDefault();
   const a=$("#gIn").value,b=$("#gOut").value;
   if(!a||!b||b<=a){toast("La fecha de salida debe ser posterior a la de llegada.");return;}
   if(a<todayISO()){toast("Elige una fecha de llegada desde hoy.");return;}
   G.q={in:a,out:b,ad:+$("#gAd").value||1,ch:+$("#gCh").value||0};
-  render(); $("#gRoomsSec").scrollIntoView({block:"start"});
+  renderRooms(); $("#habitaciones").scrollIntoView({block:"start"});
 });
+$("#cats").addEventListener("click",e=>{const b=e.target.closest("button[data-type]");if(!b)return;G.type=b.dataset.type;renderCats();renderRooms();});
 
 /* ---------- render ---------- */
-function render(){
-  const h=G.hotel, rooms=sortRooms(), q=G.q, n=diff(q.in,q.out), pax=q.ad+q.ch;
-  document.title = hName()+" · Habitaciones en "+(h.zone?h.zone.split(",")[0]:"Suba, Bogotá");
-  $("#gLogo").innerHTML=nameHTML(hName()); $("#gName").innerHTML=nameHTML(hName());
-  $("#gCopy").textContent=hName()+" · "+(h.address||"Bogotá");
-  $("#gZone").textContent="Habitaciones privadas · "+(h.zone||"Suba, Bogotá");
-  if(h.description) $("#gDesc").textContent=h.description;
-  $("#gFacts").innerHTML=`${h.address?`<span><span class="muted">Dirección</span> ${esc(h.address)}</span>`:""}
-    <span><span class="muted">Llegada</span> <b>${esc(h.checkinFrom||"15:00")}–${esc(h.checkinTo||"18:00")}</b></span>
-    <span><span class="muted">Salida</span> <b>${esc(h.checkout||"11:00")}</b></span><span><span class="muted">Wi-Fi</span> gratis</span>`;
-  const cov=rooms.flatMap(r=>r.photos||[])[0];
-  $("#gPic").innerHTML=cov?`<img src="${photoUrl(cov)}" alt="${esc(hName())}">`:`<span class="ph-empty">170</span>`;
-  $("#gContactTop").textContent=h.whatsapp?("WhatsApp "+h.whatsapp):"";
+function render(){ renderHero(); renderCats(); renderRooms(); renderAmen(); renderNear(); renderRules(); renderContact(); renderMine(); }
 
+function renderHero(){
+  const h=G.hotel, hero=$("#hero");
+  document.title = hName()+" · Habitaciones en Suba, Bogotá";
+  ["#logo","#footLogo"].forEach(s=>$(s).innerHTML=nameHTML(shortName()));
+  const photo=h.heroPhoto || sortRooms().flatMap(r=>r.photos||[])[0];
+  hero.classList.toggle("photo",!!photo);
+  $("#heroBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : HERO_SVG;
+  if(h.tagline) $("#heroTitle").textContent=h.tagline;
+  const lead = h.description ? h.description.split(/(?<=\.)\s/)[0] : "";
+  if(lead && lead.length<170) $("#heroLead").textContent=lead;
+  $("#heroCaption").innerHTML=`<b>${esc((h.zone||"Suba, Bogotá").split(",")[0])}</b>${esc(h.address||"")}`;
+  const wa=waNum(); const nw=$("#navWa");
+  if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;}
+}
+function renderCats(){
+  const types=[...new Set(sortRooms().map(r=>r.type).filter(Boolean))];
+  if(G.type && !types.includes(G.type)) G.type="";
+  $("#cats").innerHTML=[["","Todas","grid"],...types.map(t=>[t,t,typeIcon(t)])]
+    .map(([k,label,ic])=>`<button type="button" data-type="${esc(k)}" aria-pressed="${G.type===k}">${ico(ic)}${esc(label)}</button>`).join("");
+}
+function renderRooms(){
+  const q=G.q, n=diff(q.in,q.out), pax=q.ad+q.ch;
+  const rooms=sortRooms().filter(r=>!G.type||r.type===G.type);
+  const withSt=rooms.map(r=>({r,st:guestOk(r,q)})).sort((a,b)=>(b.st.ok-a.st.ok));
   if(G.loaded){
-    const free=rooms.filter(r=>guestOk(r,q).ok).length;
-    $("#gRoomsSub").textContent=`${free} disponible${free===1?"":"s"} · ${fd(q.in,{weekday:"short"})} → ${fd(q.out,{weekday:"short"})} · ${n} noche${n>1?"s":""} · ${pax} persona${pax>1?"s":""}`;
+    const free=withSt.filter(x=>x.st.ok).length;
+    $("#roomsSub").textContent=`${free} de ${rooms.length} disponibles${G.type?" · "+G.type:""} · ${fd(q.in,{weekday:"short"})} → ${fd(q.out,{weekday:"short"})} · ${n} noche${n>1?"s":""} · ${pax} persona${pax>1?"s":""}`;
   }
-  $("#gRooms").innerHTML=rooms.map(r=>{const c=(r.photos||[])[0], st=guestOk(r,q), rate=Number(r.rate)||0;return `
-    <article class="room" data-groom="${esc(r.id)}" tabindex="0">
-      <div class="ph">${c?`<img src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<span class="no">${esc(r.number)}</span>`}
-        <span class="st">${st.ok?'<span class="pill ok">Disponible</span>':`<span class="pill bad">${esc(st.why)}</span>`}</span>
-        ${(r.photos||[]).length>1?`<span class="cnt">${r.photos.length} fotos</span>`:""}</div>
-      <div class="bd"><h3>${esc(r.name||r.type||"Habitación")}</h3>
-        <div class="muted" style="font-size:.84rem">${esc(r.beds||"")} · hasta ${r.capacity||"?"} pers. · baño ${esc(r.bath||"")}</div>
-        <div class="chips">${(r.features||[]).slice(0,4).map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
-        <div class="g-foot"><div><b class="num">${cop(rate*n)}</b><small class="muted">${cop(rate)} × ${n} noche${n>1?"s":""}</small></div>
-          <button class="btn primary" data-req="${esc(r.id)}" ${st.ok?"":"disabled"}>Solicitar</button></div></div>
-    </article>`;}).join("") || `<div class="empty">${G.loaded?"Pronto publicaremos nuestras habitaciones.":"Cargando habitaciones…"}</div>`;
-
-  const L=(t,a)=>a&&a.length?`<div class="panel"><h3>${t}</h3><ul class="plain" style="margin-top:10px">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"";
-  $("#gInfo").innerHTML=L("Servicios",h.amenities)+L("Normas de la casa",h.policies)+L("Cerca de ti",h.nearby) || `<div class="empty">Cargando…</div>`;
-  const wa=waNum();
-  $("#gContact").innerHTML=`<dl class="kv"><dt>Dirección</dt><dd>${esc(h.address||"—")}</dd><dt>Teléfono</dt><dd class="num">${esc(h.phone||"Pronto")}</dd>
-    <dt>WhatsApp</dt><dd class="num">${esc(h.whatsapp||"Pronto")}</dd><dt>Correo</dt><dd>${esc(h.email||"Pronto")}</dd></dl>
-    ${wa?`<div style="margin-top:12px"><a class="btn primary" href="https://wa.me/${wa}" target="_blank" rel="noopener">Escribir por WhatsApp</a></div>`:""}`;
-
+  $("#rooms").innerHTML=withSt.map(({r,st})=>{const c=(r.photos||[])[0], rate=Number(r.rate)||0;return `
+    <article class="card ${st.ok?"":"off"}" data-room="${esc(r.id)}" tabindex="0" aria-label="${esc(r.name||r.type)}">
+      <div class="img">${c?`<img src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph">${ico(typeIcon(r.type))}${esc(r.number)}</div>`}
+        <span class="badge ${st.ok?"":"no"}">${st.ok?`${n} noche${n>1?"s":""} · disponible`:esc(st.why)}</span>
+        ${(r.photos||[]).length>1?`<span class="num-tag">${r.photos.length} fotos</span>`:""}</div>
+      <div class="body">
+        <div class="type">${esc(r.type||"Habitación")} · Hab. ${esc(r.number)}</div>
+        <h3>${esc(r.name||r.type||"Habitación")}</h3>
+        <p class="desc">${esc(r.description||"")}</p>
+        <div class="meta"><span>${ico("users")}${r.capacity||"?"} pers.</span><span>${ico("bed")}${esc(r.beds||"")}</span>
+          <span class="price"><b>${cop(rate*n)}</b><small>${cop(rate)} / noche</small></span><span class="go">${ico("arrow")}</span></div>
+      </div>
+    </article>`;}).join("") || `<div class="empty">${G.loaded?"No hay habitaciones de este tipo.":"Cargando habitaciones…"}</div>`;
+}
+function renderAmen(){
+  const items=(G.hotel.amenities||[]).map(a=>{const label=a.split("(")[0].replace(/\s+en\s+habitaciones.*$/i,"").trim();return {label:label.length>56?label.slice(0,54)+"…":label,ic:amenIcon(a)};});
+  items.push({label:"A pasos del Portal Norte",ic:"bus"});
+  $("#amen").innerHTML=items.slice(0,10).map(x=>`<div class="tile">${ico(x.ic)}<span>${esc(x.label)}</span></div>`).join("");
+}
+function renderNear(){
+  const h=G.hotel;
+  $("#addrLine").textContent=[h.address,h.zone].filter(Boolean).join(" · ") || "Suba, Bogotá";
+  if(h.address) $("#mapLink").href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(h.address+", Bogotá");
+  $("#near").innerHTML=(h.nearby||[]).map(x=>{const [t,...m]=x.split(" · ");return `<div class="it"><span class="circ">${ico(nearIcon(x))}</span><div><b>${esc(t)}</b><small>${esc(m.join(" · "))}</small></div></div>`;}).join("")
+    || `<div class="empty">${G.loaded?"Pronto agregaremos los lugares cercanos.":"Cargando…"}</div>`;
+}
+function renderRules(){
+  const h=G.hotel;
+  const times=`<div class="panel"><h3>${ico("clock")}Horarios</h3><dl class="kv" style="margin-top:12px"><dt>Llegada</dt><dd class="num">${esc(h.checkinFrom||"15:00")} – ${esc(h.checkinTo||"18:00")}</dd><dt>Salida</dt><dd class="num">hasta ${esc(h.checkout||"11:00")}</dd>${h.payments?`<dt>Pagos</dt><dd>${esc(h.payments)}</dd>`:""}</dl></div>`;
+  const pol=(h.policies||[]);
+  const half=Math.ceil(pol.length/2);
+  const list=(a)=>`<ul class="plain" style="margin-top:12px">${a.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`;
+  $("#rules").innerHTML=times+(pol.length?`<div class="panel"><h3>${ico("shield")}Normas de la casa</h3>${list(pol.slice(0,half))}</div><div class="panel"><h3>${ico("key")}Tu llegada</h3>${list(pol.slice(half))}</div>`:"");
+}
+function renderContact(){
+  const h=G.hotel, wa=waNum();
+  $("#ctaNum").textContent = h.whatsapp ? h.whatsapp : (h.phone || "WhatsApp próximamente");
+  const btn=$("#ctaBtn");
+  if(wa){btn.href=`https://wa.me/${wa}`;btn.target="_blank";btn.rel="noopener";btn.textContent="Escribir por WhatsApp";}
+  $("#ctaNote").textContent = wa ? "Te confirmamos disponibilidad y forma de pago por WhatsApp." : "Mientras tanto, solicita tu reserva desde las habitaciones.";
+  $("#footContact").innerHTML=[h.address&&esc(h.address),h.phone&&`Tel. <span class="num">${esc(h.phone)}</span>`,h.whatsapp&&`WhatsApp <span class="num">${esc(h.whatsapp)}</span>`,h.email&&esc(h.email)].filter(Boolean).map(x=>`<li class="muted">${x}</li>`).join("");
+  $("#footTag").textContent = h.zone ? `Habitaciones privadas en ${h.zone}.` : "Habitaciones privadas en Suba, Bogotá.";
+  $("#copy").textContent=`© ${new Date().getFullYear()} ${hName()} · Bogotá, Colombia`;
+}
+function renderMine(){
   const mine=G.mine.slice().reverse();
-  $("#gMineSec").hidden=!mine.length;
-  $("#gMine").innerHTML=mine.map(m=>{const st=m.status==="aceptada"?["Confirmada","ok"]:m.status==="rechazada"?["No disponible","bad"]:["En revisión","warn"];
+  $("#mineSec").hidden=!mine.length; $("#footMine").parentElement.hidden=!mine.length;
+  $("#mine").innerHTML=mine.map(m=>{const st=m.status==="aceptada"?["Confirmada","ok"]:m.status==="rechazada"?["No disponible","bad"]:["En revisión","warn"];
     return `<div class="li"><div class="who"><b>${esc(m.room||"Habitación")}</b><small>${fd(m.checkIn,{weekday:"short"})} → ${fd(m.checkOut,{weekday:"short"})} · <span class="num">${esc(m.id)}</span></small></div><span class="pill ${st[1]}">${st[0]}</span></div>`;}).join("");
 }
 
 /* ---------- habitación ---------- */
-$("#gRooms").addEventListener("click",e=>{const b=e.target.closest("[data-req]");if(b){if(!b.disabled)openRequest(b.dataset.req);return;}
-  const c=e.target.closest("[data-groom]");if(c)openRoom(c.dataset.groom);});
-$("#gRooms").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("[data-groom]"))openRoom(e.target.dataset.groom);});
+$("#rooms").addEventListener("click",e=>{const c=e.target.closest("[data-room]");if(c)openRoom(c.dataset.room);});
+$("#rooms").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("[data-room]"))openRoom(e.target.dataset.room);});
 function openRoom(id){
-  const r=roomById(id); if(!r) return; const ph=r.photos||[]; const st=guestOk(r,G.q);
+  const r=roomById(id); if(!r) return; const ph=r.photos||[]; const st=guestOk(r,G.q); const n=diff(G.q.in,G.q.out);
   const body=`<div class="hero-ph">${ph[0]?`<img id="grImg" src="${photoUrl(ph[0])}" alt="${esc(r.name||"Habitación")}">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted)">Fotos próximamente</div>`}</div>
     ${ph.length>1?`<div class="gallery" id="grThumbs">${ph.map(p=>`<figure><img src="${photoUrl(p)}" alt="" data-ph="${esc(p)}" loading="lazy" style="cursor:pointer"></figure>`).join("")}</div>`:""}
     ${r.description?`<p style="margin:0;max-width:68ch">${esc(r.description)}</p>`:""}
-    <dl class="kv"><dt>Camas</dt><dd>${esc(r.beds||"")}</dd><dt>Capacidad</dt><dd>${r.capacity||"?"} personas</dd><dt>Baño</dt><dd>${esc(r.bath||"")}</dd>${r.size?`<dt>Área</dt><dd class="num">${esc(r.size)} m²</dd>`:""}<dt>Tarifa</dt><dd class="num">${cop(r.rate)} por noche</dd></dl>
+    <dl class="kv"><dt>Tipo</dt><dd>${esc(r.type||"")}</dd><dt>Camas</dt><dd>${esc(r.beds||"")}</dd><dt>Capacidad</dt><dd>${r.capacity||"?"} personas</dd><dt>Baño</dt><dd>${esc(r.bath||"")}</dd>${r.size?`<dt>Área</dt><dd class="num">${esc(r.size)} m²</dd>`:""}<dt>Tarifa</dt><dd class="num">${cop(r.rate)} por noche · ${cop((Number(r.rate)||0)*n)} por ${n} noche${n>1?"s":""}</dd></dl>
     <div class="chips">${(r.features||[]).map(f=>`<span class="chip">${esc(f)}</span>`).join("")}</div>
-    <div class="note ${st.ok?"ok":"warn"}">${st.ok?`Disponible del ${fd(G.q.in)} al ${fd(G.q.out)}.`:`${esc(st.why)} (${fd(G.q.in)} – ${fd(G.q.out)}). Prueba otras fechas.`}</div>`;
+    <div class="note ${st.ok?"ok":"warn"}">${st.ok?`Disponible del ${fd(G.q.in)} al ${fd(G.q.out)}.`:`${esc(st.why)} (${fd(G.q.in)} – ${fd(G.q.out)}). Cambia las fechas en el buscador.`}</div>`;
   openModal(r.name||"Habitación", body, `<button class="btn" id="grClose">Cerrar</button><button class="btn primary" id="grReq" ${st.ok?"":"disabled"}>Solicitar reserva</button>`, ov=>{
     ov.querySelector("#grClose").onclick=closeModal;
     ov.querySelector("#grReq").onclick=()=>openRequest(id);
@@ -140,12 +232,12 @@ function openRequest(roomId){
         nationality:v("#qNat"),phone:v("#qPhone"),email:v("#qEmail"),eta:v("#qEta"),notes:v("#qNotes"),consent:true,website:v("#qWeb")};
       let id=null, errText="";
       try{
-        const r=await fetch("/api/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-        const j=await r.json().catch(()=>({}));
-        if(r.ok) id=j.id; else errText=j.error||"No pudimos registrar la solicitud.";
+        const res=await fetch("/api/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        const j=await res.json().catch(()=>({}));
+        if(res.ok) id=j.id; else errText=j.error||"No pudimos registrar la solicitud.";
       }catch(_){errText="No hay conexión con el servidor.";}
-      if(!id && errText && /disponible/.test(errText)){toast(errText);btn.disabled=false;btn.textContent="Enviar solicitud";load();return;}
-      if(id){G.mine.push({id,p:payload.phone.replace(/\D/g,""),room:r.name||r.type,checkIn:q.in,checkOut:q.out,status:"nueva"});storeMine();render();}
+      if(!id && /disponible/.test(errText)){toast(errText);btn.disabled=false;btn.textContent="Enviar solicitud";load();return;}
+      if(id){G.mine.push({id,p:payload.phone.replace(/\D/g,""),room:r.name||r.type,checkIn:q.in,checkOut:q.out,status:"nueva"});storeMine();renderMine();}
       showResult(r,q,payload,id,errText);
     };
   }, true);
@@ -154,7 +246,7 @@ function showResult(r,q,p,id,errText){
   const msg=`Hola, quiero reservar en ${hName()}.\n• Habitación: ${r.name||r.type} (${r.number})\n• Llegada: ${fd(q.in,{weekday:"long",year:"numeric"})}${p.eta?" hacia las "+p.eta:""}\n• Salida: ${fd(q.out,{weekday:"long",year:"numeric"})}\n• Personas: ${q.ad} adulto(s)${q.ch?", "+q.ch+" niño(s)":""}\n• Nombre: ${p.first} ${p.last}\n• Documento: ${p.docType} ${p.docNumber}\n• Teléfono: ${p.phone}${p.notes?"\n• Comentarios: "+p.notes:""}${id?"\nCódigo de solicitud: "+id:""}`;
   const wa=waNum();
   openModal(id?"Solicitud enviada":"Envía tu solicitud",
-    `${id?`<div class="note ok">Recibimos tu solicitud <b class="num">${esc(id)}</b>. Te confirmaremos por teléfono o WhatsApp; también puedes ver su estado en «Mis solicitudes» desde este navegador.</div>`
+    `${id?`<div class="note ok">Recibimos tu solicitud <b class="num">${esc(id)}</b>. Te confirmaremos por teléfono o WhatsApp; puedes ver su estado en «Mis solicitudes» desde este navegador.</div>`
       :`<div class="note warn">${esc(errText||"No pudimos registrar la solicitud en línea.")} Envíala por WhatsApp o copia el mensaje.</div>`}
     <label class="f">Mensaje para el alojamiento<textarea id="rqMsg" rows="10" readonly>${esc(msg)}</textarea></label>
     ${wa?"":`<div class="muted" style="font-size:.82rem">${G.hotel.phone?"Llama o escribe al "+esc(G.hotel.phone)+" para confirmar.":"Pronto publicaremos nuestro WhatsApp."}</div>`}`,

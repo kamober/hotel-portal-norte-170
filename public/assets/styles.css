@@ -1,20 +1,21 @@
 /* Hotel Portal Norte 170 — estilos compartidos (sitio público y administración) */
 :root{
-  --bg:#F3F5F3; --surface:#FFFFFF; --sunk:#E8ECE9; --line:#D5DCD7; --fg:#18201D; --muted:#5B6862;
-  --accent:#2C6A55; --accent-ink:#FFFFFF; --accent-soft:#DCEBE4;
-  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B23A3A; --bad-soft:#F7DEDE; --ok:#2C6A55; --ok-soft:#DCEBE4; --info:#2F5D95; --info-soft:#DEE8F5;
-  --ch-directo:#2C6A55; --ch-booking:#2F5D95; --ch-airbnb:#C24D6A; --ch-expedia:#B98A12; --ch-hotels:#B23A3A; --ch-otro:#6B6F7A;
-  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
-  --body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --bg:#F5F7FB; --surface:#FFFFFF; --sunk:#EEF2F9; --line:#DDE4EF; --fg:#0E1B3D; --muted:#5A6785;
+  --accent:#1E5EEA; --accent-ink:#FFFFFF; --accent-soft:#E7EEFF; --band:#F1F5FD;
+  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B23A3A; --bad-soft:#F7DEDE; --ok:#1F7A52; --ok-soft:#DDF1E7; --info:#1E5EEA; --info-soft:#E7EEFF;
+  --ch-directo:#1F7A52; --ch-booking:#2F5D95; --ch-airbnb:#C24D6A; --ch-expedia:#B98A12; --ch-hotels:#B23A3A; --ch-otro:#6B6F7A;
+  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --body:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  --r:8px; --cell:46px;
+  --r:12px; --cell:46px; --shadow:0 10px 30px rgba(14,27,61,.08);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#111614; --surface:#18201D; --sunk:#202A26; --line:#2E3A35; --fg:#E6ECE9; --muted:#97A59F;
-  --accent:#5DB592; --accent-ink:#0D1A15; --accent-soft:#1F3A30;
-  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#E57A7A; --bad-soft:#3D2222; --ok:#5DB592; --ok-soft:#1F3A30; --info:#7EA8DC; --info-soft:#1E2C3E;
-  --ch-directo:#5DB592; --ch-booking:#6F9BD6; --ch-airbnb:#E07D96; --ch-expedia:#D9AE42; --ch-hotels:#E57A7A; --ch-otro:#9BA0AB;
+  --bg:#0B1226; --surface:#121B33; --sunk:#18233F; --line:#26324F; --fg:#E7ECF7; --muted:#9AA6C2;
+  --accent:#6E9BFF; --accent-ink:#0B1226; --accent-soft:#1B2A52; --band:#0F1830;
+  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#E57A7A; --bad-soft:#3D2222; --ok:#5BC596; --ok-soft:#173A2B; --info:#6E9BFF; --info-soft:#1B2A52;
+  --ch-directo:#5BC596; --ch-booking:#6F9BD6; --ch-airbnb:#E07D96; --ch-expedia:#D9AE42; --ch-hotels:#E57A7A; --ch-otro:#9BA0AB;
+  --shadow:0 10px 30px rgba(0,0,0,.35);
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -30,7 +31,7 @@ a{color:var(--accent)}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .grp{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.btn{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:7px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none}
 .btn:hover{border-color:var(--muted)}
 .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.mode:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -39,7 +40,7 @@ a{color:var(--accent)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .mode{font:inherit;font-size:.78rem;font-weight:500;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:5px 12px;cursor:pointer;white-space:nowrap;text-decoration:none}
 .mode:hover{border-color:var(--accent);color:var(--accent)}
-input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
 textarea{resize:vertical;min-height:70px}
 label.f{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--muted);font-weight:500;min-width:0}
 label.f.chk{flex-direction:row;align-items:flex-start;gap:8px;color:var(--fg);font-weight:400;font-size:.85rem}
