@@ -61,6 +61,33 @@ Crea un archivo `.env` (no se sube a Git) con `ADMIN_PASSWORD` y `TOKEN_SECRET` 
 - **Seguridad:** el panel usa una sola contraseña (`ADMIN_PASSWORD`) y un token firmado con `TOKEN_SECRET` que vence a los 7 días. Para cerrar todas las sesiones abiertas, cambia `TOKEN_SECRET` y vuelve a desplegar. El formulario público tiene un campo trampa contra bots.
 - **Fotos:** se reducen a 1800 px en el navegador antes de subirse (máx. 5 MB, JPG/PNG/WebP) y se sirven desde `/api/photos/<id>` con caché larga.
 
+## Identidad visual
+
+Logo definitivo: hongo-casa con puerta de madera y pasto. Archivos en `public/assets/`:
+
+| Archivo | Uso |
+|---|---|
+| `logo-web.png` | Logo completo con fondo transparente (pie de página, ingreso al panel) |
+| `logo-mark.png` | Solo el hongo, transparente (barra superior, banda de contacto, tarjetas sin foto, encabezado del panel) |
+| `favicon-32.png`, `favicon-64.png` | Pestaña del navegador |
+| `apple-touch-icon.png`, `icon-512.png` | Ícono del celular y foto de perfil (fondo crema) |
+| `og-image.png` | Imagen al compartir el enlace |
+
+Paleta (tomada del logo, variables en `public/assets/styles.css`):
+
+| Color | Hex | Uso |
+|---|---|---|
+| Rojo hongo | `#E2362B` | Color de marca, ilustraciones |
+| Rojo acción | `#C62D24` | Botones y enlaces (contraste AA con texto blanco) |
+| Rojo profundo | `#BA221E` | Hover y sombras |
+| Crema | `#FBEFD9` | Fondos de marca, chips del logo |
+| Madera | `#B86D41` / `#9D582C` | Acentos cálidos, estado «confirmada» |
+| Pasto | `#98C055` / `#3E7A1F` | Disponibilidad y estados positivos |
+| Tinta | `#1C1A17` | Texto y trazos |
+| Fondo | `#FFFBF4` | Fondo general |
+
+Tipografía: Fredoka (títulos, redondeada como las letras del logo) y Plus Jakarta Sans (texto).
+
 ## Mantenimiento
 
 - **Respaldo:** botón *Descargar respaldo* en el panel (JSON con hotel, habitaciones, huéspedes, reservas y solicitudes). Hazlo con regularidad.

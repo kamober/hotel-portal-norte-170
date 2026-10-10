@@ -282,7 +282,7 @@ function roomToday(ro){const t=todayISO();
 function renderRooms(){
   $("#rooms").innerHTML = sortRooms().map(r=>{const cov=(r.photos||[])[0];const st=ROOM_STATUS[r.status]||ROOM_STATUS.disponible;const td=roomToday(r);const np=(r.photos||[]).length;return `
     <article class="room" data-room="${esc(r.id)}" tabindex="0">
-      <div class="ph">${cov?`<img src="${photoUrl(cov)}" alt="Habitación ${esc(r.number)}" loading="lazy">`:`<span class="no">${esc(r.number)}</span>`}
+      <div class="ph">${cov?`<img src="${photoUrl(cov)}" alt="Habitación ${esc(r.number)}" loading="lazy">`:`<span class="no" style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:1.6rem;color:var(--wood-deep)"><img src="/assets/logo-mark.png" alt="" style="width:84px;height:84px">${esc(r.number)}</span>`}
         <span class="st">${td?`<span class="pill ${td.cls}">${td.n}</span>`:`<span class="pill ${st.cls}">${st.n}</span>`}</span>
         <span class="cnt">${np} foto${np===1?"":"s"}</span></div>
       <div class="bd"><div class="row"><h3>${esc(r.name||"Habitación "+r.number)}</h3><b class="num">${cop(r.rate)}</b></div>

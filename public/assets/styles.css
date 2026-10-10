@@ -1,28 +1,31 @@
 /* Hotel Portal Norte 170 — estilos compartidos (sitio público y administración) */
+/* Paleta tomada del logo: sombrero rojo, crema, puerta de madera, pasto y trazo negro */
 :root{
-  --bg:#F5F7FB; --surface:#FFFFFF; --sunk:#EEF2F9; --line:#DDE4EF; --fg:#0E1B3D; --muted:#5A6785;
-  --accent:#1E5EEA; --accent-ink:#FFFFFF; --accent-soft:#E7EEFF; --band:#F1F5FD;
-  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B23A3A; --bad-soft:#F7DEDE; --ok:#1F7A52; --ok-soft:#DDF1E7; --info:#1E5EEA; --info-soft:#E7EEFF;
-  --ch-directo:#1F7A52; --ch-booking:#2F5D95; --ch-airbnb:#C24D6A; --ch-expedia:#B98A12; --ch-hotels:#B23A3A; --ch-otro:#6B6F7A;
-  --display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --brand-red:#E2362B; --brand-red-deep:#BA221E; --cream:#FBEFD9; --wood:#B86D41; --wood-deep:#9D582C; --grass:#98C055; --grass-deep:#3E7A1F;
+  --ink:#1C1A17; --ink-muted:#6B625A;
+  --bg:#FFFBF4; --surface:#FFFFFF; --sunk:#FBF3E7; --line:#EEE2D1; --fg:#1C1A17; --muted:#6B625A;
+  --accent:#C62D24; --accent-hover:#A8221B; --accent-ink:#FFFFFF; --accent-soft:#FDE7E3; --band:#FFF5E8;
+  --warn:#A8620B; --warn-soft:#FBEBD3; --bad:#B3261E; --bad-soft:#FBE3E0; --ok:#3E7A1F; --ok-soft:#E8F3D9; --info:#8A4E27; --info-soft:#F6E7DA;
+  --ch-directo:#3E7A1F; --ch-booking:#2F5D95; --ch-airbnb:#C24D6A; --ch-expedia:#B98A12; --ch-hotels:#B3261E; --ch-otro:#6B6F7A;
+  --display:"Fredoka","Baloo 2","Trebuchet MS",system-ui,sans-serif;
   --body:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
-  --r:12px; --cell:46px; --shadow:0 10px 30px rgba(14,27,61,.08);
+  --r:14px; --cell:46px; --shadow:0 10px 30px rgba(60,32,12,.10);
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#0B1226; --surface:#121B33; --sunk:#18233F; --line:#26324F; --fg:#E7ECF7; --muted:#9AA6C2;
-  --accent:#6E9BFF; --accent-ink:#0B1226; --accent-soft:#1B2A52; --band:#0F1830;
-  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#E57A7A; --bad-soft:#3D2222; --ok:#5BC596; --ok-soft:#173A2B; --info:#6E9BFF; --info-soft:#1B2A52;
-  --ch-directo:#5BC596; --ch-booking:#6F9BD6; --ch-airbnb:#E07D96; --ch-expedia:#D9AE42; --ch-hotels:#E57A7A; --ch-otro:#9BA0AB;
-  --shadow:0 10px 30px rgba(0,0,0,.35);
+  --bg:#15110E; --surface:#1F1915; --sunk:#29211B; --line:#3A2F27; --fg:#F4ECE2; --muted:#B5A898;
+  --accent:#FF6A5C; --accent-hover:#FF8577; --accent-ink:#1A0F0C; --accent-soft:#3A1E1A; --band:#1B1612;
+  --warn:#E3A44A; --warn-soft:#3A2C17; --bad:#FF8A7E; --bad-soft:#3D2222; --ok:#8FC66A; --ok-soft:#23301A; --info:#E0A27A; --info-soft:#3A2A1F;
+  --ch-directo:#8FC66A; --ch-booking:#6F9BD6; --ch-airbnb:#E07D96; --ch-expedia:#D9AE42; --ch-hotels:#FF8A7E; --ch-otro:#9BA0AB;
+  --shadow:0 10px 30px rgba(0,0,0,.4);
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--body);padding:0 16px 48px}
 img{max-width:100%}
 [hidden]{display:none!important}
-h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:0}
 h2{font-size:1.25rem} h3{font-size:1rem}
 a{color:var(--accent)}
 .wrap{max-width:1240px;margin:0 auto}
@@ -31,10 +34,11 @@ a{color:var(--accent)}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
 .grp{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;text-decoration:none}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;text-decoration:none}
 .btn:hover{border-color:var(--muted)}
 .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.mode:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary,.btn.brand{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover,.btn.brand:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
 .btn.sm{padding:4px 9px;font-size:.82rem}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -74,6 +78,14 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;f
 .banner{padding:12px 14px;border-radius:var(--r);background:var(--warn-soft);color:var(--warn);font-size:.88rem}
 fieldset{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:0;display:flex;flex-direction:column;gap:12px;min-width:0}
 legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:0 4px}
+/* Logotipo compuesto: símbolo + nombre + descriptores */
+.lockup{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:var(--fg)}
+.lockup img{flex:none}
+.lockup .lk-txt{display:flex;flex-direction:column;gap:3px}
+.lockup small{display:block;font-size:.6rem;letter-spacing:.32em;font-weight:700;color:var(--muted);line-height:1}
+.lockup b{display:block;font-family:var(--display);font-weight:700;font-size:1.55rem;line-height:1;letter-spacing:-.01em}
+.lockup em{font-style:normal;color:var(--accent)}
+.lockup .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#E5483B;vertical-align:middle;margin:0 6px 2px}
 /* Tarjetas de habitación */
 .room{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;cursor:pointer}
 .room:hover{border-color:var(--muted)}

@@ -56,20 +56,20 @@ function storeMine(){try{localStorage.setItem(MINE_KEY,JSON.stringify(G.mine.sli
 
 /* Ilustración de respaldo para la portada: cerros orientales de Bogotá */
 const HERO_SVG = `<svg viewBox="0 0 1440 700" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Ilustración de los cerros de Bogotá">
-  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFD6FF"/><stop offset=".65" stop-color="#E9F1FF"/><stop offset="1" stop-color="#F7FAFF"/></linearGradient></defs>
+  <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFDDB8"/><stop offset=".6" stop-color="#FFF0DC"/><stop offset="1" stop-color="#FFF8EE"/></linearGradient></defs>
   <rect width="1440" height="700" fill="url(#sky)"/>
-  <circle cx="1130" cy="170" r="70" fill="#FFF6DD" opacity=".9"/>
+  <circle cx="1130" cy="170" r="70" fill="#FFC86B" opacity=".85"/>
   <g fill="#fff" opacity=".85"><ellipse cx="980" cy="120" rx="90" ry="18"/><ellipse cx="1040" cy="108" rx="60" ry="16"/><ellipse cx="1300" cy="230" rx="80" ry="14"/></g>
-  <path d="M520 470 L700 300 L800 360 L930 240 L1060 330 L1180 220 L1310 300 L1440 250 L1440 700 L520 700 Z" fill="#A9C2EE"/>
-  <path d="M380 540 L560 410 L690 470 L840 360 L990 450 L1120 380 L1260 440 L1440 380 L1440 700 L380 700 Z" fill="#7C9DDC"/>
-  <path d="M260 610 L470 520 L640 560 L820 480 L1010 560 L1190 500 L1440 540 L1440 700 L260 700 Z" fill="#4F75C4"/>
-  <g fill="#23458F">
+  <path d="M520 470 L700 300 L800 360 L930 240 L1060 330 L1180 220 L1310 300 L1440 250 L1440 700 L520 700 Z" fill="#D3E6AE"/>
+  <path d="M380 540 L560 410 L690 470 L840 360 L990 450 L1120 380 L1260 440 L1440 380 L1440 700 L380 700 Z" fill="#AFD178"/>
+  <path d="M260 610 L470 520 L640 560 L820 480 L1010 560 L1190 500 L1440 540 L1440 700 L260 700 Z" fill="#7FB047"/>
+  <g fill="#8A4E27">
     <rect x="760" y="560" width="46" height="90"/><rect x="812" y="530" width="38" height="120"/><rect x="856" y="575" width="54" height="75"/>
     <rect x="918" y="545" width="34" height="105"/><rect x="958" y="590" width="60" height="60"/><rect x="1026" y="520" width="42" height="130"/>
     <rect x="1074" y="570" width="58" height="80"/><rect x="1140" y="548" width="36" height="102"/><rect x="1182" y="585" width="70" height="65"/>
     <rect x="1260" y="535" width="44" height="115"/><rect x="1310" y="575" width="62" height="75"/><rect x="1380" y="555" width="60" height="95"/>
   </g>
-  <rect x="0" y="648" width="1440" height="52" fill="#1B377A"/>
+  <rect x="0" y="648" width="1440" height="52" fill="#5E3519"/>
 </svg>`;
 
 /* ---------- carga ---------- */
@@ -109,7 +109,7 @@ function render(){ renderHero(); renderCats(); renderRooms(); renderAmen(); rend
 function renderHero(){
   const h=G.hotel, hero=$("#hero");
   document.title = hName()+" · Habitaciones en Suba, Bogotá";
-  ["#logo","#footLogo"].forEach(s=>$(s).innerHTML=nameHTML(shortName()));
+  $("#logoText").innerHTML=nameHTML(shortName());
   const photo=h.heroPhoto || sortRooms().flatMap(r=>r.photos||[])[0];
   hero.classList.toggle("photo",!!photo);
   $("#heroBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : HERO_SVG;
@@ -136,7 +136,7 @@ function renderRooms(){
   }
   $("#rooms").innerHTML=withSt.map(({r,st})=>{const c=(r.photos||[])[0], rate=Number(r.rate)||0;return `
     <article class="card ${st.ok?"":"off"}" data-room="${esc(r.id)}" tabindex="0" aria-label="${esc(r.name||r.type)}">
-      <div class="img">${c?`<img src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph">${ico(typeIcon(r.type))}${esc(r.number)}</div>`}
+      <div class="img">${c?`<img src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph"><img src="/assets/logo-mark.png" alt="">${esc(r.number)}</div>`}
         <span class="badge ${st.ok?"":"no"}">${st.ok?`${n} noche${n>1?"s":""} · disponible`:esc(st.why)}</span>
         ${(r.photos||[]).length>1?`<span class="num-tag">${r.photos.length} fotos</span>`:""}</div>
       <div class="body">
@@ -190,7 +190,7 @@ $("#rooms").addEventListener("click",e=>{const c=e.target.closest("[data-room]")
 $("#rooms").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("[data-room]"))openRoom(e.target.dataset.room);});
 function openRoom(id){
   const r=roomById(id); if(!r) return; const ph=r.photos||[]; const st=guestOk(r,G.q); const n=diff(G.q.in,G.q.out);
-  const body=`<div class="hero-ph">${ph[0]?`<img id="grImg" src="${photoUrl(ph[0])}" alt="${esc(r.name||"Habitación")}">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted)">Fotos próximamente</div>`}</div>
+  const body=`<div class="hero-ph">${ph[0]?`<img id="grImg" src="${photoUrl(ph[0])}" alt="${esc(r.name||"Habitación")}">`:`<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)"><img src="/assets/logo-mark.png" alt="" style="width:96px;height:96px">Fotos próximamente</div>`}</div>
     ${ph.length>1?`<div class="gallery" id="grThumbs">${ph.map(p=>`<figure><img src="${photoUrl(p)}" alt="" data-ph="${esc(p)}" loading="lazy" style="cursor:pointer"></figure>`).join("")}</div>`:""}
     ${r.description?`<p style="margin:0;max-width:68ch">${esc(r.description)}</p>`:""}
     <dl class="kv"><dt>Tipo</dt><dd>${esc(r.type||"")}</dd><dt>Camas</dt><dd>${esc(r.beds||"")}</dd><dt>Capacidad</dt><dd>${r.capacity||"?"} personas</dd><dt>Baño</dt><dd>${esc(r.bath||"")}</dd>${r.size?`<dt>Área</dt><dd class="num">${esc(r.size)} m²</dd>`:""}<dt>Tarifa</dt><dd class="num">${cop(r.rate)} por noche · ${cop((Number(r.rate)||0)*n)} por ${n} noche${n>1?"s":""}</dd></dl>

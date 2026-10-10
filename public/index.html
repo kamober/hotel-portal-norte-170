@@ -8,10 +8,14 @@
 <meta property="og:title" content="Hotel Portal Norte 170">
 <meta property="og:description" content="Habitaciones privadas cerca del Portal Norte, Bogotá. Reserva en línea.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#1E5EEA">
+<meta name="theme-color" content="#C62D24">
+<meta property="og:image" content="/assets/og-image.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 /* Sitio público: hero a sangre con buscador flotante, barra de categorías, secciones con encabezado serif. */
@@ -20,59 +24,60 @@ body.site{padding:0;background:var(--surface)}
 .ico{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
 /* Hero */
-.hero{position:relative;overflow:hidden;color:#0E1B3D;background:#DCE9FF;min-height:clamp(560px,74vh,700px);display:flex;flex-direction:column}
+.hero{position:relative;overflow:hidden;color:var(--ink);background:#FDE9D2;min-height:clamp(560px,74vh,700px);display:flex;flex-direction:column}
 .hero .bg{position:absolute;inset:0}
 .hero .bg img{width:100%;height:100%;object-fit:cover}
 .hero .bg svg{width:100%;height:100%;display:block}
 .hero.photo{color:#fff}
-.hero.photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,16,40,.62) 0%,rgba(6,16,40,.30) 45%,rgba(6,16,40,0) 75%),linear-gradient(0deg,rgba(6,16,40,.35),transparent 40%)}
+.hero.photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(30,16,6,.62) 0%,rgba(30,16,6,.30) 45%,rgba(30,16,6,0) 75%),linear-gradient(0deg,rgba(30,16,6,.35),transparent 40%)}
 .hero > .nav,.hero > .hero-body{position:relative;z-index:2;width:100%}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px;padding-top:calc(18px + env(safe-area-inset-top,0px))}
-.logo{font-family:var(--display);font-weight:700;font-size:1.45rem;letter-spacing:-.01em;color:inherit;text-decoration:none;white-space:nowrap}
-.logo span{color:#1E5EEA}
-.hero.photo .logo span{color:#9DBBFF}
+.logo{font-family:var(--display);font-weight:700;font-size:1.35rem;letter-spacing:.01em;text-transform:uppercase;color:inherit;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:10px}
+.logo .mark{width:54px;height:54px;flex:none}
+.hero.photo .logo .mark{background:var(--cream);border-radius:50%;padding:4px}
+@media (max-width:480px){.logo{font-size:1.2rem}.logo .mark{width:44px;height:44px}}
+.logo #logoText > span{color:var(--accent)}
+.hero.photo .logo #logoText > span{color:#FFC9C2}
 .nav ul{display:flex;gap:26px;list-style:none;margin:0;padding:0;font-size:.9rem;font-weight:500}
 .nav ul a{color:inherit;text-decoration:none;opacity:.9}
 .nav ul a:hover{opacity:1;text-decoration:underline;text-underline-offset:4px}
 .nav .right{display:flex;align-items:center;gap:12px}
 .nav .wa{font-size:.86rem;font-weight:600;color:inherit;text-decoration:none;white-space:nowrap}
-.btn.blue{background:#1E5EEA;border-color:#1E5EEA;color:#fff}
-.btn.blue:hover{background:#174FCC;border-color:#174FCC}
 @media (max-width:860px){.nav ul{display:none}}
 @media (max-width:480px){.nav .wa{display:none}}
 
 .hero-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding-block:24px 120px}
 .hero .eyebrow{color:inherit;opacity:.85;letter-spacing:.22em;font-size:.72rem}
-.hero h1{font-size:clamp(2.6rem,6.4vw,4.6rem);line-height:.98;margin-top:12px;max-width:12ch;letter-spacing:-.02em}
+.hero h1{font-size:clamp(2.6rem,6.4vw,4.6rem);line-height:1;margin-top:12px;max-width:12ch;font-weight:700}
 .hero p.lead{font-size:1.05rem;max-width:44ch;margin:16px 0 0;opacity:.92}
 .caption{position:absolute;right:20px;bottom:120px;z-index:2;color:#fff;text-align:right;font-size:.82rem;line-height:1.4;max-width:220px;text-shadow:0 1px 8px rgba(0,0,0,.35)}
 .caption b{display:block;font-weight:600;border-bottom:1px solid rgba(255,255,255,.6);padding-bottom:6px;margin-bottom:6px}
 @media (max-width:700px){.caption{display:none}}
 
 /* Buscador flotante */
-.search{position:absolute;left:50%;transform:translateX(-50%);bottom:84px;z-index:3;width:min(820px,calc(100% - 40px));background:#fff;color:#0E1B3D;border-radius:999px;box-shadow:0 14px 40px rgba(14,27,61,.18);padding:6px 6px 6px 22px;display:grid;grid-template-columns:auto 1fr 1fr .7fr .7fr auto;gap:6px;align-items:center}
-.search .sic{color:#5A6785}
-.search label{display:flex;flex-direction:column;font-size:.68rem;font-weight:600;color:#5A6785;text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-left:1px solid #E3E8F2;min-width:0}
+.search{position:absolute;left:50%;transform:translateX(-50%);bottom:84px;z-index:3;width:min(820px,calc(100% - 40px));background:#fff;color:var(--ink);border-radius:999px;box-shadow:0 14px 40px rgba(60,32,12,.18);padding:6px 6px 6px 22px;display:grid;grid-template-columns:auto 1fr 1fr .7fr .7fr auto;gap:6px;align-items:center}
+.search .sic{color:var(--ink-muted)}
+.search label{display:flex;flex-direction:column;font-size:.68rem;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 10px;border-left:1px solid #EFE5D6;min-width:0}
 .search label:first-of-type{border-left:0}
-.search input{border:0;padding:2px 0;font-size:.92rem;font-weight:500;color:#0E1B3D;background:transparent;text-transform:none;letter-spacing:0}
-.search input:focus-visible{outline:none;box-shadow:0 2px 0 #1E5EEA}
+.search input{border:0;padding:2px 0;font-size:.92rem;font-weight:500;color:var(--ink);background:transparent;text-transform:none;letter-spacing:0}
+.search input:focus-visible{outline:none;box-shadow:0 2px 0 var(--accent)}
 .search button{border-radius:999px;padding:12px 28px;justify-content:center}
 @media (max-width:760px){
   .search{position:relative;left:auto;transform:none;bottom:auto;width:auto;margin:-96px 20px 0;border-radius:18px;grid-template-columns:1fr 1fr;padding:12px}
   .search .sic{display:none}
-  .search label{border-left:0;background:#F3F6FC;border-radius:10px;padding:8px 10px}
+  .search label{border-left:0;background:#FFF7EC;border-radius:10px;padding:8px 10px}
   .search button{grid-column:1/-1;border-radius:12px}
   .hero-body{padding-bottom:130px}
 }
-@media (prefers-color-scheme:dark){.search,.cats{color:#0E1B3D}}
+@media (prefers-color-scheme:dark){.search,.cats{color:var(--ink)}}
 
 /* Categorías */
 .cats{position:relative;z-index:4;margin:-60px auto 0;width:max-content;max-width:calc(100% - 40px);background:#fff;border-radius:22px 22px 0 0;padding:14px 18px 10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
-.cats button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 18px;border-radius:12px;font-size:.8rem;font-weight:500;color:#0E1B3D;white-space:nowrap;border-bottom:2px solid transparent}
+.cats button{all:unset;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 18px;border-radius:12px;font-size:.8rem;font-weight:500;color:var(--ink);white-space:nowrap;border-bottom:2px solid transparent}
 .cats button .ico{width:26px;height:26px;stroke-width:1.5}
-.cats button:hover{background:#F1F5FD}
-.cats button[aria-pressed="true"]{color:#1E5EEA;border-color:#1E5EEA;border-radius:12px 12px 0 0}
-.cats button:focus-visible{outline:2px solid #1E5EEA}
+.cats button:hover{background:#FFF3E4}
+.cats button[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);border-radius:12px 12px 0 0}
+.cats button:focus-visible{outline:2px solid var(--accent)}
 @media (max-width:760px){.cats{margin-top:18px;border-radius:16px;border:1px solid var(--line);width:auto}}
 @media (prefers-color-scheme:dark){.cats{background:var(--surface)}.cats button{color:var(--fg)}.cats button:hover{background:var(--sunk)}}
 
@@ -91,13 +96,13 @@ body.site{padding:0;background:var(--surface)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .2s,transform .2s}
 .card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
 .card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.card .img{position:relative;aspect-ratio:16/10;max-width:100%;background:linear-gradient(160deg,#DCE9FF,#B9CFF7);display:grid;place-items:center;overflow:hidden}
+.card .img{position:relative;aspect-ratio:16/10;max-width:100%;background:linear-gradient(160deg,#FFF3E2,#F8DEC0);display:grid;place-items:center;overflow:hidden}
 .card .img img{width:100%;height:100%;object-fit:cover}
-.card .img .ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:#3D67B8;font-family:var(--display);font-weight:700;font-size:2.4rem}
-.card .img .ph .ico{width:34px;height:34px;stroke-width:1.4}
-.card .badge{position:absolute;left:12px;bottom:12px;background:#fff;color:#0E1B3D;font-size:.74rem;font-weight:600;padding:5px 11px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.card .img .ph{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--wood-deep);font-family:var(--display);font-weight:700;font-size:1.6rem}
+.card .img .ph img{width:96px;height:96px}
+.card .badge{position:absolute;left:12px;bottom:12px;background:#fff;color:var(--ink);font-size:.74rem;font-weight:600;padding:5px 11px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
 .card .badge.no{background:#FCE8E8;color:#B23A3A}
-.card .num-tag{position:absolute;right:12px;top:12px;background:rgba(255,255,255,.92);color:#0E1B3D;font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px}
+.card .num-tag{position:absolute;right:12px;top:12px;background:rgba(255,255,255,.92);color:var(--ink);font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:999px}
 .card .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
 .card .type{font-size:.68rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .card h3{font-size:1.2rem;line-height:1.2}
@@ -133,17 +138,20 @@ body.site{padding:0;background:var(--surface)}
 .rules h3 .ico{color:var(--accent)}
 
 /* Banda de contacto (estilo boletín) */
-.cta{margin-top:64px;background:linear-gradient(90deg,#E9F0FF,#F5F8FF);border-block:1px solid var(--line)}
+.cta{margin-top:64px;background:linear-gradient(90deg,#FFEFD9,#FFF8EE);border-block:1px solid var(--line)}
 .cta .container{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center;padding-block:34px}
 .cta .eyebrow{color:var(--accent);letter-spacing:.18em}
-.cta h2{font-size:clamp(1.5rem,3vw,1.9rem);margin-top:6px;color:#0E1B3D}
-.cta p{margin:6px 0 0;color:#5A6785}
+.cta-txt{display:flex;gap:18px;align-items:center}
+.cta-mark{width:88px;height:88px;border-radius:24px;background:var(--cream);padding:8px;flex:none}
+@media (max-width:480px){.cta-mark{width:56px;height:56px}}
+.cta h2{font-size:clamp(1.5rem,3vw,1.9rem);margin-top:6px;color:var(--ink)}
+.cta p{margin:6px 0 0;color:var(--ink-muted)}
 .cta .box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 6px 6px 18px;justify-self:end;width:min(100%,420px)}
-.cta .box span{flex:1;font-family:var(--mono);color:#0E1B3D;font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cta .box span{flex:1;font-family:var(--mono);color:var(--ink);font-size:.95rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cta .box .btn{border-radius:999px}
-.cta small{display:block;text-align:right;color:#5A6785;font-size:.74rem;margin-top:6px}
+.cta small{display:block;text-align:right;color:var(--ink-muted);font-size:.74rem;margin-top:6px}
 @media (max-width:760px){.cta .container{grid-template-columns:1fr}.cta .box{justify-self:stretch}.cta small{text-align:left}}
-@media (prefers-color-scheme:dark){.cta{background:linear-gradient(90deg,#14204A,#0F1830)}.cta h2{color:var(--fg)}.cta p,.cta small{color:var(--muted)}}
+@media (prefers-color-scheme:dark){.cta{background:linear-gradient(90deg,#2A1F17,#1A1511)}.cta h2{color:var(--fg)}.cta p,.cta small{color:var(--muted)}}
 
 /* Pie */
 .foot{padding-block:40px 28px;border-top:1px solid var(--line);margin-top:0}
@@ -152,8 +160,8 @@ body.site{padding:0;background:var(--surface)}
 .foot ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:.84rem}
 .foot a{color:var(--muted);text-decoration:none}
 .foot a:hover{color:var(--accent)}
-.foot .logo{color:var(--fg)}
-.foot .logo span{color:var(--accent)}
+.foot-logo{width:150px;height:auto;display:block}
+@media (prefers-color-scheme:dark){.foot-logo{background:var(--cream);border-radius:16px;padding:8px}}
 .foot p{color:var(--muted);font-size:.84rem;margin:8px 0 0;max-width:32ch}
 .foot .legal{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:32px;padding-top:16px;border-top:1px solid var(--line);font-size:.76rem;color:var(--muted)}
 @media (max-width:760px){.foot .cols{grid-template-columns:1fr 1fr}.foot .cols > :first-child{grid-column:1/-1}}
@@ -167,14 +175,14 @@ body.site{padding:0;background:var(--surface)}
 <header class="hero" id="hero">
   <div class="bg" id="heroBg" aria-hidden="true"></div>
   <nav class="container nav" aria-label="Principal">
-    <a class="logo" href="/" id="logo">Portal Norte <span>170</span></a>
+    <a class="logo" href="/" aria-label="Hotel Portal Norte 170, inicio"><img class="mark" src="/assets/logo-mark.png" alt="" width="54" height="54"><span id="logoText">Portal Norte <span>170</span></span></a>
     <ul>
       <li><a href="#habitaciones">Habitaciones</a></li>
       <li><a href="#servicios">Servicios</a></li>
       <li><a href="#ubicacion">Ubicación</a></li>
       <li><a href="#contacto">Contacto</a></li>
     </ul>
-    <div class="right"><a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a><a class="btn blue" href="#habitaciones">Reservar</a></div>
+    <div class="right"><a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a><a class="btn brand" href="#habitaciones">Reservar</a></div>
   </nav>
   <div class="container hero-body">
     <div class="eyebrow" id="heroEyebrow">DESCANSA. TRABAJA. MUÉVETE.</div>
@@ -188,7 +196,7 @@ body.site{padding:0;background:var(--surface)}
     <label>Salida<input type="date" id="gOut" required></label>
     <label>Adultos<input type="number" id="gAd" min="1" max="6" value="1"></label>
     <label>Niños<input type="number" id="gCh" min="0" max="4" value="0"></label>
-    <button class="btn blue" type="submit">Buscar</button>
+    <button class="btn brand" type="submit">Buscar</button>
   </form>
 </header>
 
@@ -232,15 +240,15 @@ body.site{padding:0;background:var(--surface)}
 
   <section class="cta" id="contacto">
     <div class="container">
-      <div><div class="eyebrow">ESCRÍBENOS</div><h2>Reserva directo con el alojamiento</h2><p>Resolvemos dudas sobre disponibilidad, llegada tardía y formas de pago.</p></div>
-      <div><div class="box"><span id="ctaNum">WhatsApp próximamente</span><a class="btn blue" id="ctaBtn" href="#habitaciones">Ver habitaciones</a></div><small id="ctaNote">Solicita tu reserva desde las habitaciones.</small></div>
+      <div class="cta-txt"><img class="cta-mark" src="/assets/logo-mark.png" alt="" width="88" height="88"><div><div class="eyebrow">ESCRÍBENOS</div><h2>Reserva directo con el alojamiento</h2><p>Resolvemos dudas sobre disponibilidad, llegada tardía y formas de pago.</p></div></div>
+      <div><div class="box"><span id="ctaNum">WhatsApp próximamente</span><a class="btn brand" id="ctaBtn" href="#habitaciones">Ver habitaciones</a></div><small id="ctaNote">Solicita tu reserva desde las habitaciones.</small></div>
     </div>
   </section>
 </main>
 
 <footer class="container foot">
   <div class="cols">
-    <div><a class="logo" href="/" id="footLogo">Portal Norte <span>170</span></a><p id="footTag">Habitaciones privadas en Suba, cerca del Portal Norte de TransMilenio.</p></div>
+    <div><a href="/" aria-label="Hotel Portal Norte 170, inicio"><img class="foot-logo" src="/assets/logo-web.png" alt="Hotel Portal Norte 170 · Coliving Bogotá" width="150" height="194"></a><p id="footTag">Habitaciones privadas en Suba, cerca del Portal Norte de TransMilenio.</p></div>
     <div><h4>Explora</h4><ul><li><a href="#habitaciones">Habitaciones</a></li><li><a href="#servicios">Servicios</a></li><li><a href="#ubicacion">Ubicación</a></li></ul></div>
     <div><h4>Contacto</h4><ul id="footContact"><li>Calle 174A # 47-24</li></ul></div>
     <div><h4>Ayuda</h4><ul><li><a href="#normas">Normas de la casa</a></li><li><a href="#mineSec" id="footMine">Mis solicitudes</a></li><li><a href="/admin">Acceso administración</a></li></ul></div>
