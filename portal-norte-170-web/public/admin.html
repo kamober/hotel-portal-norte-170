@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Administración · Portal Norte 170</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);padding-block:14px 0;border-bottom:1px solid var(--line);margin:0 -16px;padding-inline:16px}
+.brand{display:flex;flex-wrap:wrap;align-items:flex-end;gap:6px 16px;justify-content:space-between}
+.brand h1{font-size:1.6rem;line-height:1.1}
+.brand h1 span{color:var(--accent)}
+.brand .addr{font-size:.82rem;color:var(--muted)}
+.sync{font-size:.75rem;display:inline-flex;align-items:center;gap:6px;color:var(--muted)}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--warn);display:inline-block}
+.sync.on i{background:var(--ok)} .sync.off i{background:var(--bad)}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:12px;scrollbar-width:none}
+nav.tabs button{all:unset;cursor:pointer;padding:9px 12px 10px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-color:var(--accent)}
+nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+nav.tabs .count{font-family:var(--mono);font-size:.72rem;margin-left:5px;color:var(--muted)}
+main{padding-block:20px}
+section.tab{display:flex;flex-direction:column;gap:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.kpi{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--display);font-size:1.7rem;line-height:1.1;font-weight:700}
+.kpi small{color:var(--muted);font-size:.78rem}
+.cols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--sunk)}
+tbody tr{cursor:pointer} tbody tr:hover{background:var(--sunk)}
+tbody tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+.cal{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.calrow{display:grid;grid-template-columns:130px repeat(var(--n),var(--cell));width:max-content;position:relative}
+.calrow+.calrow{border-top:1px solid var(--line)}
+.calrow .rh{position:sticky;left:0;z-index:3;background:var(--surface);padding:8px 10px;border-right:1px solid var(--line);grid-row:1;grid-column:1;min-height:52px;display:flex;flex-direction:column;justify-content:center}
+.calrow .rh b{font-weight:600;font-size:.86rem}
+.calrow .rh small{color:var(--muted);font-size:.72rem}
+.calhead .rh{min-height:44px}
+.dh{grid-row:1;text-align:center;font-size:.7rem;color:var(--muted);padding:6px 0;border-left:1px solid var(--line);line-height:1.2}
+.dh b{display:block;font-family:var(--mono);font-size:.9rem;color:var(--fg);font-weight:500}
+.dh.we{background:var(--sunk)} .dh.today b{color:var(--accent)} .dh.today{box-shadow:inset 0 -2px 0 var(--accent)}
+.cell{grid-row:1;border-left:1px solid var(--line);cursor:pointer;min-height:52px}
+.cell.we{background:var(--sunk)}
+.cell:hover{background:var(--accent-soft)}
+.cell.blocked{background:repeating-linear-gradient(135deg,var(--sunk) 0 6px,transparent 6px 12px);cursor:default}
+.bar{grid-row:1;align-self:center;z-index:2;margin:0 2px;height:34px;border-radius:5px;background:color-mix(in srgb,var(--c) 18%,var(--surface));border:1px solid var(--c);border-left-width:4px;padding:2px 7px;font-size:.74rem;line-height:1.25;overflow:hidden;cursor:pointer;white-space:nowrap;text-overflow:ellipsis;color:var(--fg)}
+.bar b{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis}
+.bar.pend{border-style:dashed;border-left-style:solid}
+.bar.done{opacity:.55}
+.bar.cut-l{border-top-left-radius:0;border-bottom-left-radius:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted)}
+.rooms{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.engine{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));align-items:end}
+.offer{display:grid;grid-template-columns:140px 1fr auto;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px}
+.offer .th{aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:var(--sunk);display:grid;place-items:center;max-width:100%}
+.offer .th img{width:100%;height:100%;object-fit:cover}
+.offer .th span{font-family:var(--display);font-size:1.6rem;color:var(--line);font-weight:700}
+.offer .price{text-align:right}
+.offer .price b{font-family:var(--display);font-size:1.3rem;display:block}
+@media (max-width:560px){.offer{grid-template-columns:90px 1fr}.offer .price{grid-column:1/-1;text-align:left;display:flex;justify-content:space-between;align-items:center}}
+.score{font-family:var(--display);font-size:2.4rem;font-weight:700;line-height:1}
+.chart{display:flex;align-items:flex-end;gap:3px;height:110px;padding-top:6px}
+.chart .c{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;height:100%;justify-content:flex-end}
+.chart .c i{display:block;width:100%;background:var(--accent);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.chart .c.we i{opacity:.55}
+.chart .c small{font-family:var(--mono);font-size:.62rem;color:var(--muted)}
+.chart .c em{font-style:normal;font-family:var(--mono);font-size:.62rem;color:var(--fg)}
+.login{max-width:380px;margin:12vh auto 0;display:flex;flex-direction:column;gap:14px}
+.login h1{font-size:1.8rem}
+.login h1 span{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="login" id="login" hidden>
+  <div><div class="eyebrow">Administración</div><h1>Portal Norte <span>170</span></h1></div>
+  <form class="panel" id="loginForm" style="display:flex;flex-direction:column;gap:12px">
+    <label class="f">Contraseña<input type="password" id="pw" autocomplete="current-password" required></label>
+    <div class="note bad" id="loginErr" hidden></div>
+    <button class="btn primary" type="submit" id="loginBtn">Ingresar</button>
+  </form>
+  <a href="/" class="muted" style="font-size:.84rem">← Ver el sitio público</a>
+</div>
+
+<div class="wrap" id="app" hidden>
+<header class="top">
+  <div class="brand">
+    <div>
+      <div class="eyebrow">Sistema de reservas</div>
+      <h1 id="hName">Portal Norte <span>170</span></h1>
+      <div class="addr" id="hAddr"></div>
+    </div>
+    <div class="grp">
+      <div class="sync" id="sync"><i></i><span>Conectando…</span></div>
+      <a class="mode" href="/" target="_blank" rel="noopener">Ver sitio público</a>
+      <button class="mode" id="backup">Descargar respaldo</button>
+      <button class="mode" id="logout">Cerrar sesión</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-t="panel" aria-selected="true">Hoy</button>
+    <button role="tab" data-t="cal">Disponibilidad</button>
+    <button role="tab" data-t="motor">Reservar</button>
+    <button role="tab" data-t="res">Reservas<span class="count" id="cRes"></span></button>
+    <button role="tab" data-t="sol">Solicitudes<span class="count" id="cSol"></span></button>
+    <button role="tab" data-t="hues">Huéspedes<span class="count" id="cGu"></span></button>
+    <button role="tab" data-t="hab">Habitaciones<span class="count" id="cRo"></span></button>
+    <button role="tab" data-t="aloj">Alojamiento</button>
+  </nav>
+</header>
+
+<main>
+  <section class="tab" id="t-panel">
+    <div class="toolbar"><div><div class="eyebrow" id="todayLbl"></div><h2>Operación del día</h2></div>
+      <div class="grp"><button class="btn primary" data-act="newRes">+ Nueva reserva</button></div></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="cols">
+      <div class="panel"><div class="toolbar"><h3>Llegadas hoy</h3></div><div class="list" id="arr"></div></div>
+      <div class="panel"><div class="toolbar"><h3>Salidas hoy</h3></div><div class="list" id="dep"></div></div>
+      <div class="panel"><div class="toolbar"><h3>Huéspedes en casa</h3></div><div class="list" id="inh"></div></div>
+    </div>
+    <div class="cols">
+      <div class="panel"><div class="toolbar"><h3>Ocupación próximas 2 semanas</h3><span class="muted" style="font-size:.78rem">habitaciones ocupadas por noche</span></div><div class="chart" id="occ"></div></div>
+      <div class="panel"><div class="toolbar"><h3>Próximas llegadas · 7 días</h3></div><div class="list" id="next"></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="t-cal" hidden>
+    <div class="toolbar">
+      <div><h2>Disponibilidad</h2><div class="muted" style="font-size:.84rem">Toca una casilla libre para reservar esa noche. Toca una reserva para ver el detalle.</div></div>
+      <div class="grp">
+        <button class="btn sm" id="calPrev" aria-label="Semana anterior">← 7 días</button>
+        <button class="btn sm" id="calToday">Hoy</button>
+        <button class="btn sm" id="calNext" aria-label="Semana siguiente">7 días →</button>
+        <input type="date" id="calStart" style="width:auto">
+      </div>
+    </div>
+    <div class="cal" id="cal"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="tab" id="t-motor" hidden>
+    <div><h2>Motor de reservas</h2><div class="muted" style="font-size:.84rem">Busca disponibilidad por fechas y personas; el sistema descarta habitaciones ocupadas o en mantenimiento.</div></div>
+    <form class="panel engine" id="engForm">
+      <label class="f">Entrada<input type="date" id="eIn" required></label>
+      <label class="f">Salida<input type="date" id="eOut" required></label>
+      <label class="f">Adultos<input type="number" id="eAd" min="1" max="6" value="1"></label>
+      <label class="f">Niños<input type="number" id="eCh" min="0" max="4" value="0"></label>
+      <label class="f">Tipo<select id="eType"><option value="">Cualquiera</option></select></label>
+      <button class="btn primary" type="submit">Buscar disponibilidad</button>
+    </form>
+    <div id="engRes" class="list" style="gap:10px"></div>
+  </section>
+
+  <section class="tab" id="t-res" hidden>
+    <div class="toolbar">
+      <h2>Reservas</h2>
+      <div class="grp">
+        <input type="search" id="rQ" placeholder="Buscar huésped o código" style="width:200px">
+        <select id="rSt" style="width:auto"></select>
+        <select id="rCh" style="width:auto"></select>
+        <select id="rWhen" style="width:auto"><option value="up">Actuales y próximas</option><option value="past">Pasadas</option><option value="all">Todas</option></select>
+        <button class="btn primary" data-act="newRes">+ Nueva reserva</button>
+      </div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Código</th><th>Huésped</th><th>Hab.</th><th>Entrada</th><th>Salida</th><th class="r">Noches</th><th>Canal</th><th>Estado</th><th class="r">Total</th><th class="r">Saldo</th></tr></thead><tbody id="rBody"></tbody></table></div>
+  </section>
+
+  <section class="tab" id="t-sol" hidden>
+    <div class="toolbar">
+      <div><h2>Solicitudes del sitio web</h2><div class="muted" style="font-size:.84rem">Pedidos enviados por huéspedes desde el sitio público. Conviértelos en reserva o recházalos; el huésped ve el estado con su código.</div></div>
+      <div class="grp"><select id="sSt" style="width:auto"><option value="nueva">Nuevas</option><option value="">Todas</option></select></div>
+    </div>
+    <div class="list" id="solList" style="gap:10px"></div>
+  </section>
+
+  <section class="tab" id="t-hues" hidden>
+    <div class="toolbar">
+      <div><h2>Huéspedes</h2><div class="muted" style="font-size:.84rem">Ficha completa para la Tarjeta de Registro Hotelero (TRA) y, si es extranjero, el reporte a Migración (SIRE).</div></div>
+      <div class="grp"><input type="search" id="gQ" placeholder="Nombre, documento o teléfono" style="width:220px"><button class="btn primary" data-act="newGuest">+ Nuevo huésped</button></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Nombre</th><th>Documento</th><th>Nacionalidad</th><th>Teléfono</th><th>Correo</th><th class="r">Estancias</th><th>Ficha</th></tr></thead><tbody id="gBody"></tbody></table></div>
+  </section>
+
+  <section class="tab" id="t-hab" hidden>
+    <div class="toolbar">
+      <div><h2>Habitaciones</h2><div class="muted" style="font-size:.84rem">Toca una habitación para ver fotos, editar características o subir imágenes. Lo que cambies aquí se publica en el sitio.</div></div>
+      <div class="grp"><button class="btn" data-act="newRoom">+ Agregar habitación</button></div>
+    </div>
+    <div class="rooms" id="rooms"></div>
+  </section>
+
+  <section class="tab" id="t-aloj" hidden>
+    <div class="toolbar"><h2>Ficha del alojamiento</h2><div class="grp"><button class="btn" data-act="editHotel">Editar ficha</button></div></div>
+    <div id="aloj"></div>
+  </section>
+</main>
+</div>
+
+<div id="modalRoot"></div>
+<script src="/assets/common.js"></script>
+<script src="/assets/admin.js"></script>
+</body>
+</html>

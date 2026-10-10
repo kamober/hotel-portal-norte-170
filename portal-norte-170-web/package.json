@@ -1,0 +1,16 @@
+{
+  "name": "hotel-portal-norte-170",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sitio de reservas y panel de administración del Hotel Portal Norte 170 (Netlify Functions + Netlify Blobs).",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
