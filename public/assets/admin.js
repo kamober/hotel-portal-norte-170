@@ -534,7 +534,7 @@ function openRoomDetail(id){
   const photos=r.photos||[]; const st=ROOM_STATUS[r.status]||ROOM_STATUS.disponible;
   const up=S.res.filter(x=>x.roomId===id&&active(x)&&x.checkOut>=todayISO()).sort((a,b)=>a.checkIn.localeCompare(b.checkIn)).slice(0,5);
   const body=`
-    <div class="hero-ph">${photos[0]?`<img id="rhImg" src="${photoUrl(photos[0])}" alt="Habitación ${esc(r.number)}">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted)">Sin fotos todavía</div>`}</div>
+    <div class="hero-ph r43">${photos[0]?`<img id="rhImg" src="${photoUrl(photos[0])}" alt="Habitación ${esc(r.number)}">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted)">Sin fotos todavía</div>`}</div>
     ${photos.length>1?`<div class="gallery" id="rhThumbs">${photos.map(p=>`<figure><img src="${photoUrl(p)}" alt="" data-ph="${esc(p)}" loading="lazy" style="cursor:pointer"></figure>`).join("")}</div>`:""}
     <div class="toolbar"><div class="grp"><span class="pill ${st.cls}">${st.n}</span><b class="num">${cop(r.rate)} / noche</b></div>
       <div class="grp"><select id="rhSt" style="width:auto" aria-label="Estado de la habitación">${Object.entries(ROOM_STATUS).map(([k,v])=>opt(k,v.n,r.status||"disponible")).join("")}</select></div></div>
@@ -553,6 +553,7 @@ function openRoomDetail(id){
 function openRoomForm(r){
   r=r||{}; const isNew=!r.id; const id=r.id||genId("R");
   let photos=(r.photos||[]).slice();
+  const photoOrig=Object.assign({},r.photoOrig||{});
   const feats=new Set(r.features||[]);
   const extra=[...feats].filter(f=>!FEATURES.includes(f));
   const body=`
@@ -574,31 +575,47 @@ function openRoomForm(r){
       <div id="roPhNote"></div>
       <div class="gallery" id="roGal"></div>
       <label class="btn" style="align-self:flex-start">Subir fotos<input type="file" id="roUp" accept="image/jpeg,image/png,image/webp" multiple hidden></label>
-      <div class="muted" style="font-size:.78rem">La primera foto es la portada en el sitio público. Las imágenes grandes se reducen a 1800 px automáticamente.</div></fieldset>`;
+      <div class="muted" style="font-size:.78rem">Al subir cada foto podrás encuadrarla; se guarda con el logo del hotel como marca de agua. La primera foto es la portada en el sitio público. «Encuadrar» permite volver a ajustar una foto ya subida.</div></fieldset>`;
   const foot=`${isNew?"":`<button class="btn danger" id="roDel">Eliminar habitación</button><span style="flex:1"></span>`}<button class="btn" id="roCancel">Cerrar</button><button class="btn primary" id="roSave">${isNew?"Crear habitación":"Guardar"}</button>`;
   openModal(isNew?"Nueva habitación":"Editar habitación "+(r.number||""), body, foot, ov=>{
     const gal=ov.querySelector("#roGal");
     function drawGal(){gal.innerHTML=photos.map((p,i)=>`<figure><img src="${photoUrl(p)}" alt="Foto ${i+1}">${i===0?'<span class="cover">Portada</span>':""}
-      <div class="acts">${i>0?`<button data-cov="${i}">Portada</button>`:""}<button data-rm="${i}">Quitar</button></div></figure>`).join("")||`<div class="empty">Sin fotos todavía.</div>`;}
+      <div class="acts"><button data-crop="${i}">Encuadrar</button>${i>0?`<button data-cov="${i}">Portada</button>`:""}<button data-rm="${i}">Quitar</button></div></figure>`).join("")||`<div class="empty">Sin fotos todavía.</div>`;}
     drawGal();
-    async function persistPhotos(){ if(!roomById(id)) return; try{await save("rooms/"+id,{photos},true);}catch(_){}}
+    async function persistPhotos(){ if(!roomById(id)) return; try{await save("rooms/"+id,{photos,photoOrig},true);}catch(_){}}
+    const delPhoto=pid=>api("DELETE","admin/photos/"+encodeURIComponent(pid)).catch(()=>{});
     gal.addEventListener("click",async e=>{
       const c=e.target.closest("[data-cov]"); if(c){const i=+c.dataset.cov;photos.unshift(photos.splice(i,1)[0]);drawGal();await persistPhotos();return;}
+      const cr=e.target.closest("[data-crop]"); if(cr){
+        const i=+cr.dataset.crop, old=photos[i], orig=photoOrig[old]||old;
+        const blob=await cropPhoto(photoUrl(orig),{aspect:4/3,outW:1600,title:"Encuadrar foto "+(i+1)});
+        if(!blob) return;
+        const note=ov.querySelector("#roPhNote"); note.innerHTML=`<div class="note">Guardando el nuevo encuadre…</div>`;
+        try{const d=await api("POST","admin/photos",undefined,blob);photos[i]=d.id;photoOrig[d.id]=orig;delete photoOrig[old];drawGal();await persistPhotos();
+          if(old!==orig) delPhoto(old);
+          note.innerHTML=`<div class="note ok">Foto reencuadrada con marca de agua.</div>`;}
+        catch(err){note.innerHTML=`<div class="note bad">${esc(err.message)}</div>`;}
+        return;}
       const rm=e.target.closest("[data-rm]"); if(rm){
         if(!rm.dataset.armed){rm.dataset.armed="1";rm.textContent="¿Seguro?";setTimeout(()=>{rm.textContent="Quitar";delete rm.dataset.armed;},3000);return;}
-        const i=+rm.dataset.rm; const [pid]=photos.splice(i,1); drawGal(); await persistPhotos();
-        try{await api("DELETE","admin/photos/"+encodeURIComponent(pid));}catch(_){}
+        const i=+rm.dataset.rm; const [pid]=photos.splice(i,1); const orig=photoOrig[pid]; delete photoOrig[pid]; drawGal(); await persistPhotos();
+        delPhoto(pid); if(orig&&orig!==pid) delPhoto(orig);
       }
     });
     ov.querySelector("#roUp").addEventListener("change",async e=>{
       const files=[...e.target.files]; e.target.value=""; if(!files.length) return;
-      const note=ov.querySelector("#roPhNote");
+      const note=ov.querySelector("#roPhNote"); let done=0;
       for(let k=0;k<files.length;k++){
-        note.innerHTML=`<div class="note">Subiendo ${k+1} de ${files.length}…</div>`;
-        try{const blob=await shrink(files[k]);const res=await api("POST","admin/photos",undefined,blob);photos.push(res.id);drawGal();}
+        note.innerHTML=`<div class="note">Encuadra la foto ${k+1} de ${files.length}…</div>`;
+        const orig=await shrink(files[k]); const url=URL.createObjectURL(orig);
+        const cropped=await cropPhoto(url,{aspect:4/3,outW:1600,title:`Encuadra la foto ${k+1} de ${files.length}`});
+        URL.revokeObjectURL(url);
+        if(!cropped) continue;
+        note.innerHTML=`<div class="note">Subiendo foto ${k+1} de ${files.length}…</div>`;
+        try{const o=await api("POST","admin/photos",undefined,orig);const d=await api("POST","admin/photos",undefined,cropped);photos.push(d.id);photoOrig[d.id]=o.id;done++;drawGal();}
         catch(err){note.innerHTML=`<div class="note bad">${esc(err.message)}</div>`;return;}
       }
-      note.innerHTML=`<div class="note ok">${files.length} foto${files.length>1?"s":""} cargada${files.length>1?"s":""}${roomById(id)?"":"; se guardarán al crear la habitación"}.</div>`;
+      note.innerHTML=done?`<div class="note ok">${done} foto${done>1?"s":""} cargada${done>1?"s":""} con marca de agua${roomById(id)?"":"; se guardarán al crear la habitación"}.</div>`:`<div class="note">No se cargó ninguna foto.</div>`;
       await persistPhotos();
     });
     ov.querySelector("#roCancel").onclick=closeModal;
@@ -609,11 +626,85 @@ function openRoomForm(r){
       if(!v("#roNum")){toast("El número de habitación es obligatorio.");return;}
       const f=[...ov.querySelectorAll("[data-feat]")].filter(x=>x.checked).map(x=>x.dataset.feat).concat(v("#roExtra").split(",").map(s=>s.trim()).filter(Boolean));
       const rec=Object.assign({},r,{number:v("#roNum"),name:v("#roName"),type:v("#roType"),beds:v("#roBeds"),capacity:+v("#roCap")||1,rate:Number(v("#roRate"))||0,
-        bath:v("#roBath"),size:v("#roSize"),floor:v("#roFloor"),description:ov.querySelector("#roDesc").value,features:f,photos,status:r.status||"disponible"});
+        bath:v("#roBath"),size:v("#roSize"),floor:v("#roFloor"),description:ov.querySelector("#roDesc").value,features:f,photos,photoOrig,status:r.status||"disponible"});
       delete rec.id;
       try{await save("rooms/"+id,rec);toast(isNew?"Habitación creada":"Habitación guardada");closeModal();}catch(_){}
     };
   }, true);
+}
+
+/* ---------- editor de encuadre + marca de agua ---------- */
+let WM_LOGO=null;
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error("No se pudo leer la imagen."));i.src=src;});}
+async function wmLogo(){ if(!WM_LOGO) WM_LOGO=await loadImg("/assets/logo-mark.png").catch(()=>null); return WM_LOGO; }
+function roundRectPath(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+/* Marca de agua: logo del hotel + nombre en una cápsula translúcida, esquina inferior derecha */
+function drawWatermark(c,W,H,logo){
+  const u=Math.min(W,H)/100, pad=2.2*u, lw=8*u;
+  const F='"Plus Jakarta Sans","Segoe UI",Arial,sans-serif', t1="PORTAL NORTE 170", t2="HOTEL · COLIVING · BOGOTÁ";
+  c.save();
+  c.font=`700 ${3*u}px ${F}`; const w1=c.measureText(t1).width;
+  c.font=`600 ${1.7*u}px ${F}`; const w2=c.measureText(t2).width;
+  const boxH=lw+pad*1.1, boxW=pad+lw+pad*.9+Math.max(w1,w2)+pad*1.6;
+  const x=W-boxW-3*u, y=H-boxH-3*u;
+  c.globalAlpha=.78; c.fillStyle="#FFFFFF"; roundRectPath(c,x,y,boxW,boxH,boxH/2); c.fill();
+  c.globalAlpha=.95; if(logo) c.drawImage(logo,x+pad,y+(boxH-lw)/2,lw,lw);
+  const tx=x+pad+lw+pad*.9;
+  c.fillStyle="#0E2A42"; c.font=`700 ${3*u}px ${F}`; c.textBaseline="alphabetic"; c.fillText(t1,tx,y+boxH/2+.2*u);
+  c.fillStyle="#5E6B78"; c.font=`600 ${1.7*u}px ${F}`; c.fillText(t2,tx,y+boxH/2+2.9*u);
+  c.restore();
+}
+/* Abre el editor sobre cualquier modal abierto; devuelve el JPG final (encuadrado y con marca) o null si se cancela */
+function cropPhoto(src,{aspect=4/3,outW=1600,title="Encuadra la foto"}={}){
+  return new Promise(async resolve=>{
+    let img; try{img=await loadImg(src);}catch(e){toast(e.message);resolve(null);return;}
+    const logo=await wmLogo();
+    let source=img, rot=0, zoom=1, fx=0, fy=0;
+    const root=document.createElement("div"); root.className="ov"; root.style.zIndex="70";
+    root.innerHTML=`<div class="modal" style="max-width:880px" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><h2>${esc(title)}</h2><button class="x" type="button" aria-label="Cancelar">×</button></header>
+      <div class="mb">
+        <div class="crop-stage" style="aspect-ratio:${aspect};width:min(100%, calc(58vh * ${aspect}));margin-inline:auto"><canvas></canvas><div class="crop-grid"></div></div>
+        <div class="grp" style="justify-content:space-between;align-items:flex-end">
+          <label class="f" style="flex:1;min-width:200px">Zoom<input type="range" id="cz" min="1" max="3" step="0.01" value="1"></label>
+          <div class="grp"><button class="btn sm" id="crot" type="button">Girar 90°</button><button class="btn sm" id="ccen" type="button">Centrar</button>
+          <label class="f chk" style="margin:0"><input type="checkbox" id="cwm" checked> Marca de agua</label></div>
+        </div>
+        <div class="muted" style="font-size:.8rem">Arrastra la foto para encuadrarla y usa el zoom para acercarla. El marco es exactamente lo que verán los huéspedes en las tarjetas y la galería.</div>
+      </div>
+      <footer><button class="btn" id="ccancel" type="button">Cancelar</button><button class="btn primary" id="cok" type="button">Usar esta foto</button></footer></div>`;
+    document.body.appendChild(root);
+    const stage=root.querySelector(".crop-stage"), cv=stage.querySelector("canvas"), ctx=cv.getContext("2d"), wmChk=root.querySelector("#cwm");
+    function rotated(){ if(rot===0) return img; const c=document.createElement("canvas"); const r90=rot%180!==0; c.width=r90?img.height:img.width; c.height=r90?img.width:img.height;
+      const x=c.getContext("2d"); x.translate(c.width/2,c.height/2); x.rotate(rot*Math.PI/180); x.drawImage(img,-img.width/2,-img.height/2); return c; }
+    function geom(W,H){const s=Math.max(W/source.width,H/source.height)*zoom, dw=source.width*s, dh=source.height*s;
+      const mx=(dw-W)/2/W, my=(dh-H)/2/H; fx=Math.max(-mx,Math.min(mx,fx)); fy=Math.max(-my,Math.min(my,fy));
+      return {dw,dh,x:(W-dw)/2+fx*W,y:(H-dh)/2+fy*H};}
+    function render(c,W,H,wm){const g=geom(W,H); c.fillStyle="#0E2A42"; c.fillRect(0,0,W,H); c.imageSmoothingQuality="high"; c.drawImage(source,g.x,g.y,g.dw,g.dh); if(wm) drawWatermark(c,W,H,logo);}
+    function draw(){render(ctx,cv.width,cv.height,wmChk.checked);}
+    function fit(){const r=stage.getBoundingClientRect(), d=window.devicePixelRatio||1; cv.width=Math.max(1,Math.round(r.width*d)); cv.height=Math.max(1,Math.round(r.height*d)); draw();}
+    let drag=null;
+    stage.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY};stage.setPointerCapture(e.pointerId);stage.classList.add("dragging");});
+    stage.addEventListener("pointermove",e=>{if(!drag)return;const r=stage.getBoundingClientRect();fx+=(e.clientX-drag.x)/r.width;fy+=(e.clientY-drag.y)/r.height;drag={x:e.clientX,y:e.clientY};draw();});
+    const end=()=>{drag=null;stage.classList.remove("dragging");};
+    stage.addEventListener("pointerup",end); stage.addEventListener("pointercancel",end);
+    const zr=root.querySelector("#cz");
+    stage.addEventListener("wheel",e=>{e.preventDefault();zoom=Math.max(1,Math.min(3,zoom*(e.deltaY<0?1.06:1/1.06)));zr.value=zoom;draw();},{passive:false});
+    zr.addEventListener("input",()=>{zoom=+zr.value;draw();});
+    root.querySelector("#crot").onclick=()=>{rot=(rot+90)%360;source=rotated();fx=fy=0;draw();};
+    root.querySelector("#ccen").onclick=()=>{fx=fy=0;draw();};
+    wmChk.onchange=draw;
+    const ro=new ResizeObserver(fit); ro.observe(stage);
+    function close(val){ro.disconnect();root.remove();resolve(val);}
+    root.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();close(null);}});
+    root.querySelector(".x").onclick=()=>close(null);
+    root.querySelector("#ccancel").onclick=()=>close(null);
+    root.querySelector("#cok").onclick=()=>{
+      const out=document.createElement("canvas"); out.width=outW; out.height=Math.round(outW/aspect);
+      render(out.getContext("2d"),out.width,out.height,wmChk.checked);
+      out.toBlob(b=>close(b),"image/jpeg",.88);
+    };
+    fit(); try{root.querySelector("#cok").focus({preventScroll:true});}catch(_){}
+  });
 }
 
 /* ---------- ficha del hotel ---------- */
@@ -657,8 +748,12 @@ function openHotelForm(){
     drawHero();
     ov.querySelector("#hoHeroUp").addEventListener("change",async e=>{
       const file=e.target.files[0]; e.target.value=""; if(!file) return;
-      const note=ov.querySelector("#hoHeroNote"); note.innerHTML=`<div class="note">Subiendo portada…</div>`;
-      try{const blob=await shrink(file);const res=await api("POST","admin/photos",undefined,blob);heroPhoto=res.id;drawHero();note.innerHTML=`<div class="note ok">Portada cargada. Guarda la ficha para publicarla.</div>`;}
+      const note=ov.querySelector("#hoHeroNote");
+      const orig=await shrink(file); const url=URL.createObjectURL(orig);
+      const cropped=await cropPhoto(url,{aspect:16/9,outW:1920,title:"Encuadra la foto de portada"}); URL.revokeObjectURL(url);
+      if(!cropped) return;
+      note.innerHTML=`<div class="note">Subiendo portada…</div>`;
+      try{const res=await api("POST","admin/photos",undefined,cropped);heroPhoto=res.id;drawHero();note.innerHTML=`<div class="note ok">Portada encuadrada y con marca de agua. Guarda la ficha para publicarla.</div>`;}
       catch(err){note.innerHTML=`<div class="note bad">${esc(err.message)}</div>`;}
     });
     ov.querySelector("#hoHeroRm").onclick=()=>{heroPhoto="";drawHero();ov.querySelector("#hoHeroNote").innerHTML=`<div class="note">Portada quitada. Guarda la ficha para aplicar el cambio.</div>`;};

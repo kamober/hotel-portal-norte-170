@@ -215,7 +215,7 @@ $("#rooms").addEventListener("click",e=>{const c=e.target.closest("[data-room]")
 $("#rooms").addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.matches("[data-room]"))openRoom(e.target.dataset.room);});
 function openRoom(id){
   const r=roomById(id); if(!r) return; const ph=r.photos||[]; const st=guestOk(r,G.q); const n=diff(G.q.in,G.q.out);
-  const body=`<div class="hero-ph">${ph[0]?`<img id="grImg" src="${photoUrl(ph[0])}" alt="${esc(r.name||"Habitación")}">`:`<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)"><img src="/assets/logo-mark.png" alt="" style="width:96px;height:96px">Fotos próximamente</div>`}</div>
+  const body=`<div class="hero-ph r43">${ph[0]?`<img id="grImg" src="${photoUrl(ph[0])}" alt="${esc(r.name||"Habitación")}">`:`<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)"><img src="/assets/logo-mark.png" alt="" style="width:96px;height:96px">Fotos próximamente</div>`}</div>
     ${ph.length>1?`<div class="gallery" id="grThumbs">${ph.map(p=>`<figure><img src="${photoUrl(p)}" alt="" data-ph="${esc(p)}" loading="lazy" style="cursor:pointer"></figure>`).join("")}</div>`:""}
     ${r.description?`<p style="margin:0;max-width:68ch">${esc(r.description)}</p>`:""}
     <dl class="kv"><dt>Tipo</dt><dd>${esc(r.type||"")}</dd><dt>Camas</dt><dd>${esc(r.beds||"")}</dd><dt>Capacidad</dt><dd>${r.capacity||"?"} personas</dd><dt>Baño</dt><dd>${esc(r.bath||"")}</dd>${r.size?`<dt>Área</dt><dd class="num">${esc(r.size)} m²</dd>`:""}<dt>Tarifa</dt><dd class="num">${cop(r.rate)} por noche · ${cop((Number(r.rate)||0)*n)} por ${n} noche${n>1?"s":""}</dd></dl>
