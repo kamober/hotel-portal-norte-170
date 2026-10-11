@@ -5,6 +5,7 @@ import { getStore } from "@netlify/blobs";
 import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import seed from "../../lib/seed.mjs";
 import * as gcal from "../../lib/gcal.mjs";
+import * as ical from "../../lib/ical.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -178,6 +179,22 @@ function feedToken() {
   if (own) return own;
   return secret() ? createHmac("sha256", secret()).update("ics-feed").digest("hex").slice(0, 32) : "";
 }
+function roomFeedSig(roomId, channel) {
+  return secret() ? createHmac("sha256", secret()).update(`room-ics:${roomId}:${channel}`).digest("hex").slice(0, 24) : "";
+}
+function cleanFeeds(list) {
+  if (list == null) return undefined;
+  if (!Array.isArray(list)) throw Object.assign(new Error("Lista de calendarios no válida."), { status: 400 });
+  return list.slice(0, 6).map((f) => {
+    const url = str(f && f.url, 800).replace(/^webcals?:\/\//i, "https://");
+    if (!url) return null;
+    let u; try { u = new URL(url); } catch { throw Object.assign(new Error("Hay un enlace iCal que no es una URL válida."), { status: 400 }); }
+    if (u.protocol !== "https:") throw Object.assign(new Error("Los enlaces iCal deben empezar por https://."), { status: 400 });
+    const channel = ical.FEED_CHANNELS.includes(f.channel) ? f.channel : "otro";
+    const id = ID_RE.test(f.id || "") ? f.id : "F" + randomUUID().replace(/-/g, "").slice(0, 10);
+    return { id, channel, url };
+  }).filter(Boolean);
+}
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("Google Calendar no respondió a tiempo.")), ms))]);
 async function syncToCalendar(store, rec, deleted = false) {
   if (!gcal.isConfigured()) return { skipped: true };
@@ -248,6 +265,17 @@ async function handleAdmin(req, parts, store) {
     return fail(404, "Ruta no encontrada.");
   }
 
+  if (kind === "ical") {
+    if (id === "status" && m === "GET") {
+      const rooms = await listJSON(store, "rooms/");
+      const exports = {};
+      if (secret()) for (const r of rooms) exports[r.id] = Object.fromEntries(["booking", "airbnb"].map((c) => [c, `/api/ical/${r.id}/${c}/${roomFeedSig(r.id, c)}.ics`]));
+      return json({ status: await ical.readStatus(store), exports });
+    }
+    if (id === "sync" && m === "POST") return json(await ical.syncAll(store, { reason: "manual" }));
+    return fail(404, "Ruta no encontrada.");
+  }
+
   const prefix = KINDS[kind];
   if (!prefix || !id || !ID_RE.test(id)) return fail(404, "Ruta no encontrada.");
   const key = prefix + id;
@@ -289,6 +317,7 @@ async function handleAdmin(req, parts, store) {
       }
     }
     if (kind === "rooms" && !str(b.number)) return fail(400, "El número de habitación es obligatorio.");
+    if (kind === "rooms") { const f = cleanFeeds(b.icalFeeds); if (f === undefined) delete b.icalFeeds; else b.icalFeeds = f; }
     if (kind === "guests" && !str(b.first)) return fail(400, "El nombre del huésped es obligatorio.");
     const rec = cleanRecord(b, id);
     await store.setJSON(key, rec);
@@ -317,6 +346,15 @@ export default async (req) => {
       if (!t || a.length !== b.length || !timingSafeEqual(a, b)) return new Response("No encontrado", { status: 404 });
       const [hotel, rooms, guests, res] = await Promise.all([store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/")]);
       return new Response(gcal.buildIcs(res, rooms, guests, hotel || {}), { headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-store", "Content-Disposition": 'inline; filename="reservas-portal-norte-170.ics"' } });
+    }
+
+    if (head === "ical" && req.method === "GET" && rest.length === 3) {
+      const [roomId, channel, file] = rest, sig = file.replace(/\.ics$/, ""), want = ID_RE.test(roomId) ? roomFeedSig(roomId, channel) : "";
+      const a = Buffer.from(sig), b = Buffer.from(want);
+      if (!want || a.length !== b.length || !timingSafeEqual(a, b)) return new Response("No encontrado", { status: 404 });
+      const [room, res] = await Promise.all([store.get("rooms/" + roomId, { type: "json" }), listJSON(store, "res/")]);
+      if (!room) return new Response("No encontrado", { status: 404 });
+      return new Response(ical.buildRoomIcs(room, res, channel), { headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-store" } });
     }
 
     if (head === "login" && req.method === "POST") {

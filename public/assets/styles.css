@@ -131,3 +131,14 @@ legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(
   .modal footer > span[style*="flex:1"]{display:none}
   .btn{min-height:40px}
 }
+
+/* iCal de canales */
+.feed-row{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:8px;align-items:center}
+.feed-row small{grid-column:1/-1;font-size:.76rem;margin-top:-2px}
+.feed-row input{font-family:var(--mono);font-size:.78rem}
+.feed-row .ok,.feed-st .ok{color:var(--ok)} .feed-row .bad,.feed-st .bad{color:var(--bad)}
+.feed-st{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.84rem;padding:2px 0}
+.feed-st .bad{max-width:46ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ical-tbl td{vertical-align:middle}
+@media (max-width:700px){.feed-st .bad{white-space:normal;max-width:none}.ical-tbl td>div,.ical-tbl td>span{min-width:0;text-align:left}}
+@media (max-width:600px){.feed-row{grid-template-columns:1fr auto}.feed-row input{grid-column:1/-1;grid-row:2}.feed-row small{grid-row:3}}

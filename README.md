@@ -14,7 +14,10 @@ Todo corre en **Netlify**: páginas estáticas, API en **Netlify Functions** y d
 netlify.toml                 Configuración de publicación, funciones y cabeceras
 package.json                 Dependencia @netlify/blobs
 lib/seed.mjs                 Datos iniciales: ficha del hotel y las 10 habitaciones
+lib/gcal.mjs                 Google Calendar (tiempo real) y enlace iCal privado
+lib/ical.mjs                 Importación/exportación iCal con Booking.com y Airbnb
 netlify/functions/api.mjs    API: /api/public, /api/requests, /api/photos, /api/login, /api/admin/*
+netlify/functions/ical-sync.mjs  Tarea programada: lee los calendarios de los canales cada 15 min
 public/index.html            Sitio público
 public/admin.html            Panel de administración
 public/assets/               styles.css, common.js, guest.js, admin.js
@@ -124,6 +127,36 @@ En **Alojamiento → Google Calendar** está el enlace privado del feed (`/api/c
 - Google refresca las suscripciones cada pocas horas, así que el feed no es instantáneo. Es solo lectura.
 - El enlace es privado. Si se filtra, cámbialo: define `CALENDAR_FEED_TOKEN` con un valor nuevo (o cambia `TOKEN_SECRET`) y vuelve a desplegar.
 
+## Booking.com y Airbnb (iCal)
+
+Las reservas y fechas cerradas de cada canal se importan solas **cada 15 minutos** con la función programada `ical-sync`. Las funciones programadas solo corren en el sitio publicado, no en las vistas previas de Netlify. Cada evento importado:
+
+- se guarda como una reserva del canal y bloquea la habitación en el panel, en el motor y en el sitio público;
+- se envía a Google Calendar (cbernal@gesoltec.co) si la sincronización en tiempo real está configurada, y aparece también en el enlace iCal privado;
+- se actualiza si el canal cambia las fechas y se cancela sola si desaparece del canal antes de la llegada. Si vuelve a aparecer, se reactiva;
+- si se cruza con otra reserva de la misma habitación, el panel muestra el aviso **«Posible sobreventa»**.
+
+Los canales no envían todo:
+
+- **Booking.com** no envía nombres ni valores. Marca igual las reservas y las fechas cerradas, por eso aparecen como «Ocupado en Booking.com».
+- **Airbnb** envía el código de la reserva y los últimos 4 dígitos del teléfono.
+- En ambos casos puedes editar la reserva para asociar el huésped, el valor y los pagos. Esos datos se conservan en las siguientes sincronizaciones. Las fechas siempre las manda el canal.
+
+### Conectar una habitación
+
+1. **Copia el enlace de exportación del canal:**
+   - **Booking.com:** en el Extranet ve a *Tarifas y disponibilidad → Sincronizar calendarios*, elige la habitación, luego *Añadir conexión de calendario* y copia el enlace de exportación.
+   - **Airbnb:** entra a *Calendario*, elige el anuncio y ve a *Disponibilidad → Conectar calendarios → Conectar a otro sitio web*. Copia el enlace «Exportar calendario».
+2. En el panel ve a **Alojamiento → Booking y Airbnb → Configurar** (o abre *Habitaciones → Editar*). Pulsa **+ Agregar calendario**, elige el canal, pega el enlace y guarda. La primera sincronización corre en ese momento.
+3. **Sentido contrario:** en el mismo formulario están los enlaces **«para pegar en cada canal»**.
+   - Pega el de Booking en Booking (*Importar calendario*) y el de Airbnb en Airbnb (*Importar calendario*).
+   - Así cada canal cierra las fechas vendidas aquí o en el otro canal.
+   - Estos enlaces no contienen datos de huéspedes. Cada canal los lee a su propio ritmo: Airbnb aproximadamente cada 2–3 horas y Booking varias veces al día.
+
+El botón **Sincronizar ahora** fuerza una lectura inmediata. Si un canal falla (enlace vencido, por ejemplo), lo ya importado no se toca y la tarjeta muestra el error.
+
+> Como la información llega con retraso, el riesgo de sobreventa nunca es cero. Revisa el aviso «Posible sobreventa» en la pestaña Hoy.
+
 ## Mantenimiento
 
 - **Respaldo:** botón *Descargar respaldo* en el panel (JSON con hotel, habitaciones, huéspedes, reservas y solicitudes). Hazlo con regularidad.
@@ -133,6 +166,6 @@ En **Alojamiento → Google Calendar** está el enlace privado del feed (`/api/c
 
 ## Pendiente / siguientes pasos
 
-- Importar los iCal de Booking y Airbnb para bloquear fechas automáticamente.
+- Channel manager con API (tarifas y disponibilidad en tiempo real) si el volumen de reservas en OTAs crece.
 - Pago en línea del anticipo (Wompi, Mercado Pago o PayU).
 - Usuarios individuales para el equipo (en lugar de una sola contraseña).

@@ -46,7 +46,7 @@ async function loadState(){
   try{
     const j = await api("GET","admin/state");
     S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[];
-    S.loaded=true; setSync("on","Actualizado " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
+    S.loaded=true; loadIcal(); setSync("on","Actualizado " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
     render();
   }catch(e){ if(S.token) setSync("off", e.message || "Sin conexión"); }
 }
@@ -101,7 +101,7 @@ function setTab(t){S.tab=t;document.querySelectorAll("#tabs button").forEach(b=>
 document.addEventListener("click", e=>{
   const a=e.target.closest("[data-act]"); if(a){const act=a.dataset.act;
     if(act==="newRes") openResForm({}); if(act==="newGuest") openGuestForm({}); if(act==="newRoom") openRoomForm({}); if(act==="editHotel") openHotelForm(); return;}
-  const o=e.target.closest("[data-open]"); if(o){openResDetail(o.dataset.open);return;}
+  const o=e.target.closest("[data-open]"); if(o){e.preventDefault();openResDetail(o.dataset.open);return;}
   const ci=e.target.closest("[data-ci]"); if(ci){doCheckIn(ci.dataset.ci);return;}
   const co=e.target.closest("[data-co]"); if(co){doCheckOut(co.dataset.co);return;}
 });
@@ -139,8 +139,9 @@ function renderPanel(){
     <div class="kpi"><span class="eyebrow">Ventas del mes</span><b class="num" style="font-size:1.3rem">${cop(monthRev)}</b><small>reservas que entran este mes</small></div>
     <div class="kpi"><span class="eyebrow">Solicitudes nuevas</span><b class="num">${S.reqs.filter(x=>x.status==="nueva").length}</b><small>desde el sitio web</small></div>
     <div class="kpi"><span class="eyebrow">Saldo por cobrar</span><b class="num" style="font-size:1.3rem">${cop(debt)}</b><small>estancias hasta 7 días</small></div>`;
-  const ciBtn = r => r.status==="encasa"?'':`<button class="btn sm primary" data-ci="${esc(r.id)}">Check-in</button>`;
-  const coBtn = r => r.status==="finalizada"?'':`<button class="btn sm" data-co="${esc(r.id)}">Check-out</button>`;
+  renderPanelAlerts();
+  const ciBtn = r => (r.status==="encasa"||r.block)?'':`<button class="btn sm primary" data-ci="${esc(r.id)}">Check-in</button>`;
+  const coBtn = r => (r.status==="finalizada"||r.block)?'':`<button class="btn sm" data-co="${esc(r.id)}">Check-out</button>`;
   $("#arr").innerHTML = arr.map(r=>liRes(r,ciBtn(r))).join("") || `<div class="empty">No hay llegadas programadas para hoy.</div>`;
   $("#dep").innerHTML = dep.map(r=>liRes(r,coBtn(r))).join("") || `<div class="empty">No hay salidas programadas para hoy.</div>`;
   $("#inh").innerHTML = inHouse.map(r=>liRes(r,"")).join("") || `<div class="empty">No hay huéspedes alojados esta noche.</div>`;
@@ -302,6 +303,7 @@ function renderHotel(){
   const types={};S.rooms.forEach(r=>{const k=r.type||"Sin tipo";types[k]=types[k]||{n:0,min:Infinity,max:0,beds:r.beds,cap:r.capacity};types[k].n++;types[k].min=Math.min(types[k].min,Number(r.rate)||0);types[k].max=Math.max(types[k].max,Number(r.rate)||0);});
   $("#aloj").innerHTML=`
   <div class="panel" id="gcalCard"></div>
+  <div class="panel" id="icalCard"></div>
   <div class="facts">
     <div class="panel"><div class="eyebrow">Foto de portada del sitio</div><div class="hero-ph" style="margin-top:8px">${h.heroPhoto?`<img src="${photoUrl(h.heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted);font-size:.86rem">Sin portada: se muestra la ilustración</div>`}</div></div>
     <div class="panel"><div class="eyebrow">Frase de portada</div><p style="margin:.3em 0 .8em;font-family:var(--display);font-size:1.3rem;font-weight:700">${esc(h.tagline||"Tu base en el norte de Bogotá")}</p>
@@ -331,7 +333,7 @@ function renderHotel(){
     <div class="panel"><h3>Fuentes consultadas</h3><ul class="plain" style="margin-top:10px">${(h.sources||[]).map(s=>`<li>${link(s.url,s.title)}</li>`).join("")}</ul>
       ${h.taxNote?`<p class="muted" style="font-size:.8rem;margin:10px 0 0">${esc(h.taxNote)}</p>`:""}</div>
   </div>`;
-  renderGcal();
+  renderGcal(); renderIcal();
 }
 
 /* ---------- reserva: formulario ---------- */
@@ -353,7 +355,7 @@ function openResForm(r){
       <label class="f">Hora estimada de llegada<input type="time" id="fEta" value="${esc(d.eta||"")}"></label>
     </div><div id="fAvail"></div></fieldset>
     <fieldset><legend>Huésped titular</legend>
-      <label class="f">Huésped<select id="fGuest"><option value="__new">+ Registrar huésped nuevo</option>${guests.map(g=>opt(g.id,`${gName(g)} · ${g.docType||""} ${g.docNumber||""}`,d.guestId)).join("")}</select></label>
+      <label class="f">Huésped<select id="fGuest">${d.source==="ical"?`<option value="__none">${esc(d.guestName||"Sin ficha todavía")} (sin ficha)</option>`:""}<option value="__new">+ Registrar huésped nuevo</option>${guests.map(g=>opt(g.id,`${gName(g)} · ${g.docType||""} ${g.docNumber||""}`,d.guestId)).join("")}</select></label>
       <div id="fNewG" class="grid g3">
         <label class="f">Nombres<input id="ngFirst" value="${esc(pg.first||"")}"></label><label class="f">Apellidos<input id="ngLast" value="${esc(pg.last||"")}"></label>
         <label class="f">Tipo de documento<select id="ngDocT">${DOCS.map(x=>opt(x,x,pg.docType||"CC")).join("")}</select></label>
@@ -374,7 +376,7 @@ function openResForm(r){
   openModal(isNew?"Nueva reserva":"Editar reserva "+d.id, body, foot, ov=>{
     let rateTouched = d.rate!=null, totalTouched = d.total!=null && !isNew;
     const g=ov.querySelector("#fGuest");
-    if(!d.guestId) g.value="__new";
+    if(!d.guestId) g.value=d.source==="ical"?"__none":"__new";
     const syncG=()=>ov.querySelector("#fNewG").hidden = g.value!=="__new";
     g.onchange=syncG; syncG();
     function recalc(){
@@ -420,11 +422,11 @@ function openResForm(r){
         const id=d.id||genId("PN");
         const rec={roomId:ov.querySelector("#fRoom").value,checkIn:ov.querySelector("#fIn").value,checkOut:ov.querySelector("#fOut").value,
           adults:+ov.querySelector("#fAd").value||1,children:+ov.querySelector("#fCh").value||0,eta:ov.querySelector("#fEta").value,
-          guestId,guestName:gName(guestById(guestId)),channel:ov.querySelector("#fChan").value,externalRef:ov.querySelector("#fExt").value.trim(),status:ov.querySelector("#fSt").value,
+          guestId:guestId==="__none"?"":guestId,guestName:guestId==="__none"?(d.guestName||""):gName(guestById(guestId)),channel:ov.querySelector("#fChan").value,externalRef:ov.querySelector("#fExt").value.trim(),status:ov.querySelector("#fSt").value,
           rate:Number(ov.querySelector("#fRate").value)||0,total:Number(ov.querySelector("#fTotal").value)||0,paid:Number(ov.querySelector("#fPaid").value)||0,
           payMethod:ov.querySelector("#fPay").value,notes:ov.querySelector("#fNotes").value,
           createdAt:d.createdAt||new Date().toISOString()};
-        await save("reservations/"+id,rec);
+        await save("reservations/"+id,rec,true);
         if(d._onSaved) try{await d._onSaved(id);}catch(_){}
         toast(isNew?`Reserva ${id} creada`:"Reserva actualizada");
         closeModal();
@@ -454,6 +456,8 @@ function openResDetail(id){
       ${g?`<button class="btn sm" id="dGuest">Ver ficha</button>`:""}</div>
       ${g?`<div class="muted" style="font-size:.84rem;margin-top:6px">${esc(g.phone||"Sin teléfono")} · ${esc(g.email||"sin correo")} · ${esc(g.nationality||"")}</div>`:""}
       ${g&&!tr.ok?`<div class="note warn" style="margin-top:10px">Ficha incompleta para la TRA: completa documento, nacimiento, procedencia y autorización de datos antes del check-in.</div>`:""}</div>
+    ${r.source==="ical"?`<div class="note ${r.conflict&&r.conflict.length&&active(r)?"bad":""}">${r.conflict&&r.conflict.length&&active(r)?`<b>Posible sobreventa:</b> se cruza con ${r.conflict.map(c=>`<a href="#" data-open="${esc(c)}">${esc(c)}</a>`).join(", ")}. Reubica una de las dos reservas.<br>`:""}
+      ${r.block?"Fechas bloqueadas":"Reserva importada"} automáticamente del calendario de ${esc(chan(r.channel).n)}. Las fechas se actualizan solas desde el canal${r.status==="cancelada"&&r.autoCancelled?"; se canceló porque desapareció del canal":""}. Puedes asociar el huésped, registrar el valor y los pagos.</div>`:""}
     ${r.notes?`<div class="panel"><div class="eyebrow">Notas</div><p style="margin:.3em 0 0;white-space:pre-wrap">${esc(r.notes)}</p></div>`:""}
     <div id="dPayBox"><fieldset><legend>Registrar pago</legend><div class="grid g3" style="align-items:end">
       <label class="f">Valor (COP)<input type="number" id="dPay" min="0" step="1000" value="${Math.max(0,balance(r))}"></label>
@@ -462,7 +466,7 @@ function openResDetail(id){
   const canCI = ["pendiente","confirmada"].includes(r.status), canCO = r.status==="encasa";
   const foot=`<button class="btn danger" id="dDel">Cancelar reserva</button><span style="flex:1"></span><button class="btn" id="dEdit">Editar</button>
     ${canCI?`<button class="btn primary" id="dCI">Hacer check-in</button>`:""}${canCO?`<button class="btn primary" id="dCO">Hacer check-out</button>`:""}`;
-  openModal("Reserva de "+resGuest(r), body, foot, ov=>{
+  openModal((r.source==="ical"&&!r.guestId?"":"Reserva de ")+resGuest(r), body, foot, ov=>{
     ov.querySelector("#dEdit").onclick=()=>openResForm(r);
     const gb=ov.querySelector("#dGuest"); if(gb) gb.onclick=()=>openGuestForm(g);
     const ci=ov.querySelector("#dCI"); if(ci) ci.onclick=()=>doCheckIn(r.id);
@@ -574,6 +578,11 @@ function openRoomForm(r){
     <label class="f">Descripción para el huésped<textarea id="roDesc">${esc(r.description||"")}</textarea></label></fieldset>
     <fieldset><legend>Características</legend><div class="grid g3">${FEATURES.map(f=>`<label class="f chk"><input type="checkbox" data-feat="${esc(f)}" ${feats.has(f)?"checked":""}> ${esc(f)}</label>`).join("")}</div>
       <label class="f">Otras (separadas por coma)<input id="roExtra" value="${esc(extra.join(", "))}"></label></fieldset>
+    <fieldset><legend>Calendarios de Booking y Airbnb (iCal)</legend>
+      <div class="muted" style="font-size:.8rem">Pega el enlace de exportación de esta habitación en cada canal. Las reservas y fechas cerradas se importan cada 15 minutos, bloquean la habitación aquí y pasan a tu Google Calendar.</div>
+      <div id="roFeeds" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button class="btn sm" type="button" id="roFeedAdd" style="align-self:flex-start">+ Agregar calendario</button>
+      <div id="roExport"></div></fieldset>
     <fieldset><legend>Fotos</legend>
       <div id="roPhNote"></div>
       <div class="gallery" id="roGal"></div>
@@ -585,6 +594,28 @@ function openRoomForm(r){
     function drawGal(){gal.innerHTML=photos.map((p,i)=>`<figure><img src="${photoUrl(p)}" alt="Foto ${i+1}">${i===0?'<span class="cover">Portada</span>':""}
       <div class="acts"><button data-crop="${i}">Encuadrar</button>${i>0?`<button data-cov="${i}">Portada</button>`:""}<button data-rm="${i}">Quitar</button></div></figure>`).join("")||`<div class="empty">Sin fotos todavía.</div>`;}
     drawGal();
+    let feeds=(r.icalFeeds||[]).map(f=>Object.assign({},f));
+    const fbox=ov.querySelector("#roFeeds");
+    function readFeeds(){fbox.querySelectorAll("[data-fi]").forEach(row=>{const f=feeds[+row.dataset.fi];f.channel=row.querySelector("select").value;f.url=row.querySelector("input").value.trim();});}
+    function drawFeeds(){
+      const st=(S.ical&&S.ical.status&&S.ical.status.feeds)||{};
+      fbox.innerHTML=feeds.map((f,i)=>{const x=st[f.id];return `<div class="feed-row" data-fi="${i}">
+        <select aria-label="Canal">${ICAL_CH.map(c=>opt(c,chan(c).n,f.channel||"booking")).join("")}</select>
+        <input type="url" inputmode="url" placeholder="https://admin.booking.com/hotel/hoteladmin/ical.html?t=…" value="${esc(f.url||"")}" aria-label="Enlace iCal">
+        <button class="btn sm" type="button" data-frm="${i}">Quitar</button>
+        ${x?`<small class="${x.ok?"ok":"bad"}">${x.ok?`Última lectura ${fdt(x.at)} · ${x.events} evento${x.events===1?"":"s"}`:`Error: ${esc(x.error)}`}</small>`:""}</div>`;}).join("")||`<div class="empty" style="padding:10px">Sin calendarios conectados.</div>`;}
+    drawFeeds();
+    fbox.addEventListener("click",e=>{const b=e.target.closest("[data-frm]");if(!b)return;readFeeds();feeds.splice(+b.dataset.frm,1);drawFeeds();});
+    ov.querySelector("#roFeedAdd").onclick=()=>{readFeeds();const used=feeds.map(f=>f.channel);feeds.push({id:genId("F"),channel:used.includes("booking")?(used.includes("airbnb")?"otro":"airbnb"):"booking",url:""});drawFeeds();fbox.querySelector(".feed-row:last-child input").focus();};
+    const exBox=ov.querySelector("#roExport");
+    const drawExport=()=>{const ex=S.ical&&S.ical.exports&&S.ical.exports[id];
+      exBox.innerHTML=isNew?`<div class="muted" style="font-size:.8rem">Después de crear la habitación verás aquí los enlaces para exportar su disponibilidad.</div>`
+      :ex?`<div class="eyebrow" style="margin-top:6px">Enlaces para pegar en cada canal (exportar)</div>
+        <div class="muted" style="font-size:.8rem;margin:2px 0 6px">Así Booking y Airbnb también cierran las fechas vendidas aquí o en el otro canal. No contienen datos de huéspedes.</div>
+        ${["booking","airbnb"].map(c=>`<div class="grp" style="margin-top:6px"><span style="min-width:96px;font-size:.84rem">${esc(chan(c).n)}</span><input readonly value="${esc(location.origin+ex[c])}" style="flex:1 1 220px;font-family:var(--mono);font-size:.74rem"><button class="btn sm" type="button" data-cp="${esc(location.origin+ex[c])}">Copiar</button></div>`).join("")}`
+      :`<div class="muted" style="font-size:.8rem">Los enlaces de exportación aparecen cuando TOKEN_SECRET está configurado.</div>`;};
+    if(!S.ical) loadIcal().then(()=>{if(ov.isConnected){drawFeeds();drawExport();}}); drawExport();
+    exBox.addEventListener("click",e=>{const b=e.target.closest("[data-cp]");if(b)copyText(b.dataset.cp);});
     async function persistPhotos(){ if(!roomById(id)) return; try{await save("rooms/"+id,{photos,photoOrig},true);}catch(_){}}
     const delPhoto=pid=>api("DELETE","admin/photos/"+encodeURIComponent(pid)).catch(()=>{});
     gal.addEventListener("click",async e=>{
@@ -630,8 +661,12 @@ function openRoomForm(r){
       const f=[...ov.querySelectorAll("[data-feat]")].filter(x=>x.checked).map(x=>x.dataset.feat).concat(v("#roExtra").split(",").map(s=>s.trim()).filter(Boolean));
       const rec=Object.assign({},r,{number:v("#roNum"),name:v("#roName"),type:v("#roType"),beds:v("#roBeds"),capacity:+v("#roCap")||1,rate:Number(v("#roRate"))||0,
         bath:v("#roBath"),size:v("#roSize"),floor:v("#roFloor"),description:ov.querySelector("#roDesc").value,features:f,photos,photoOrig,status:r.status||"disponible"});
+      readFeeds(); const bad=feeds.find(x=>x.url&&!/^(https|webcal):\/\//i.test(x.url));
+      if(bad){toast("Los enlaces iCal deben empezar por https://");return;}
+      const before=JSON.stringify(r.icalFeeds||[]); rec.icalFeeds=feeds.filter(x=>x.url);
       delete rec.id;
-      try{await save("rooms/"+id,rec);toast(isNew?"Habitación creada":"Habitación guardada");closeModal();}catch(_){}
+      try{await save("rooms/"+id,rec);toast(isNew?"Habitación creada":"Habitación guardada");closeModal();
+        if(JSON.stringify(rec.icalFeeds)!==before && rec.icalFeeds.length) runIcalSync(true);}catch(_){}
     };
   }, true);
 }
@@ -802,6 +837,48 @@ function renderGcal(){
     catch(e){n.innerHTML=`<div class="note bad">${esc(e.message)}</div>`;}
     sy.disabled=false; sy.textContent="Sincronizar todas las reservas";
   };
+}
+
+/* ---------- Booking / Airbnb (iCal) ---------- */
+const ICAL_CH=["booking","airbnb","expedia","hotels","otro"];
+const fdt=iso=>{try{return new Intl.DateTimeFormat("es-CO",{timeZone:"America/Bogota",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(new Date(iso));}catch(_){return "";}};
+function copyText(t){try{navigator.clipboard.writeText(t).then(()=>toast("Enlace copiado"),()=>toast("No se pudo copiar; selecciónalo y copia con Ctrl+C."));}catch(_){toast("Selecciona el enlace y cópialo con Ctrl+C.");}}
+async function loadIcal(){try{S.ical=await api("GET","admin/ical/status");}catch(_){S.ical={error:true};} renderIcal(); if(S.tab==="panel") renderPanelAlerts();}
+let icalBusy=false;
+async function runIcalSync(quiet){
+  if(icalBusy) return; icalBusy=true; renderIcal();
+  try{const r=await api("POST","admin/ical/sync");
+    if(r.skipped){ if(!quiet) toast(r.message); }
+    else{ const t=r.totals||{}; const ch=(t.added||0)+(t.updated||0)+(t.cancelled||0);
+      toast(r.ok===false?"Algunos calendarios no se pudieron leer; revisa la tarjeta de Booking y Airbnb.":ch?`Canales sincronizados: ${t.added} nueva(s), ${t.updated} actualizada(s), ${t.cancelled} cancelada(s).`:"Canales sincronizados: sin cambios.");
+      if(r.gcal&&r.gcal.failed) setTimeout(()=>toast("Google Calendar: "+r.gcal.error),1600);}
+    await loadState();
+  }catch(e){toast(e.message);}
+  icalBusy=false; await loadIcal();
+}
+function renderPanelAlerts(){
+  const box=$("#panelAlerts"); if(!box) return; const t=todayISO();
+  const conf=S.res.filter(r=>r.source==="ical"&&active(r)&&r.checkOut>t&&r.conflict&&r.conflict.length);
+  const errs=S.ical&&S.ical.status?Object.values(S.ical.status.feeds||{}).filter(f=>!f.ok):[];
+  box.innerHTML=(conf.length?`<div class="note bad" style="margin-bottom:12px"><b>Posible sobreventa.</b> ${conf.length} reserva${conf.length>1?"s":""} de los canales se cruza${conf.length>1?"n":""} con otra en la misma habitación: ${conf.map(r=>{const ro=roomById(r.roomId);return `<a href="#" data-open="${esc(r.id)}">Hab. ${esc(ro?ro.number:"?")} · ${fd(r.checkIn)}</a>`;}).join(", ")}.</div>`:"")
+    +(errs.length?`<div class="note warn" style="margin-bottom:12px">${errs.length} calendario${errs.length>1?"s":""} de Booking/Airbnb no se pudo leer en la última sincronización. Revísalo en Alojamiento.</div>`:"");
+}
+function renderIcal(){
+  const box=$("#icalCard"); if(!box) return;
+  if(!S.ical){box.innerHTML=`<div class="empty">Consultando los calendarios de los canales…</div>`;loadIcal();return;}
+  const st=(S.ical.status)||null, fs=(st&&st.feeds)||{};
+  const rows=sortRooms().map(ro=>{const feeds=ro.icalFeeds||[];
+    return `<tr><td data-l="Habitación"><span><b>${esc(ro.number)}</b> <span class="muted">${esc(ro.type||"")}</span></span></td>
+      <td data-l="Calendarios"><div>${feeds.length?feeds.map(f=>{const x=fs[f.id];return `<div class="feed-st"><span class="ch" style="--c:${chan(f.channel).c}">${esc(chan(f.channel).n)}</span> ${x?(x.ok?`<span class="ok">✓ ${x.events} evento${x.events===1?"":"s"}</span>`:`<span class="bad" title="${esc(x.error)}">✕ ${esc(x.error)}</span>`):`<span class="muted">pendiente</span>`}</div>`;}).join(""):`<span class="muted">Sin conectar</span>`}</div></td>
+      <td class="r" data-l=""><button class="btn sm" type="button" data-icroom="${esc(ro.id)}">Configurar</button></td></tr>`;}).join("");
+  const n=S.rooms.reduce((a,r)=>a+(r.icalFeeds||[]).length,0);
+  box.innerHTML=`
+    <div class="toolbar"><div class="grp"><h3>Booking y Airbnb (iCal)</h3>${n?`<span class="pill ${st&&st.ok===false?"warn":"ok"}">${n} calendario${n>1?"s":""}</span>`:'<span class="pill warn">Sin conectar</span>'}</div>
+      ${n?`<button class="btn sm primary" id="icalSync" type="button" ${icalBusy?"disabled":""}>${icalBusy?"Sincronizando…":"Sincronizar ahora"}</button>`:""}</div>
+    <p style="margin:.5em 0 0;font-size:.88rem;max-width:80ch">Las reservas y fechas cerradas de cada canal se importan solas cada 15 minutos. Bloquean la habitación en el panel y en el sitio, y se envían a Google Calendar. Si una reserva desaparece del canal, se cancela aquí. ${st?`Última sincronización: <b>${fdt(st.at)}</b>${st.reason==="manual"?" (manual)":""}.`:"Todavía no se ha sincronizado."}</p>
+    <div class="tablewrap" style="margin-top:10px"><table class="ical-tbl"><thead><tr><th>Habitación</th><th>Calendarios</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const sy=$("#icalSync"); if(sy) sy.onclick=()=>runIcalSync(false);
+  box.querySelectorAll("[data-icroom]").forEach(b=>b.onclick=()=>openRoomForm(roomById(b.dataset.icroom)));
 }
 
 /* ---------- adaptación a celular ---------- */
