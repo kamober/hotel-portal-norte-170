@@ -117,7 +117,8 @@ function renderHero(){
   if(lead && lead.length<170) $("#heroLead").textContent=lead;
   $("#heroCaption").innerHTML=`<b>Más que una estancia</b>${esc((h.zone||"Suba, Bogotá").split(",")[0])} · ${esc(h.address||"Bogotá")}`;
   const wa=waNum(), nw=$("#navWa");
-  if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;}
+  if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;
+    const mw=$("#mWa");mw.hidden=false;mw.href=`https://wa.me/${wa}`;mw.target="_blank";mw.rel="noopener";mw.textContent="WhatsApp "+h.whatsapp;}
 }
 function renderPerks(){
   const h=G.hotel, am=(h.amenities||[]).join(" ").toLowerCase();
@@ -149,7 +150,7 @@ function renderRooms(){
         <span class="badge ${st.ok?"ok":"no"}">${st.ok?"Disponible":esc(st.why)}</span></div>
       <div class="body">
         <h3>${esc(r.name||r.type||"Habitación")}</h3>
-        <div class="meta"><span>${ico("user")}${r.capacity||"?"} pers.</span><i></i><span>${esc(r.beds||"")}</span></div><div class="meta">Baño ${esc(r.bath||"")}</div>
+        <div class="meta"><span>${ico("user")}${r.capacity||"?"} pers.</span><i></i><span>${esc(r.beds||"")}</span></div><div class="meta bath">Baño ${esc(r.bath||"")}</div>
         <div class="cfoot"><span class="price"><b>${cop(rate)}</b> <small>/ noche</small>${n>1?`<br><small>${cop(rate*n)} por ${n} noches</small>`:""}</span><span class="go">${ico("arrow")}</span></div>
       </div>
     </article>`;}).join("") || `<div class="empty">${G.loaded?"No hay habitaciones de este tipo.":"Cargando habitaciones…"}</div>`;
@@ -205,7 +206,7 @@ function renderFooter(){
 }
 function renderMine(){
   const mine=G.mine.slice().reverse();
-  $("#mineSec").hidden=!mine.length; $("#footMine").hidden=!mine.length;
+  $("#mineSec").hidden=!mine.length; $("#footMine").hidden=!mine.length; $("#mMine").hidden=!mine.length;
   $("#mine").innerHTML=mine.map(m=>{const st=m.status==="aceptada"?["Confirmada","ok"]:m.status==="rechazada"?["No disponible","bad"]:["En revisión","warn"];
     return `<div class="li"><div class="who"><b>${esc(m.room||"Habitación")}</b><small>${fd(m.checkIn,{weekday:"short"})} → ${fd(m.checkOut,{weekday:"short"})} · <span class="num">${esc(m.id)}</span></small></div><span class="pill ${st[1]}">${st[0]}</span></div>`;}).join("");
 }
@@ -280,6 +281,14 @@ function showResult(r,q,p,id,errText){
       ov.querySelector("#rqCopy").onclick=()=>{const ta=ov.querySelector("#rqMsg");const fb=()=>{ta.focus();ta.select();toast("Mensaje seleccionado: cópialo con Ctrl+C.");};
         try{navigator.clipboard.writeText(msg).then(()=>toast("Mensaje copiado"),fb);}catch(_){fb();}};});
 }
+
+/* ---------- menú móvil ---------- */
+const mBtn=$("#menuBtn"), mMenu=$("#mMenu");
+function setMenu(open){mMenu.hidden=!open;mBtn.setAttribute("aria-expanded",open);mBtn.setAttribute("aria-label",open?"Cerrar menú":"Abrir menú");}
+mBtn.addEventListener("click",()=>setMenu(mMenu.hidden));
+mMenu.addEventListener("click",e=>{if(e.target.closest("a"))setMenu(false);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!mMenu.hidden){setMenu(false);mBtn.focus();}});
+window.addEventListener("resize",()=>{if(innerWidth>900&&!mMenu.hidden)setMenu(false);});
 
 /* ---------- arranque ---------- */
 initSearch(); loadMine(); render(); load(); refreshMine();

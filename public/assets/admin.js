@@ -769,6 +769,19 @@ function openHotelForm(){
   }, true);
 }
 
+/* ---------- adaptación a celular ---------- */
+/* Etiquetas para que las tablas se lean como fichas en pantallas pequeñas */
+function labelRows(tb){const hs=[...tb.closest("table").querySelectorAll("thead th")].map(th=>th.textContent.trim());
+  tb.querySelectorAll("tr").forEach(tr=>[...tr.children].forEach((td,i)=>{if(!td.hasAttribute("colspan"))td.setAttribute("data-l",hs[i]||"");}));}
+["#rBody","#gBody"].forEach(sel=>{const tb=$(sel);new MutationObserver(()=>labelRows(tb)).observe(tb,{childList:true});});
+/* Menú de acciones del encabezado */
+const hdrBtn=$("#hdrMenu"), hdrActs=$("#hdrActs");
+function setHdr(open){hdrActs.classList.toggle("open",open);hdrBtn.setAttribute("aria-expanded",open);}
+hdrBtn.addEventListener("click",e=>{e.stopPropagation();setHdr(!hdrActs.classList.contains("open"));});
+hdrActs.addEventListener("click",e=>{if(e.target.closest("a,button"))setHdr(false);});
+document.addEventListener("click",e=>{if(hdrActs.classList.contains("open")&&!e.target.closest("#hdrActs"))setHdr(false);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&hdrActs.classList.contains("open"))setHdr(false);});
+
 /* ---------- arranque ---------- */
 initEngine();
 try{const t=localStorage.getItem("pn170tab");if(t&&document.getElementById("t-"+t))S.tab=t;}catch(_){}

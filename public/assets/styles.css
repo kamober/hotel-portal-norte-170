@@ -123,3 +123,11 @@ legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(
 .x:focus-visible{outline:2px solid var(--accent)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:.88rem;z-index:60;max-width:calc(100% - 32px)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+/* Diálogos en celular: más ancho útil y botones fáciles de tocar */
+@media (max-width:600px){
+  .ov{padding:8px 8px 16px}
+  .modal header,.modal .mb,.modal footer{padding-inline:14px}
+  .modal footer .btn{flex:1 1 auto;min-height:44px}
+  .modal footer > span[style*="flex:1"]{display:none}
+  .btn{min-height:40px}
+}

@@ -33,12 +33,20 @@ h1 em,h2 em{font-style:italic}
 .btn .ico{width:16px;height:16px}
 
 /* Hero */
-.hero{position:relative;overflow:hidden;color:#fff;background:var(--navy);min-height:clamp(560px,76vh,720px);display:flex;flex-direction:column}
+.hero{position:relative;overflow:hidden;overflow:clip;color:#fff;background:var(--navy);min-height:clamp(560px,76vh,720px);display:flex;flex-direction:column}
 .hero .bg{position:absolute;inset:0}
 .hero .bg img{width:100%;height:100%;object-fit:cover}
 .hero .bg svg{width:100%;height:100%;display:block}
 .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,28,46,.72) 0%,rgba(9,28,46,.40) 42%,rgba(9,28,46,0) 70%),linear-gradient(180deg,rgba(9,28,46,.45) 0%,transparent 22%)}
 .hero > .nav,.hero > .hero-body,.hero > .search-wrap{position:relative;z-index:2;width:100%}
+.menu-btn{display:none;width:44px;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(9,28,46,.35);color:#fff;place-items:center;cursor:pointer}
+.menu-btn .ico{width:22px;height:22px}
+.menu-btn:focus-visible{outline:2px solid #fff}
+.m-menu{position:relative;z-index:5;width:100%}
+.m-menu .container{display:flex;flex-direction:column;background:#fff;border-radius:12px;padding:6px;box-shadow:0 18px 40px rgba(9,28,46,.35);width:calc(100% - 40px);margin-top:-6px}
+.m-menu a{color:var(--ink);text-decoration:none;font-weight:600;padding:13px 14px;border-radius:8px}
+.m-menu a:hover,.m-menu a:focus-visible{background:#F4EDE2}
+@media (max-width:900px){.menu-btn{display:grid}}
 .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px;padding-top:calc(18px + env(safe-area-inset-top,0px))}
 .brandmark{display:inline-flex;align-items:center;gap:12px;color:inherit;text-decoration:none}
 .brandmark .mk{width:50px;height:50px;border-radius:50%;background:var(--cream);padding:4px;flex:none}
@@ -50,7 +58,10 @@ h1 em,h2 em{font-style:italic}
 .nav .right{display:flex;align-items:center;gap:14px}
 .nav .wa{font-size:.84rem;font-weight:600;color:inherit;text-decoration:none;white-space:nowrap;opacity:.9}
 @media (max-width:900px){.nav ul{display:none}}
-@media (max-width:520px){.nav .wa{display:none}.brandmark small{display:none}}
+@media (max-width:520px){.nav .wa{display:none}.brandmark small{display:none}.nav .right .btn.brand{display:none}.brandmark b{font-size:1.2rem}}
+.m-menu a.m-cta{background:var(--accent);color:#fff;text-align:center;margin-top:4px}
+.m-menu a.m-cta:hover{background:var(--accent-hover)}
+@media (min-width:521px){.m-menu a.m-cta{display:none}}
 
 .hero-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding-block:28px 28px}
 .hero .eyebrow{color:#fff;opacity:.85}
@@ -69,8 +80,8 @@ h1 em,h2 em{font-style:italic}
 .search input{border:0;padding:2px 0 0;font-size:.86rem;color:var(--ink-muted);background:transparent;font-weight:500}
 .search input:focus-visible{outline:none;box-shadow:0 2px 0 var(--accent)}
 .search button{border-radius:8px;padding:12px 22px;margin-left:8px}
-@media (max-width:820px){
-  .search{grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:900px){
+  .search{grid-template-columns:1fr 1fr;gap:8px;max-width:none}
   .search label{border:0;background:#F7F3EC;border-radius:8px}
   .search button{grid-column:1/-1;margin:0}
 }
@@ -86,10 +97,11 @@ h1 em,h2 em{font-style:italic}
 .perk b{display:block;font-size:.84rem;font-weight:600}
 .perk small{display:block;font-size:.74rem;color:var(--muted);line-height:1.4}
 @media (max-width:1000px){.perks .container{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.perk{border:0;padding:0}}
-@media (max-width:520px){.perks .container{grid-template-columns:1fr}}
+@media (max-width:520px){.perks .container{grid-template-columns:1fr;gap:12px;padding-block:20px}.perk .circ{width:44px;height:44px}}
 
 /* Secciones */
 .sec{padding-block:64px}
+@media (max-width:600px){.sec{padding-block:44px}.hero-body{padding-block:16px 20px}.search-wrap{padding-bottom:28px}}
 .sec h2{font-size:clamp(1.9rem,3.6vw,2.5rem);line-height:1.12;margin-top:8px}
 .sec p.sub{color:var(--muted);margin:14px 0 0;max-width:46ch;line-height:1.6}
 
@@ -126,6 +138,20 @@ h1 em,h2 em{font-style:italic}
 .card .go .ico{width:15px;height:15px}
 .card.off{opacity:.6}
 .card.off:hover{transform:none}
+@media (max-width:600px){
+  .cards{grid-template-columns:1fr;gap:12px}
+  .card{flex-direction:row;min-height:132px}
+  .card .img{width:40%;flex:none;aspect-ratio:auto}
+  .card .img .ph img{width:56px;height:56px}
+  .card .img .ph{font-size:1.05rem}
+  .card .badge{left:6px;top:6px;font-size:.62rem;padding:3px 7px}
+  .card .body{padding:10px 12px;gap:4px;min-width:0}
+  .card h3{font-size:.98rem}
+  .card .meta{font-size:.72rem}
+  .card .meta.bath{display:none}
+  .card .cfoot{padding-top:6px}
+  .card .go{width:28px;height:28px}
+}
 
 /* Ubicación: panel marino + cerca de ti */
 .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
@@ -151,6 +177,7 @@ h1 em,h2 em{font-style:italic}
 .near b{display:block;font-size:.84rem;font-weight:600;line-height:1.3}
 .near small{color:var(--muted);font-size:.74rem}
 @media (prefers-color-scheme:dark){.split .light{background:var(--band)}}
+@media (max-width:600px){.near{grid-template-columns:1fr;gap:8px}.near .it{flex-direction:row;align-items:center}.near .tile{width:64px;aspect-ratio:1;flex:none}.near .tile .ico{width:24px;height:24px}.split .dark{min-height:380px}}
 @media (max-width:900px){.split{grid-template-columns:1fr}}
 
 /* Por qué elegirnos */
@@ -220,8 +247,10 @@ h1 em,h2 em{font-style:italic}
       <li><a href="#por-que">Por qué elegirnos</a></li>
       <li><a href="#contacto">Contacto</a></li>
     </ul>
-    <div class="right"><a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a><a class="btn brand" href="#habitaciones">Reservar <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    <div class="right"><a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a><a class="btn brand" href="#habitaciones">Reservar <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="mMenu"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
   </nav>
+  <div class="m-menu" id="mMenu" hidden><div class="container"><a href="#habitaciones">Habitaciones</a><a href="#ubicacion">Ubicación</a><a href="#por-que">Por qué elegirnos</a><a href="#contacto">Contacto</a><a href="#mineSec" id="mMine" hidden>Mis solicitudes</a><a href="#contacto" id="mWa" hidden>WhatsApp</a><a href="#habitaciones" class="m-cta">Reservar habitación</a></div></div>
   <div class="container hero-body">
     <div class="eyebrow" id="heroEyebrow">DESCANSA. TRABAJA. MUÉVETE.</div>
     <h1 id="heroTitle">Tu base <em>en el norte</em> de Bogotá</h1>
