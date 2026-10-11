@@ -87,6 +87,43 @@ Paleta (variables en `public/assets/styles.css`): marino para bandas y textos, r
 
 Tipografía: Source Serif 4 (títulos, con cursiva de acento) y Plus Jakarta Sans (texto).
 
+## Google Calendar
+
+Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actualiza al guardarla y se borra al cancelarla o eliminarla. El evento va del check-in (15:00) al check-out (11:00) y lleva el nombre del huésped, su teléfono, la habitación, el canal, el estado y el saldo. Hay dos formas de conectarlo. Puedes usar las dos a la vez.
+
+### A) Sincronización en tiempo real (recomendada)
+
+**Opción 1: cuenta de servicio**
+
+1. En <https://console.cloud.google.com> crea un proyecto, por ejemplo «portal-norte-170».
+2. Ve a *APIs y servicios → Biblioteca* y habilita **Google Calendar API**.
+3. Ve a *IAM → Cuentas de servicio → Crear cuenta de servicio*. Ponle un nombre, por ejemplo «reservas»; no necesita roles.
+4. Entra a la cuenta creada y ve a *Claves → Agregar clave → JSON*. Se descarga un archivo con `client_email` y `private_key`.
+5. Abre Google Calendar con cbernal@gesoltec.co. En *Configuración → (tu calendario) → Compartir con personas específicas*, agrega el `client_email` con el permiso **«Hacer cambios en eventos»**.
+6. En Netlify ve a *Site configuration → Environment variables* y agrega:
+   - `GOOGLE_SERVICE_ACCOUNT_EMAIL`: el `client_email`.
+   - `GOOGLE_PRIVATE_KEY`: la `private_key` completa, incluidas las líneas `-----BEGIN/END PRIVATE KEY-----`. Puedes dejar los `\n` tal como vienen.
+   - `GOOGLE_CALENDAR_ID` (opcional): por defecto es cbernal@gesoltec.co.
+7. Haz *Deploys → Trigger deploy*. Luego, en el panel, ve a **Alojamiento → Google Calendar** y pulsa **Sincronizar todas las reservas** para pasar las reservas que ya existen.
+
+**Opción 2: OAuth.** Úsala si Google Workspace no permite compartir el calendario con la cuenta de servicio.
+
+1. En el mismo proyecto de Cloud, configura la *Pantalla de consentimiento OAuth* como interna o externa y agrega tu correo como usuario de prueba.
+2. Ve a *Credenciales → Crear ID de cliente OAuth → Aplicación web*. Como URI de redirección usa `https://developers.google.com/oauthplayground`.
+3. En <https://developers.google.com/oauthplayground>, abre el engranaje, marca *Use your own OAuth credentials* y pega el ID y el secreto.
+4. Autoriza el alcance `https://www.googleapis.com/auth/calendar.events` con cbernal@gesoltec.co. Luego pulsa *Exchange authorization code for tokens* y copia el **refresh token**.
+5. En Netlify agrega `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `GOOGLE_REFRESH_TOKEN`. Después vuelve a desplegar y sincroniza.
+
+Si Google falla, la reserva se guarda igual y el panel muestra un aviso. Para reintentar, pulsa «Sincronizar todas las reservas».
+
+### B) Suscripción iCal (sin configuración)
+
+En **Alojamiento → Google Calendar** está el enlace privado del feed (`/api/calendar/<token>.ics`). Para usarlo:
+
+- Pulsa **Agregar a Google Calendar**, o en Google Calendar ve a *Otros calendarios → + → Desde URL* y pega el enlace.
+- Google refresca las suscripciones cada pocas horas, así que el feed no es instantáneo. Es solo lectura.
+- El enlace es privado. Si se filtra, cámbialo: define `CALENDAR_FEED_TOKEN` con un valor nuevo (o cambia `TOKEN_SECRET`) y vuelve a desplegar.
+
 ## Mantenimiento
 
 - **Respaldo:** botón *Descargar respaldo* en el panel (JSON con hotel, habitaciones, huéspedes, reservas y solicitudes). Hazlo con regularidad.
@@ -96,6 +133,6 @@ Tipografía: Source Serif 4 (títulos, con cursiva de acento) y Plus Jakarta San
 
 ## Pendiente / siguientes pasos
 
-- Sincronización de calendario con Booking y Airbnb (iCal) para bloquear fechas automáticamente.
+- Importar los iCal de Booking y Airbnb para bloquear fechas automáticamente.
 - Pago en línea del anticipo (Wompi, Mercado Pago o PayU).
 - Usuarios individuales para el equipo (en lugar de una sola contraseña).

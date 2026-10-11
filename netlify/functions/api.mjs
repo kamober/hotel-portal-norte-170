@@ -4,6 +4,7 @@
 import { getStore } from "@netlify/blobs";
 import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import seed from "../../lib/seed.mjs";
+import * as gcal from "../../lib/gcal.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -167,7 +168,31 @@ async function handlePhoto(id) {
 /* ---------- administración ---------- */
 function cleanRecord(body, id) {
   const rec = { ...body, id, updatedAt: new Date().toISOString() };
+  delete rec._gcal;
   return rec;
+}
+
+/* ---------- calendario ---------- */
+function feedToken() {
+  const own = env("CALENDAR_FEED_TOKEN");
+  if (own) return own;
+  return secret() ? createHmac("sha256", secret()).update("ics-feed").digest("hex").slice(0, 32) : "";
+}
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("Google Calendar no respondió a tiempo.")), ms))]);
+async function syncToCalendar(store, rec, deleted = false) {
+  if (!gcal.isConfigured()) return { skipped: true };
+  try {
+    if (deleted) return await withTimeout(gcal.deleteReservation(rec.id), 8000);
+    const [room, guest, hotel] = await Promise.all([
+      rec.roomId ? store.get("rooms/" + rec.roomId, { type: "json" }) : null,
+      rec.guestId ? store.get("guests/" + rec.guestId, { type: "json" }) : null,
+      store.get("hotel", { type: "json" }),
+    ]);
+    return await withTimeout(gcal.syncReservation(rec, room, guest, hotel || {}), 8000);
+  } catch (e) {
+    console.error("gcal", e);
+    return { ok: false, error: e.message };
+  }
 }
 
 async function handleAdmin(req, parts, store) {
@@ -204,6 +229,25 @@ async function handleAdmin(req, parts, store) {
     return fail(405, "Método no permitido.");
   }
 
+  if (kind === "gcal") {
+    if (id === "status" && m === "GET") {
+      const t = feedToken();
+      return json({ configured: gcal.isConfigured(), mode: gcal.authMode(), calendarId: gcal.calendarId(), feedPath: t ? `/api/calendar/${t}.ics` : null });
+    }
+    if (id === "sync" && m === "POST") {
+      if (!gcal.isConfigured()) return fail(400, "Google Calendar no está configurado. Revisa las variables de entorno en Netlify.");
+      const from = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+      const res = (await listJSON(store, "res/")).filter((r) => r.checkOut >= from);
+      let ok = 0; const errors = [];
+      for (const r of res) {
+        const out = await syncToCalendar(store, r);
+        if (out.ok) ok++; else if (out.error) errors.push(`${r.id}: ${out.error}`);
+      }
+      return json({ total: res.length, ok, failed: errors.length, errors: errors.slice(0, 3) });
+    }
+    return fail(404, "Ruta no encontrada.");
+  }
+
   const prefix = KINDS[kind];
   if (!prefix || !id || !ID_RE.test(id)) return fail(404, "Ruta no encontrada.");
   const key = prefix + id;
@@ -214,8 +258,10 @@ async function handleAdmin(req, parts, store) {
       const res = await listJSON(store, "res/");
       if (res.some((r) => r.roomId === id && isActive(r) && r.checkOut >= today)) return fail(409, "La habitación tiene reservas activas. Muévelas o cancélalas primero.");
     }
+    const before = kind === "reservations" ? await store.get(key, { type: "json" }) : null;
     await store.delete(key);
-    return json({ deleted: true });
+    const g = before ? await syncToCalendar(store, before, true) : undefined;
+    return json({ deleted: true, _gcal: g });
   }
 
   if (kind === "requests" && m === "PATCH") {
@@ -246,6 +292,7 @@ async function handleAdmin(req, parts, store) {
     if (kind === "guests" && !str(b.first)) return fail(400, "El nombre del huésped es obligatorio.");
     const rec = cleanRecord(b, id);
     await store.setJSON(key, rec);
+    if (kind === "reservations") return json({ ...rec, _gcal: await syncToCalendar(store, rec) });
     return json(rec);
   }
 
@@ -264,6 +311,13 @@ export default async (req) => {
     if (head === "requests" && req.method === "POST" && !rest.length) return await handleNewRequest(req, store);
     if (head === "requests" && req.method === "GET" && rest.length === 1) return await handleRequestStatus(rest[0], url, store);
     if (head === "photos" && req.method === "GET" && rest.length === 1) return await handlePhoto(rest[0]);
+    if (head === "calendar" && req.method === "GET" && rest.length === 1) {
+      const t = feedToken(), given = rest[0].replace(/\.ics$/, "");
+      const a = Buffer.from(given), b = Buffer.from(t);
+      if (!t || a.length !== b.length || !timingSafeEqual(a, b)) return new Response("No encontrado", { status: 404 });
+      const [hotel, rooms, guests, res] = await Promise.all([store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/")]);
+      return new Response(gcal.buildIcs(res, rooms, guests, hotel || {}), { headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-store", "Content-Disposition": 'inline; filename="reservas-portal-norte-170.ics"' } });
+    }
 
     if (head === "login" && req.method === "POST") {
       const pass = env("ADMIN_PASSWORD");

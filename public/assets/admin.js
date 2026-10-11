@@ -31,14 +31,15 @@ async function save(path, data, merge){
       const arr = ARR[kind]; const cur = S[arr].find(x=>x.id===id) || {};
       const body = merge ? Object.assign({}, cur, data) : Object.assign({}, data);
       delete body.id;
-      rec = await api("PUT", `admin/${kind}/${encodeURIComponent(id)}`, body); upsert(arr, rec);
+      rec = await api("PUT", `admin/${kind}/${encodeURIComponent(id)}`, body);
+      const g = rec._gcal; delete rec._gcal; upsert(arr, rec); gcalWarn(g);
     }
   }catch(e){ toast(e.message || "No se pudo guardar."); throw e; }
   render(); return rec;
 }
 async function del(path){
   const [kind, id] = path.split("/");
-  await api("DELETE", `admin/${kind}/${encodeURIComponent(id)}`);
+  const out = await api("DELETE", `admin/${kind}/${encodeURIComponent(id)}`); gcalWarn(out && out._gcal);
   const arr = ARR[kind]; S[arr] = S[arr].filter(x=>x.id!==id); render();
 }
 async function loadState(){
@@ -300,6 +301,7 @@ function renderHotel(){
   const link=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a>`:`<span class="muted">Sin enlace</span>`;
   const types={};S.rooms.forEach(r=>{const k=r.type||"Sin tipo";types[k]=types[k]||{n:0,min:Infinity,max:0,beds:r.beds,cap:r.capacity};types[k].n++;types[k].min=Math.min(types[k].min,Number(r.rate)||0);types[k].max=Math.max(types[k].max,Number(r.rate)||0);});
   $("#aloj").innerHTML=`
+  <div class="panel" id="gcalCard"></div>
   <div class="facts">
     <div class="panel"><div class="eyebrow">Foto de portada del sitio</div><div class="hero-ph" style="margin-top:8px">${h.heroPhoto?`<img src="${photoUrl(h.heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted);font-size:.86rem">Sin portada: se muestra la ilustración</div>`}</div></div>
     <div class="panel"><div class="eyebrow">Frase de portada</div><p style="margin:.3em 0 .8em;font-family:var(--display);font-size:1.3rem;font-weight:700">${esc(h.tagline||"Tu base en el norte de Bogotá")}</p>
@@ -329,6 +331,7 @@ function renderHotel(){
     <div class="panel"><h3>Fuentes consultadas</h3><ul class="plain" style="margin-top:10px">${(h.sources||[]).map(s=>`<li>${link(s.url,s.title)}</li>`).join("")}</ul>
       ${h.taxNote?`<p class="muted" style="font-size:.8rem;margin:10px 0 0">${esc(h.taxNote)}</p>`:""}</div>
   </div>`;
+  renderGcal();
 }
 
 /* ---------- reserva: formulario ---------- */
@@ -767,6 +770,38 @@ function openHotelForm(){
       try{await save("hotel/info",rec);toast("Ficha guardada");closeModal();}catch(_){}
     };
   }, true);
+}
+
+/* ---------- Google Calendar ---------- */
+function gcalWarn(g){ if(g && g.ok===false) setTimeout(()=>toast("Se guardó, pero Google Calendar no se actualizó: "+g.error),1400); }
+async function loadGcal(){ try{ S.gcal=await api("GET","admin/gcal/status"); }catch(_){ S.gcal={error:true}; } renderGcal(); }
+function renderGcal(){
+  const box=$("#gcalCard"); if(!box) return;
+  if(!S.gcal){ box.innerHTML=`<div class="empty">Consultando la conexión con Google Calendar…</div>`; loadGcal(); return; }
+  const g=S.gcal, feed=g.feedPath?location.origin+g.feedPath:"";
+  const sub=feed?"https://calendar.google.com/calendar/r?cid="+encodeURIComponent(feed.replace(/^https?:/,"webcal:")):"";
+  box.innerHTML=`
+    <div class="toolbar"><div class="grp"><h3>Google Calendar</h3>${g.configured?'<span class="pill ok">Conectado</span>':'<span class="pill warn">Sin conectar</span>'}</div>
+      ${g.configured?`<button class="btn sm primary" id="gcalSync" type="button">Sincronizar todas las reservas</button>`:""}</div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><div class="eyebrow">Tiempo real</div>
+        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Cada reserva se crea, actualiza o borra en el calendario <b>${esc(g.calendarId)}</b> al guardarla. Conexión: ${g.mode==="oauth"?"cuenta de Google (OAuth)":"cuenta de servicio"}.</p>`
+          :`<p style="margin:.4em 0 0;font-size:.88rem">Falta agregar las credenciales de Google en las variables de entorno de Netlify. Los pasos están en el README, sección «Google Calendar». Calendario destino: <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b>.</p>`}
+        <div id="gcalNote" style="margin-top:8px"></div></div>
+      <div><div class="eyebrow">Enlace privado iCal</div>
+        ${feed?`<p style="margin:.4em 0 6px;font-size:.88rem">Suscríbelo en Google Calendar, Apple Calendar u Outlook. Se actualiza solo (Google lo revisa cada pocas horas). No lo compartas: muestra nombres y teléfonos de huéspedes.</p>
+          <div class="grp"><input id="gcalFeed" readonly value="${esc(feed)}" style="flex:1 1 220px;font-family:var(--mono);font-size:.78rem"><button class="btn sm" id="gcalCopy" type="button">Copiar</button></div>
+          <a class="btn sm" style="margin-top:8px" href="${esc(sub)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>`
+          :`<p style="margin:.4em 0 0;font-size:.88rem">Disponible cuando se configure TOKEN_SECRET en Netlify.</p>`}</div>
+    </div>`;
+  const cp=$("#gcalCopy"); if(cp) cp.onclick=()=>{const i=$("#gcalFeed");const fb=()=>{i.focus();i.select();toast("Enlace seleccionado: cópialo con Ctrl+C.");};try{navigator.clipboard.writeText(i.value).then(()=>toast("Enlace copiado"),fb);}catch(_){fb();}};
+  const sy=$("#gcalSync"); if(sy) sy.onclick=async()=>{
+    sy.disabled=true; sy.textContent="Sincronizando…"; const n=$("#gcalNote");
+    try{const r=await api("POST","admin/gcal/sync");
+      n.innerHTML=r.failed?`<div class="note warn">${r.ok} de ${r.total} reservas sincronizadas. Errores: ${esc(r.errors.join(" · "))}</div>`:`<div class="note ok">${r.ok} reserva${r.ok===1?"":"s"} sincronizada${r.ok===1?"":"s"} con Google Calendar.</div>`;}
+    catch(e){n.innerHTML=`<div class="note bad">${esc(e.message)}</div>`;}
+    sy.disabled=false; sy.textContent="Sincronizar todas las reservas";
+  };
 }
 
 /* ---------- adaptación a celular ---------- */
