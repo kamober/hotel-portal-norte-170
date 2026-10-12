@@ -21,6 +21,8 @@ netlify/functions/ical-sync.mjs  Tarea programada: lee los calendarios de los ca
 lib/notify.mjs               Notificaciones por correo (Resend o Gmail)
 public/reserva.html          Página del huésped: confirmación + check-in en línea (TRA, selfie y documento)
 public/assets/pdf.js         Generador de PDF propio, sin librerías externas
+public/assets/promo.js       Portada rotativa y galería por categorías del sitio público
+public/assets/promo/         Fotos promocionales optimizadas (fachada, acceso, pasillos, cocina, zona retro, seguridad, barrio)
 public/assets/docs.js        Confirmación, ficha de reserva con registro hotelero y listado en PDF; WhatsApp
 public/index.html            Sitio público
 public/admin.html            Panel de administración
@@ -228,6 +230,15 @@ Los PDF se generan en el navegador, sin servicios externos:
 - **Confirmación de reserva:** datos de la estadía, pago, saldo, enlace de check-in, cómo llegar y políticas. Está en el detalle de la reserva con *Descargar PDF*, *Imprimir* y *Compartir PDF*. En el celular, «Compartir PDF» abre la hoja de compartir, y desde ahí se elige WhatsApp.
 - **Ficha de reserva y registro hotelero:** estancia, pago y una tarjeta por huésped con los datos TRA, la selfie y las fotos del documento. Al final lleva la autorización y las líneas de firma.
 - **Listado de reservas:** pestaña Reservas → *Imprimir listado*. Usa los filtros que tengas aplicados (fechas, estado, canal, búsqueda) e incluye los totales.
+
+## Fotos promocionales del sitio
+
+La portada y la galería usan las fotos de `public/assets/promo/`, ya optimizadas y con la marca de agua del hotel. Para cambiarlas:
+
+1. Reemplaza el archivo manteniendo el mismo nombre, o agrega uno nuevo.
+2. Si es nuevo, regístralo en `public/assets/promo.js`: en `HERO` si va en la portada, o en `PHOTOS` con su categoría y su texto.
+
+Si en el panel eliges una «foto de portada», esa entra primero en la rotación. Las fotos de cada habitación se siguen administrando desde el panel.
 
 ## Mantenimiento
 

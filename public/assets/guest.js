@@ -23,6 +23,9 @@ const P = {
   shower:'<path d="M4 11a8 8 0 0 1 16 0H4z"/><path d="M12 3v1M8 15v1M12 15v2M16 15v1M10 19v1M14 19v1"/>',
   shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/>',
   door:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><circle cx="15" cy="12" r=".9"/>',
+  phone:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7h4M10 11h4M10 15h4"/>',
+  check:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 12.5 11 14l3.5-3.5M10 18.5h4"/>',
+  game:'<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="17.8" cy="13.8" r="1"/>',
 };
 const ico = n => `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${P[n]||P.pin}</svg>`;
 
@@ -111,11 +114,10 @@ function renderHero(){
   const h=G.hotel, photo=coverPhoto();
   document.title = hName()+" · Habitaciones en Suba, Bogotá";
   $("#brandName").textContent=shortName();
-  $("#heroBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : SCENE("h");
-  if(h.tagline) $("#heroTitle").textContent=h.tagline;
-  const lead = h.description ? h.description.split(/(?<=\.)\s/)[0] : "";
-  if(lead && lead.length<170) $("#heroLead").textContent=lead;
-  $("#heroCaption").innerHTML=`<b>Más que una estancia</b>${esc((h.zone||"Suba, Bogotá").split(",")[0])} · ${esc(h.address||"Bogotá")}`;
+  // La portada rota las fotos del hotel; si en el panel se eligió una portada, entra primero.
+  if(h.heroPhoto && window.PNPromo) PNPromo.heroFirst(photoUrl(h.heroPhoto));
+  if(h.tagline && h.tagline.trim() && !/^tu base en el norte de bogot/i.test(h.tagline)) $("#heroTitle").textContent=h.tagline;
+  void photo;
   const wa=waNum(), nw=$("#navWa");
   if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;
     const mw=$("#mWa");mw.hidden=false;mw.href=`https://wa.me/${wa}`;mw.target="_blank";mw.rel="noopener";mw.textContent="WhatsApp "+h.whatsapp;}
@@ -123,11 +125,12 @@ function renderHero(){
 function renderPerks(){
   const h=G.hotel, am=(h.amenities||[]).join(" ").toLowerCase();
   const items=[
-    {ic:"bed",t:"Habitaciones privadas",s:`${G.rooms.length||10} habitaciones con cama, armario y escritorio`},
-    {ic:"wifi",t:"Wi‑Fi y zona de trabajo",s:/wi-?fi/.test(am)?"Wi‑Fi gratis en todo el alojamiento":"Conexión para trabajar"},
-    {ic:"kitchen",t:"Cocina compartida",s:/cocina/.test(am)?"Estufa, nevera y lavaplatos":"Espacios comunes"},
-    {ic:"bus",t:"Bien conectado",s:"A pocos pasos del Portal Norte"},
-    {ic:"key",t:"Llegada sencilla",s:`Check-in desde las ${h.checkinFrom||"15:00"}`},
+    {ic:"phone",t:"Recepción smart",s:"Videoportero y cerraduras con clave o huella"},
+    {ic:"check",t:"Check-in electrónico",s:"Registro TRA y documento desde el celular"},
+    {ic:"shield",t:"Seguridad integral",s:"Monitoreo, extintores, botiquín y camilla"},
+    {ic:"kitchen",t:"Cocina compartida",s:/cocina/.test(am)?"Nevera, estufa, campana y comedor":"Espacios comunes"},
+    {ic:"game",t:"Zona retro",s:"Máquina arcade para dos jugadores"},
+    {ic:"bus",t:"Estrato 4 · Portal Norte",s:"Zona segura a una cuadra de TransMilenio"},
   ];
   $("#perks").innerHTML=items.map(x=>`<div class="perk"><span class="circ">${ico(x.ic)}</span><div><b>${esc(x.t)}</b><small>${esc(x.s)}</small></div></div>`).join("");
 }
@@ -159,8 +162,6 @@ function renderNear(){
   const h=G.hotel;
   $("#addrLine").textContent=[h.address,h.zone].filter(Boolean).join(" · ") || "Suba, Bogotá";
   if(h.address) $("#mapLink").href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(h.address+", Bogotá");
-  const photo=coverPhoto();
-  $("#locBg").innerHTML = photo ? `<img src="${photoUrl(photo)}" alt="">` : SCENE("l");
   $("#near").innerHTML=(h.nearby||[]).map(x=>{const [t,...m]=x.split(" · ");return `<div class="it"><div class="tile">${ico(nearIcon(x))}</div><div class="txt"><b>${esc(t)}</b><small>${esc(m.join(" · "))}</small></div></div>`;}).join("")
     || `<div class="empty">${G.loaded?"Pronto agregaremos los lugares cercanos.":"Cargando…"}</div>`;
 }
@@ -195,7 +196,8 @@ function renderDirect(){
   const rates=G.rooms.map(r=>Number(r.rate)||0).filter(Boolean);
   const minRate=rates.length?Math.min(...rates):0;
   const k=minRate>=1000?`$${Math.round(minRate/1000)}k`:cop(minRate);
-  $("#directBg").innerHTML=SCENE("d");
+  $("#directBg").innerHTML=`<img src="/assets/promo/hero-fachada.jpg" alt="" loading="lazy">`;
+  const ls=$("#lsWa"); if(ls&&wa) ls.href=`https://wa.me/${wa}?text=${encodeURIComponent("Hola, quiero información de estadías largas en "+hName()+".")}`;
   $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
     .map(([v,l])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
 }
