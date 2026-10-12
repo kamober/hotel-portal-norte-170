@@ -45,7 +45,7 @@ async function del(path){
 async function loadState(){
   try{
     const j = await api("GET","admin/state");
-    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[];
+    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[]; S.links=j.links||{};
     S.loaded=true; loadIcal(); setSync("on","Actualizado " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
     render();
   }catch(e){ if(S.token) setSync("off", e.message || "Sin conexión"); }
@@ -90,7 +90,9 @@ const nights = r => Math.max(0, diff(r.checkIn, r.checkOut));
 const balance = r => (Number(r.total)||0) - (Number(r.paid)||0);
 const sortRooms = () => S.rooms.slice().sort((a,b)=>String(a.number).localeCompare(String(b.number),"es",{numeric:true}));
 function conflicts(roomId,a,b,exceptId){return S.res.filter(r=>r.roomId===roomId && active(r) && r.id!==exceptId && r.checkIn < b && a < r.checkOut);}
-function tra(g){const need=["first","last","docType","docNumber","nationality","birth","phone","city"];const miss=need.filter(k=>!g[k]);return {ok:miss.length===0 && !!g.consent, miss};}
+// Datos mínimos para la TRA. A los acompañantes no se les exige teléfono ni ciudad (comparten los del titular).
+const isCompanion=g=>S.res.some(r=>(r.companions||[]).includes(g.id));
+function tra(g){const need=["first","last","docType","docNumber","nationality","birth"].concat(isCompanion(g)?[]:["phone","city"]);const miss=need.filter(k=>!g[k]);return {ok:miss.length===0 && !!g.consent, miss};}
 
 /* ---------- pestañas ---------- */
 $("#tabs").addEventListener("click", e=>{const b=e.target.closest("button[data-t]");if(b)setTab(b.dataset.t);});
@@ -219,6 +221,7 @@ function renderRes(){
   const q=$("#rQ").value.trim().toLowerCase(), st=$("#rSt").value, ch=$("#rCh").value, w=$("#rWhen").value, t=todayISO();
   let list=S.res.filter(r=>(!st||r.status===st)&&(!ch||r.channel===ch)&&(w==="all"||(w==="up"?r.checkOut>=t:r.checkOut<t))&&(!q||(resGuest(r)+" "+r.id).toLowerCase().includes(q)));
   list.sort((a,b)=>w==="past"?b.checkIn.localeCompare(a.checkIn):a.checkIn.localeCompare(b.checkIn));
+  S.resList=list;
   $("#rBody").innerHTML = list.map(r=>{const ro=roomById(r.roomId);const bal=balance(r);return `<tr data-open="${esc(r.id)}">
     <td class="num">${esc(r.id)}</td><td>${esc(resGuest(r))}</td><td class="num">${esc(ro?ro.number:"?")}</td>
     <td>${fd(r.checkIn,{weekday:"short"})}</td><td>${fd(r.checkOut,{weekday:"short"})}</td><td class="r num">${nights(r)}</td>
@@ -304,6 +307,7 @@ function renderHotel(){
   $("#aloj").innerHTML=`
   <div class="panel" id="gcalCard"></div>
   <div class="panel" id="icalCard"></div>
+  <div class="panel" id="notifyCard"></div>
   <div class="facts">
     <div class="panel"><div class="eyebrow">Foto de portada del sitio</div><div class="hero-ph" style="margin-top:8px">${h.heroPhoto?`<img src="${photoUrl(h.heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted);font-size:.86rem">Sin portada: se muestra la ilustración</div>`}</div></div>
     <div class="panel"><div class="eyebrow">Frase de portada</div><p style="margin:.3em 0 .8em;font-family:var(--display);font-size:1.3rem;font-weight:700">${esc(h.tagline||"Tu base en el norte de Bogotá")}</p>
@@ -333,7 +337,7 @@ function renderHotel(){
     <div class="panel"><h3>Fuentes consultadas</h3><ul class="plain" style="margin-top:10px">${(h.sources||[]).map(s=>`<li>${link(s.url,s.title)}</li>`).join("")}</ul>
       ${h.taxNote?`<p class="muted" style="font-size:.8rem;margin:10px 0 0">${esc(h.taxNote)}</p>`:""}</div>
   </div>`;
-  renderGcal(); renderIcal();
+  renderGcal(); renderIcal(); renderNotify();
 }
 
 /* ---------- reserva: formulario ---------- */
@@ -458,6 +462,7 @@ function openResDetail(id){
       ${g&&!tr.ok?`<div class="note warn" style="margin-top:10px">Ficha incompleta para la TRA: completa documento, nacimiento, procedencia y autorización de datos antes del check-in.</div>`:""}</div>
     ${r.source==="ical"?`<div class="note ${r.conflict&&r.conflict.length&&active(r)?"bad":""}">${r.conflict&&r.conflict.length&&active(r)?`<b>Posible sobreventa:</b> se cruza con ${r.conflict.map(c=>`<a href="#" data-open="${esc(c)}">${esc(c)}</a>`).join(", ")}. Reubica una de las dos reservas.<br>`:""}
       ${r.block?"Fechas bloqueadas":"Reserva importada"} automáticamente del calendario de ${esc(chan(r.channel).n)}. Las fechas se actualizan solas desde el canal${r.status==="cancelada"&&r.autoCancelled?"; se canceló porque desapareció del canal":""}. Puedes asociar el huésped, registrar el valor y los pagos.</div>`:""}
+    <div class="panel" id="dOnline"></div>
     ${r.notes?`<div class="panel"><div class="eyebrow">Notas</div><p style="margin:.3em 0 0;white-space:pre-wrap">${esc(r.notes)}</p></div>`:""}
     <div id="dPayBox"><fieldset><legend>Registrar pago</legend><div class="grid g3" style="align-items:end">
       <label class="f">Valor (COP)<input type="number" id="dPay" min="0" step="1000" value="${Math.max(0,balance(r))}"></label>
@@ -468,6 +473,7 @@ function openResDetail(id){
     ${canCI?`<button class="btn primary" id="dCI">Hacer check-in</button>`:""}${canCO?`<button class="btn primary" id="dCO">Hacer check-out</button>`:""}`;
   openModal((r.source==="ical"&&!r.guestId?"":"Reserva de ")+resGuest(r), body, foot, ov=>{
     ov.querySelector("#dEdit").onclick=()=>openResForm(r);
+    fillOnline(ov.querySelector("#dOnline"),r);
     const gb=ov.querySelector("#dGuest"); if(gb) gb.onclick=()=>openGuestForm(g);
     const ci=ov.querySelector("#dCI"); if(ci) ci.onclick=()=>doCheckIn(r.id);
     const co=ov.querySelector("#dCO"); if(co) co.onclick=()=>doCheckOut(r.id);
@@ -515,11 +521,30 @@ function openGuestForm(g, opts){
       <label class="f">Medio de transporte<select id="gTr">${["Terrestre","Aéreo","Otro"].map(x=>opt(x,x,g.transport||"Terrestre")).join("")}</select></label>
     </div>
     <label class="f chk"><input type="checkbox" id="gCons" ${g.consent?"checked":""}> El huésped autoriza el tratamiento de sus datos personales conforme a la Ley 1581 de 2012 y la política de datos del alojamiento.</label></fieldset>
+    <fieldset><legend>Fotos de identificación</legend>
+      <div class="idshots" id="gPh"></div>
+      <div class="muted" style="font-size:.76rem">Privadas: solo se ven con sesión de administrador. El huésped también puede subirlas desde su enlace de check-in en línea.</div></fieldset>
     <label class="f">Notas (preferencias, observaciones)<textarea id="gNotes">${esc(g.notes||"")}</textarea></label>
     ${stays.length?`<div class="panel"><div class="eyebrow">Historial de estancias</div><div class="list">${stays.map(r=>liRes(r,"")).join("")}</div></div>`:""}`;
   const foot=`${isNew?"":`<button class="btn danger" id="gDel">Eliminar ficha</button><span style="flex:1"></span>`}<button class="btn" id="gCancel">Cerrar</button><button class="btn primary" id="gSave">${isNew?"Registrar huésped":"Guardar ficha"}</button>`;
+  const ph={selfie:g.selfie||"",docFront:g.docFront||"",docBack:g.docBack||""}, phOld=new Set(), phNew=new Set();
   openModal(isNew?"Nuevo huésped":gName(g), body, foot, ov=>{
-    ov.querySelector("#gCancel").onclick=closeModal;
+    ov.querySelector("#gCancel").onclick=()=>{phNew.forEach(id=>api("DELETE","admin/ids/"+encodeURIComponent(id)).catch(()=>{}));closeModal();};
+    const box=ov.querySelector("#gPh");
+    const drawPh=()=>{box.innerHTML=Object.entries(ID_LABELS).map(([k,l])=>`<div class="idshot">
+        <div class="im ${k==="selfie"?"tall":"docim"}">${ph[k]?`<img data-idimg="${esc(ph[k])}" alt="${esc(l)}">`:`<span>Sin foto</span>`}</div>
+        <b>${esc(l)}</b>
+        <div class="grp"><label class="btn sm">${ph[k]?"Cambiar":"Tomar o subir"}<input type="file" accept="image/*" ${k==="selfie"?'capture="user"':""} data-up="${k}" hidden></label>
+          ${ph[k]?`<button class="btn sm" type="button" data-view="${k}">Ver</button><button class="btn sm" type="button" data-rmph="${k}">Quitar</button>`:""}</div></div>`).join("");
+      hydrateIdImgs(box);};
+    drawPh();
+    box.addEventListener("change",async e=>{const inp=e.target.closest("[data-up]");if(!inp||!inp.files[0])return;const k=inp.dataset.up;
+      const lbl=inp.parentElement; lbl.firstChild.textContent="Subiendo…";
+      try{const blob=await shrink(inp.files[0]);const d=await api("POST","admin/ids",undefined,blob);
+        if(ph[k]) (phNew.has(ph[k])?api("DELETE","admin/ids/"+encodeURIComponent(ph[k])).catch(()=>{}):phOld.add(ph[k]));
+        ph[k]=d.id;phNew.add(d.id);drawPh();}catch(err){toast(err.message);drawPh();}});
+    box.addEventListener("click",async e=>{const v=e.target.closest("[data-view]");if(v){try{window.open(await idImgUrl(ph[v.dataset.view]),"_blank");}catch(err){toast(err.message);}return;}
+      const rm=e.target.closest("[data-rmph]");if(rm){const k=rm.dataset.rmph;phNew.has(ph[k])?api("DELETE","admin/ids/"+encodeURIComponent(ph[k])).catch(()=>{}):phOld.add(ph[k]);ph[k]="";drawPh();}});
     const delB=ov.querySelector("#gDel");
     if(delB) confirmBtn(delB, stays.length?"Tiene reservas: toca otra vez para eliminar igual":"Toca otra vez para eliminar", async()=>{try{await del("guests/"+g.id);toast("Ficha eliminada");closeModal();}catch(e){toast(e.message);}});
     ov.querySelector("#gSave").onclick=async()=>{
@@ -528,8 +553,9 @@ function openGuestForm(g, opts){
       const id=g.id||genId("G");
       const rec={first:v("#gFirst"),last:v("#gLast"),docType:v("#gDocT"),docNumber:v("#gDoc"),nationality:v("#gNat"),birth:v("#gBirth"),sex:v("#gSex"),job:v("#gJob"),
         phone:v("#gPhone"),email:v("#gEmail"),city:v("#gCity"),emergency:v("#gEmer"),origin:v("#gFrom"),destination:v("#gTo"),purpose:v("#gWhy"),transport:v("#gTr"),
-        consent:ov.querySelector("#gCons").checked,notes:ov.querySelector("#gNotes").value,createdAt:g.createdAt||new Date().toISOString()};
-      try{await save("guests/"+id,rec);toast(isNew?"Huésped registrado":"Ficha guardada");closeModal();
+        consent:ov.querySelector("#gCons").checked,notes:ov.querySelector("#gNotes").value,createdAt:g.createdAt||new Date().toISOString(),
+        selfie:ph.selfie,docFront:ph.docFront,docBack:ph.docBack};
+      try{await save("guests/"+id,rec,true); phOld.forEach(pid=>api("DELETE","admin/ids/"+encodeURIComponent(pid)).catch(()=>{}));toast(isNew?"Huésped registrado":"Ficha guardada");closeModal();
         if(opts&&opts.afterSave&&tra(rec).ok) opts.afterSave();}catch(_){}
     };
   }, true);
@@ -879,6 +905,111 @@ function renderIcal(){
     <div class="tablewrap" style="margin-top:10px"><table class="ical-tbl"><thead><tr><th>Habitación</th><th>Calendarios</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   const sy=$("#icalSync"); if(sy) sy.onclick=()=>runIcalSync(false);
   box.querySelectorAll("[data-icroom]").forEach(b=>b.onclick=()=>openRoomForm(roomById(b.dataset.icroom)));
+}
+
+/* ---------- fotos de identidad (privadas: se cargan con la sesión) ---------- */
+const ID_LABELS={selfie:"Selfie",docFront:"Documento (frente)",docBack:"Documento (reverso)"};
+const IDIMG=new Map();
+function idImgUrl(id){ if(IDIMG.has(id)) return IDIMG.get(id);
+  const p=(async()=>{const r=await fetch("/api/admin/ids/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+S.token}});if(!r.ok) throw new Error("No se pudo cargar la foto.");return URL.createObjectURL(await r.blob());})();
+  IDIMG.set(id,p); p.catch(()=>IDIMG.delete(id)); return p; }
+async function idBlob(id){const r=await fetch("/api/admin/ids/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+S.token}});if(!r.ok) throw new Error("foto");return r.blob();}
+function hydrateIdImgs(root){root.querySelectorAll("img[data-idimg]").forEach(async img=>{try{img.src=await idImgUrl(img.dataset.idimg);}catch(_){img.replaceWith(Object.assign(document.createElement("span"),{textContent:"No disponible"}));}});}
+
+/* ---------- enlace del huésped, PDF, impresión y WhatsApp ---------- */
+const guestLink=id=>S.links&&S.links[id]?location.origin+S.links[id]:"";
+const resPeople=r=>[r.guestId,...(r.companions||[])].filter((v,i,a)=>v&&a.indexOf(v)===i).map(guestById).filter(Boolean);
+const canShareFiles=(()=>{try{return !!(navigator.canShare&&navigator.canShare({files:[new File([""],"x.pdf",{type:"application/pdf"})]}));}catch(_){return false;}})();
+async function confPdf(r){const logo=await PNDocs.logoBadge();return PNDocs.confirmation({hotel:S.hotel||{},res:r,room:roomById(r.roomId),guest:guestById(r.guestId)||{first:resGuest(r)},link:guestLink(r.id),logo}).blob();}
+async function sheetPdf(r){
+  const logo=await PNDocs.logoBadge();
+  const people=await Promise.all(resPeople(r).map(async g=>{const photos={};
+    await Promise.all(Object.keys(ID_LABELS).filter(k=>g[k]).map(async k=>{try{photos[k]=await PNDocs.toJpeg(await idBlob(g[k]),{max:900});}catch(_){}}));
+    return {g,photos};}));
+  return PNDocs.reservationSheet({hotel:S.hotel||{},res:r,room:roomById(r.roomId),people,link:guestLink(r.id),logo}).blob();
+}
+function waText(r){
+  const h=S.hotel||{}, ro=roomById(r.roomId), g=guestById(r.guestId), first=(g?g.first:resGuest(r)).split(" ")[0], link=guestLink(r.id), bal=balance(r);
+  const st={pendiente:"recibida y pendiente de confirmación",confirmada:"confirmada",encasa:"activa",finalizada:"finalizada",cancelada:"cancelada"}[r.status]||r.status;
+  return [`Hola ${first}, te saluda ${h.name||"Hotel Portal Norte 170"}.`,`Tu reserva *${r.id}* está ${st}.`,"",
+    `🏨 Habitación ${ro?ro.number+" · "+(ro.name||ro.type||""):""}`,
+    `📅 Llegada: ${fd(r.checkIn,{weekday:"long",day:"numeric",month:"long"})} desde las ${h.checkinFrom||"15:00"}`,
+    `📅 Salida: ${fd(r.checkOut,{weekday:"long",day:"numeric",month:"long"})} antes de las ${h.checkout||"11:00"}`,
+    `👥 ${r.adults||1} adulto(s)${r.children?`, ${r.children} niño(s)`:""} · ${nights(r)} noche(s)`,
+    r.total?`💵 Total ${cop(r.total)} · Abonado ${cop(r.paid)} · Saldo ${cop(bal)}`:null,"",
+    link?(r.checkin?`Aquí puedes ver y descargar tu confirmación en PDF:\n${link}`:`✅ Antes de llegar, haz tu check-in en línea: llena el registro hotelero (TRA) y sube la selfie y el documento de cada huésped. Ahí mismo descargas tu confirmación en PDF:\n${link}`):null,"",
+    h.address?`📍 ${h.address}${h.zone?" · "+h.zone:""}`:null].filter(x=>x!==null).join("\n");
+}
+function fillOnline(box,r){
+  if(!box) return; const link=guestLink(r.id), ppl=resPeople(r), ci=r.checkin, g=guestById(r.guestId);
+  box.innerHTML=`<div class="toolbar"><div><div class="eyebrow">Huésped en línea</div><b>Confirmación, check-in y documentos</b></div>
+      ${ci?`<span class="pill ok">Check-in en línea: ${ci.people} persona${ci.people===1?"":"s"} · ${fdt(ci.at)}</span>`:`<span class="pill warn">Check-in en línea pendiente</span>`}</div>
+    ${link?`<div class="grp" style="margin-top:10px"><input readonly value="${esc(link)}" style="flex:1 1 240px;font-family:var(--mono);font-size:.74rem" aria-label="Enlace del huésped"><button class="btn sm" type="button" data-on="copy">Copiar enlace</button>
+      <a class="btn sm primary" target="_blank" rel="noopener" href="${esc(PNDocs.waUrl(g&&g.phone,waText(r)))}">Enviar por WhatsApp</a></div>
+      <div class="muted" style="font-size:.76rem;margin-top:4px">${g&&g.phone?"Se abre WhatsApp con el mensaje listo para "+esc(g.phone)+".":"La reserva no tiene teléfono: WhatsApp te pedirá elegir el contacto."} El huésped ve su confirmación, descarga el PDF y hace el check-in con selfie y documento.</div>`
+      :`<div class="note warn" style="margin-top:10px">Configura TOKEN_SECRET en Netlify para generar enlaces de huésped.</div>`}
+    <div class="doc-acts">
+      <div><span class="eyebrow">Confirmación</span><div class="grp"><button class="btn sm" type="button" data-on="cpdf">Descargar PDF</button><button class="btn sm" type="button" data-on="cprint">Imprimir</button>${canShareFiles?`<button class="btn sm" type="button" data-on="cshare">Compartir PDF</button>`:""}</div></div>
+      <div><span class="eyebrow">Ficha y registro hotelero</span><div class="grp"><button class="btn sm" type="button" data-on="spdf">Descargar PDF</button><button class="btn sm" type="button" data-on="sprint">Imprimir</button></div></div>
+    </div>
+    ${ppl.length?`<div class="ppl">${ppl.map((p,i)=>`<button type="button" class="pp" data-gid="${esc(p.id)}">
+      <span class="av">${p.selfie?`<img data-idimg="${esc(p.selfie)}" alt="">`:esc((p.first||"?")[0])}</span>
+      <span><b>${esc(gName(p))}</b><small>${i===0?"Titular":"Acompañante"} · ${esc(p.docType||"")} ${esc(p.docNumber||"sin documento")}${p.docFront?" · 🪪":""}${tra(p).ok?"":" · <em>TRA incompleta</em>"}</small></span></button>`).join("")}</div>`:""}`;
+  hydrateIdImgs(box);
+  box.querySelectorAll(".pp small em").forEach(e=>{e.outerHTML=`<span style="color:var(--warn)">TRA incompleta</span>`;});
+  const run=async(btn,fn)=>{const t=btn.textContent;btn.disabled=true;btn.textContent="Generando…";try{await fn();}catch(e){toast(e.message||"No se pudo generar el PDF.");}btn.disabled=false;btn.textContent=t;};
+  box.onclick=e=>{
+    const pp=e.target.closest("[data-gid]"); if(pp){openGuestForm(guestById(pp.dataset.gid));return;}
+    const b=e.target.closest("[data-on]"); if(!b) return; const a=b.dataset.on, name=n=>`${n}-${r.id}.pdf`;
+    if(a==="copy") copyText(link);
+    if(a==="cpdf") run(b,async()=>PNDocs.download(await confPdf(r),name("Confirmacion")));
+    if(a==="cprint") run(b,async()=>PNDocs.printPdf(await confPdf(r),name("Confirmacion")));
+    if(a==="cshare") run(b,async()=>{if(!(await PNDocs.sharePdf(await confPdf(r),name("Confirmacion"),waText(r)))) toast("Este navegador no permite compartir archivos.");});
+    if(a==="spdf") run(b,async()=>PNDocs.download(await sheetPdf(r),name("Ficha")));
+    if(a==="sprint") run(b,async()=>PNDocs.printPdf(await sheetPdf(r),name("Ficha")));
+  };
+}
+async function printList(){
+  const list=S.resList||[]; if(!list.length){toast("No hay reservas en la lista para imprimir.");return;}
+  const sel=id=>{const e=$(id);return e&&e.selectedIndex>=0?e.options[e.selectedIndex].text:"";};
+  const short={directo:"Directo",web:"Sitio web"};
+  const rows=list.map(r=>{const ro=roomById(r.roomId);return {id:r.id,guest:resGuest(r),room:ro?String(ro.number):"?",in:fd(r.checkIn,{year:"numeric"}),out:fd(r.checkOut,{year:"numeric"}),
+    nights:nights(r),people:(Number(r.adults)||1)+(Number(r.children)||0),channel:short[r.channel]||chan(r.channel).n,status:(STATUS[r.status]||{n:r.status}).n,total:r.status==="cancelada"?0:r.total,balance:r.status==="cancelada"?0:Math.max(0,balance(r))};});
+  const q=$("#rQ").value.trim();
+  const sub=[sel("#rWhen"),$("#rSt").value?sel("#rSt"):"",$("#rCh").value?sel("#rCh"):"",q?`búsqueda «${q}»`:""].filter(Boolean).join(" · ");
+  const b=$("#rPrint"); b.disabled=true;
+  try{const logo=await PNDocs.logoBadge();PNDocs.openPdf(PNDocs.reservationList({hotel:S.hotel||{},rows,subtitle:sub,logo}).blob(),`Reservas-${todayISO()}.pdf`);}catch(e){toast("No se pudo generar el listado.");}
+  b.disabled=false;
+}
+$("#rPrint").onclick=printList;
+
+/* ---------- notificaciones por correo ---------- */
+async function loadNotify(){try{S.notify=await api("GET","admin/notify/status");}catch(_){S.notify={error:true};}renderNotify();}
+function renderNotify(){
+  const box=$("#notifyCard"); if(!box) return;
+  if(!S.notify){box.innerHTML=`<div class="empty">Consultando las notificaciones…</div>`;loadNotify();return;}
+  const n=S.notify, h=S.hotel||{}, prov={resend:"Resend",gmail:"Gmail (cuenta de Google conectada)"}[n.provider];
+  const on=!!n.provider&&!h.notifyOff, last=n.last;
+  box.innerHTML=`
+    <div class="toolbar"><div class="grp"><h3>Notificaciones por correo</h3>${on?'<span class="pill ok">Activas</span>':n.provider?'<span class="pill warn">En pausa</span>':'<span class="pill warn">Sin servicio de correo</span>'}</div>
+      ${n.provider?`<button class="btn sm primary" type="button" id="nTest">Enviar correo de prueba</button>`:""}</div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label class="f">Enviar los avisos a<input id="nTo" type="text" inputmode="email" value="${esc(h.notifyEmail||(n.to||[]).join(", ")||n.defaultTo||"")}" placeholder="correo@dominio.com, otro@dominio.com"></label>
+        <label class="f chk" style="margin-top:8px"><input type="checkbox" id="nOff" ${h.notifyOff?"checked":""}> Pausar los avisos por correo</label>
+        <button class="btn sm" type="button" id="nSave" style="margin-top:8px">Guardar</button></div>
+      <div><div class="eyebrow">Te llega un correo cuando</div>
+        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>alguien pide una reserva en el sitio web</li><li>un huésped completa el check-in en línea</li><li>entra o se cancela una reserva de Booking o Airbnb</li><li>hay una posible sobreventa o un calendario falla</li></ul>
+        <div style="font-size:.84rem;margin-top:8px">${prov?`Servicio: <b>${esc(prov)}</b>.`:`Falta configurar el servicio de correo en Netlify (README, sección «Notificaciones por correo»).`}</div>
+        ${last?`<div class="note ${last.ok?"ok":"bad"}" style="margin-top:8px">Último envío ${fdt(last.at)} · «${esc(last.subject)}»: ${last.ok?"entregado al servicio":esc(last.error||"falló")}</div>`:""}
+        <div id="nNote" style="margin-top:8px"></div></div>
+    </div>`;
+  $("#nSave").onclick=async()=>{const v=$("#nTo").value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+    if(!v.length||v.some(x=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))){toast("Revisa los correos: sepáralos con coma.");return;}
+    try{await save("hotel",{notifyEmail:v.join(", "),notifyOff:$("#nOff").checked},true);toast("Notificaciones guardadas");S.notify=null;renderNotify();}catch(_){}};
+  const t=$("#nTest"); if(t) t.onclick=async()=>{t.disabled=true;t.textContent="Enviando…";
+    try{await api("POST","admin/notify/test");$("#nNote").innerHTML=`<div class="note ok">Correo de prueba enviado a ${esc((n.to||[]).join(", "))}. Revisa también la carpeta de spam.</div>`;}
+    catch(e){$("#nNote").innerHTML=`<div class="note bad">${esc(e.message)}</div>`;}
+    t.disabled=false;t.textContent="Enviar correo de prueba";loadNotify();};
 }
 
 /* ---------- adaptación a celular ---------- */

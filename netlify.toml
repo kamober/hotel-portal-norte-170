@@ -10,6 +10,11 @@
   to = "/admin.html"
   status = 200
 
+[[redirects]]
+  from = "/reserva"
+  to = "/reserva.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -22,3 +27,11 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "no-store"
+
+# Página del huésped: el enlace lleva un código privado en la URL
+[[headers]]
+  for = "/reserva*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+    Referrer-Policy = "no-referrer"

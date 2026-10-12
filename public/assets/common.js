@@ -13,7 +13,8 @@ const STATUS = {
 const ROOM_STATUS = {disponible:{n:"Disponible",cls:"ok"}, limpieza:{n:"En limpieza",cls:"warn"}, mantenimiento:{n:"Mantenimiento",cls:"bad"}};
 const REQ_ST = {nueva:{n:"Nueva",cls:"warn"}, aceptada:{n:"Aceptada",cls:"ok"}, rechazada:{n:"Rechazada",cls:"bad"}};
 const FEATURES = ["TV pantalla plana","Wi-Fi gratis","Armario","Escritorio","Zona de trabajo","Toallas","Jabón y champú","Ventana exterior","Cobijas extra","Ventilador","Mesa de noche","Cortinas blackout"];
-const DOCS = ["CC","CE","Pasaporte","TI","PPT","PEP","Otro"];
+const DOCS = ["CC","CE","Pasaporte","TI","RC","PPT","PEP","Otro"];
+const DOC_NAMES = {CC:"Cédula de ciudadanía",CE:"Cédula de extranjería",Pasaporte:"Pasaporte",TI:"Tarjeta de identidad",RC:"Registro civil",PPT:"Permiso por protección temporal",PEP:"Permiso especial de permanencia",Otro:"Otro"};
 const MOTIVOS = ["Turismo","Negocios / trabajo","Visita familiar","Salud","Estudio","Tránsito","Otro"];
 
 const $ = s => document.querySelector(s);

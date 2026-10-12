@@ -6,6 +6,7 @@ import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto
 import seed from "../../lib/seed.mjs";
 import * as gcal from "../../lib/gcal.mjs";
 import * as ical from "../../lib/ical.mjs";
+import * as notifier from "../../lib/notify.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -18,6 +19,11 @@ const KINDS = { rooms: "rooms/", guests: "guests/", reservations: "res/", reques
 
 const data = () => getStore({ name: "portal-norte", consistency: "strong" });
 const photos = () => getStore({ name: "portal-norte-photos" });
+// Fotos de identidad (selfie y documento): almacén privado, nunca se sirve sin sesión de administrador.
+const idPhotos = () => getStore({ name: "portal-norte-ids", consistency: "strong" });
+const DOC_TYPES = ["CC", "CE", "Pasaporte", "TI", "RC", "PPT", "PEP", "Otro"];
+const MAX_ID_PHOTO_BYTES = 4 * 1024 * 1024;
+const MAX_ID_PHOTOS_PER_RES = 60;
 
 const env = (k) => (globalThis.Netlify?.env?.get?.(k)) ?? process.env[k];
 
@@ -145,6 +151,14 @@ async function handleNewRequest(req, store) {
     estimate: (Number(room.rate) || 0) * nights, consent: true, status: "nueva", createdAt: new Date().toISOString(),
   };
   await store.setJSON("req/" + id, item);
+  const hotel = await store.get("hotel", { type: "json" });
+  await notifier.notify(store, hotel, {
+    subject: `Nueva solicitud ${id}`, title: "Nueva solicitud de reserva", tone: "ok",
+    intro: `${first} ${item.last} pidió la habitación ${room.number} desde el sitio web.`,
+    rows: [["Código", id], ["Habitación", `${room.number} · ${room.name || room.type || ""}`], ["Llegada", checkIn], ["Salida", `${checkOut} (${nights} noche${nights === 1 ? "" : "s"})`],
+      ["Personas", `${adults} adulto(s)${children ? `, ${children} niño(s)` : ""}`], ["Teléfono", phone], ["Correo", item.email], ["Valor estimado", "$" + item.estimate.toLocaleString("es-CO")], ["Notas", item.notes]],
+    button: { url: notifier.baseUrl(req) + "/admin", label: "Revisar en el panel" },
+  });
   return json({ id, estimate: item.estimate }, 201);
 }
 
@@ -169,7 +183,7 @@ async function handlePhoto(id) {
 /* ---------- administración ---------- */
 function cleanRecord(body, id) {
   const rec = { ...body, id, updatedAt: new Date().toISOString() };
-  delete rec._gcal;
+  delete rec._gcal; delete rec._link;
   return rec;
 }
 
@@ -212,6 +226,118 @@ async function syncToCalendar(store, rec, deleted = false) {
   }
 }
 
+/* ---------- enlace del huésped: confirmación y check-in en línea ---------- */
+function guestSig(resId) { return secret() ? createHmac("sha256", secret()).update("guest:" + resId).digest("hex").slice(0, 24) : ""; }
+const guestPath = (resId) => (secret() ? `/reserva?r=${encodeURIComponent(resId)}&t=${guestSig(resId)}` : null);
+function sameStr(a, b) { const x = Buffer.from(String(a)), y = Buffer.from(String(b)); return x.length === y.length && timingSafeEqual(x, y); }
+const ageOn = (birth, day) => { const [y, m, d] = birth.split("-").map(Number), [Y, M, D] = day.split("-").map(Number); return Y - y - (M < m || (M === m && D < d) ? 1 : 0); };
+const GUEST_HOTEL_FIELDS = [...PUBLIC_HOTEL_FIELDS, "frontDesk"];
+
+async function loadGuestRes(store, resId, sig) {
+  if (!ID_RE.test(resId) || !guestSig(resId) || !sameStr(sig, guestSig(resId))) return null;
+  const r = await store.get("res/" + resId, { type: "json" });
+  if (!r) return null;
+  if (r.checkOut && diffDays(r.checkOut, todayBogota()) > 30) return null; // el enlace vence 30 días después de la salida
+  return r;
+}
+const canCheckin = (r) => ["pendiente", "confirmada", "encasa"].includes(r.status) && r.checkOut >= todayBogota();
+
+async function handleGuest(req, rest, store) {
+  const [resId, sig, action] = rest;
+  const r = await loadGuestRes(store, resId || "", sig || "");
+  if (!r) return fail(404, "El enlace no es válido o ya venció. Escríbenos por WhatsApp.");
+  const m = req.method;
+
+  if (!action && m === "GET") {
+    const [hotel, room, guest] = await Promise.all([store.get("hotel", { type: "json" }), store.get("rooms/" + r.roomId, { type: "json" }), r.guestId ? store.get("guests/" + r.guestId, { type: "json" }) : null]);
+    return json({
+      hotel: pick(hotel || {}, GUEST_HOTEL_FIELDS),
+      room: room ? pick(room, ["number", "name", "type", "beds", "bath", "capacity", "photos"]) : null,
+      res: pick(r, ["id", "status", "checkIn", "checkOut", "adults", "children", "rate", "total", "paid", "channel", "externalRef", "eta", "roomId"]),
+      titular: guest ? { first: guest.first || "", last: guest.last || "", phone: guest.phone || "", email: guest.email || "" } : { first: r.guestName && !r.source ? r.guestName : "" },
+      checkin: r.checkin ? { at: r.checkin.at, people: r.checkin.people } : null,
+      canCheckin: canCheckin(r), docTypes: DOC_TYPES, today: todayBogota(),
+    });
+  }
+
+  if (action === "photo" && m === "POST") {
+    if (!canCheckin(r)) return fail(409, "Esta reserva ya no admite registro en línea.");
+    const type = (req.headers.get("content-type") || "").split(";")[0].trim();
+    if (!PHOTO_TYPES.includes(type)) return fail(415, "Formato no admitido. Usa una foto JPG, PNG o WebP.");
+    const buf = await req.arrayBuffer();
+    if (!buf.byteLength) return fail(400, "La foto está vacía.");
+    if (buf.byteLength > MAX_ID_PHOTO_BYTES) return fail(413, "La foto supera 4 MB.");
+    const st = idPhotos();
+    const { blobs } = await st.list({ prefix: resId + "_" });
+    if (blobs.length >= MAX_ID_PHOTOS_PER_RES) return fail(429, "Se alcanzó el máximo de fotos para esta reserva. Escríbenos por WhatsApp.");
+    const pid = resId + "_" + randomUUID().replace(/-/g, "").slice(0, 20);
+    await st.set(pid, buf, { metadata: { contentType: type, resId, at: new Date().toISOString() } });
+    return json({ id: pid }, 201);
+  }
+
+  if (action === "checkin" && m === "POST") {
+    if (!canCheckin(r)) return fail(409, "Esta reserva ya no admite registro en línea.");
+    const b = await readBody(req, 60_000);
+    if (b.consent !== true) return fail(400, "Debes autorizar el tratamiento de datos para continuar.");
+    const list = Array.isArray(b.people) ? b.people.slice(0, 12) : [];
+    if (!list.length) return fail(400, "Agrega al menos al huésped titular.");
+    const today = todayBogota(), st = idPhotos();
+    const trip = { origin: str(b.origin, 80), destination: str(b.destination, 80), purpose: str(b.purpose, 40), transport: str(b.transport, 20) };
+    const people = [];
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i] || {}, who = i === 0 ? "del titular" : `del acompañante ${i}`;
+      const g = { first: str(p.first, 80), last: str(p.last, 80), docType: DOC_TYPES.includes(p.docType) ? p.docType : "", docNumber: str(p.docNumber, 30),
+        nationality: str(p.nationality, 60), birth: str(p.birth, 10), sex: ["F", "M", "Otro"].includes(p.sex) ? p.sex : "", phone: str(p.phone, 30), email: str(p.email, 120),
+        city: str(p.city, 80), job: str(p.job, 80), ...trip };
+      if (!g.first || !g.last) return fail(400, `Escribe nombres y apellidos ${who}.`);
+      if (!g.docType || !g.docNumber) return fail(400, `Falta el documento ${who}.`);
+      if (!g.nationality) return fail(400, `Falta la nacionalidad ${who}.`);
+      if (!DATE_RE.test(g.birth) || g.birth >= today || g.birth < "1900-01-01") return fail(400, `Revisa la fecha de nacimiento ${who}.`);
+      const adult = ageOn(g.birth, today) >= 18;
+      if (i === 0 && !adult) return fail(400, "El huésped titular debe ser mayor de edad.");
+      if (i === 0 && (digits(g.phone).length < 7 || !g.city)) return fail(400, "Escribe el teléfono y la ciudad de residencia del titular.");
+      const ph = {};
+      for (const k of ["selfie", "docFront", "docBack"]) {
+        const v = str(p[k], 64);
+        if (!v) continue;
+        if (!v.startsWith(resId + "_") || !(await st.getMetadata(v))) return fail(400, `Vuelve a subir las fotos ${who}.`);
+        ph[k] = v;
+      }
+      if (!ph.docFront) return fail(400, `Sube la foto del documento ${who}.`);
+      if (adult && !ph.selfie) return fail(400, `Sube la selfie ${who}.`);
+      people.push({ ...g, ...ph });
+    }
+    // Guardar fichas: el titular reutiliza la ficha de la reserva; los acompañantes, las del registro anterior.
+    const now = new Date().toISOString();
+    const prevIds = [r.guestId, ...(Array.isArray(r.companions) ? r.companions : [])];
+    const ids = [];
+    for (let i = 0; i < people.length; i++) {
+      const id = (prevIds[i] && ID_RE.test(prevIds[i])) ? prevIds[i] : "G-" + Date.now().toString(36).toUpperCase().slice(-5) + randomUUID().slice(0, 4).toUpperCase();
+      const cur = (await store.get("guests/" + id, { type: "json" })) || {};
+      const next = { ...cur, ...people[i], id, consent: true, consentAt: now, source: "checkin-en-linea", emergency: i === 0 ? str(b.emergency, 120) || cur.emergency || "" : cur.emergency,
+        createdAt: cur.createdAt || now, updatedAt: now };
+      for (const k of ["selfie", "docFront", "docBack"]) if (cur[k] && cur[k] !== next[k]) await st.delete(cur[k]).catch(() => {});
+      await store.setJSON("guests/" + id, next);
+      ids.push(id);
+    }
+    const t = people[0];
+    const rec = { ...r, guestId: ids[0], guestName: `${t.first} ${t.last}`.trim(), companions: ids.slice(1), eta: str(b.eta, 5) || r.eta || "",
+      checkin: { at: now, people: people.length, by: "huesped" }, updatedAt: now };
+    await store.setJSON("res/" + r.id, rec);
+    await syncToCalendar(store, rec);
+    const [hotel, room] = await Promise.all([store.get("hotel", { type: "json" }), store.get("rooms/" + r.roomId, { type: "json" })]);
+    await notifier.notify(store, hotel, {
+      subject: `Check-in en línea ${r.id}`, title: "Check-in en línea completado", tone: "ok",
+      intro: `${rec.guestName} llenó el registro hotelero (TRA) de ${people.length} persona${people.length === 1 ? "" : "s"} y subió las fotos.`,
+      rows: [["Reserva", r.id], ["Habitación", room ? `${room.number} · ${room.name || room.type || ""}` : r.roomId], ["Llegada", `${r.checkIn}${rec.eta ? " · " + rec.eta : ""}`], ["Salida", r.checkOut],
+        ["Huéspedes", people.map((p) => `${p.first} ${p.last}`).join("; ")], ["Teléfono", t.phone], ["Procedencia", trip.origin]],
+      button: { url: notifier.baseUrl(req) + "/admin", label: "Ver la ficha en el panel" },
+    });
+    return json({ ok: true, people: people.length, at: now });
+  }
+  return fail(405, "Método no permitido.");
+}
+
 async function handleAdmin(req, parts, store) {
   const [kind, id] = parts;
   const m = req.method;
@@ -221,7 +347,9 @@ async function handleAdmin(req, parts, store) {
     const [hotel, rooms, guests, reservations, requests] = await Promise.all([
       store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/"), listJSON(store, "req/"),
     ]);
-    return json({ hotel, rooms, guests, reservations, requests, today: todayBogota() });
+    const links = {};
+    if (secret()) for (const r of reservations) links[r.id] = guestPath(r.id);
+    return json({ hotel, rooms, guests, reservations, requests, links, today: todayBogota() });
   }
 
   if (kind === "hotel" && m === "PUT") {
@@ -265,6 +393,41 @@ async function handleAdmin(req, parts, store) {
     return fail(404, "Ruta no encontrada.");
   }
 
+  if (kind === "notify") {
+    const hotel = await store.get("hotel", { type: "json" });
+    if (id === "status" && m === "GET")
+      return json({ provider: notifier.provider(), to: notifier.recipients(hotel), off: !!(hotel && hotel.notifyOff), last: await store.get("notify/last", { type: "json" }), defaultTo: notifier.DEFAULT_TO });
+    if (id === "test" && m === "POST") {
+      if (!notifier.provider()) return fail(400, "No hay servicio de correo configurado. Revisa el README, sección «Notificaciones por correo».");
+      const out = await notifier.notify(store, hotel, { subject: "Correo de prueba", title: "¡Las notificaciones funcionan!", tone: "ok",
+        intro: "Desde ahora te llegarán aquí los avisos del sistema de reservas:",
+        items: ["Nuevas solicitudes desde el sitio web", "Check-in en línea completado por un huésped", "Reservas nuevas o canceladas en Booking y Airbnb", "Posibles sobreventas y calendarios que fallen"],
+        button: { url: notifier.baseUrl(req) + "/admin", label: "Abrir el panel" } }, { force: true });
+      return out.ok ? json(out) : fail(502, out.error || "No se pudo enviar.");
+    }
+    return fail(404, "Ruta no encontrada.");
+  }
+
+  if (kind === "ids") {
+    const st = idPhotos();
+    if (m === "GET" && id && ID_RE.test(id)) {
+      const e = await st.getWithMetadata(id, { type: "arrayBuffer" });
+      if (!e) return fail(404, "Foto no encontrada.");
+      return new Response(e.data, { headers: { "Content-Type": e.metadata?.contentType || "image/jpeg", "Cache-Control": "private, no-store" } });
+    }
+    if (m === "POST" && !id) {
+      const type = (req.headers.get("content-type") || "").split(";")[0].trim();
+      if (!PHOTO_TYPES.includes(type)) return fail(415, "Formato no admitido. Usa JPG, PNG o WebP.");
+      const buf = await req.arrayBuffer();
+      if (!buf.byteLength || buf.byteLength > MAX_ID_PHOTO_BYTES) return fail(413, "La foto debe pesar menos de 4 MB.");
+      const pid = "ADM_" + randomUUID().replace(/-/g, "").slice(0, 24);
+      await st.set(pid, buf, { metadata: { contentType: type, at: new Date().toISOString() } });
+      return json({ id: pid }, 201);
+    }
+    if (m === "DELETE" && id && ID_RE.test(id)) { await st.delete(id); return json({ deleted: true }); }
+    return fail(405, "Método no permitido.");
+  }
+
   if (kind === "ical") {
     if (id === "status" && m === "GET") {
       const rooms = await listJSON(store, "rooms/");
@@ -287,6 +450,10 @@ async function handleAdmin(req, parts, store) {
       if (res.some((r) => r.roomId === id && isActive(r) && r.checkOut >= today)) return fail(409, "La habitación tiene reservas activas. Muévelas o cancélalas primero.");
     }
     const before = kind === "reservations" ? await store.get(key, { type: "json" }) : null;
+    if (kind === "guests") {
+      const g = await store.get(key, { type: "json" });
+      if (g) await Promise.all(["selfie", "docFront", "docBack"].filter((k) => g[k]).map((k) => idPhotos().delete(g[k]).catch(() => {})));
+    }
     await store.delete(key);
     const g = before ? await syncToCalendar(store, before, true) : undefined;
     return json({ deleted: true, _gcal: g });
@@ -348,6 +515,7 @@ export default async (req) => {
       return new Response(gcal.buildIcs(res, rooms, guests, hotel || {}), { headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-store", "Content-Disposition": 'inline; filename="reservas-portal-norte-170.ics"' } });
     }
 
+    if (head === "guest" && rest.length >= 2) return await handleGuest(req, rest, store);
     if (head === "ical" && req.method === "GET" && rest.length === 3) {
       const [roomId, channel, file] = rest, sig = file.replace(/\.ics$/, ""), want = ID_RE.test(roomId) ? roomFeedSig(roomId, channel) : "";
       const a = Buffer.from(sig), b = Buffer.from(want);

@@ -18,6 +18,10 @@ lib/gcal.mjs                 Google Calendar (tiempo real) y enlace iCal privado
 lib/ical.mjs                 Importación/exportación iCal con Booking.com y Airbnb
 netlify/functions/api.mjs    API: /api/public, /api/requests, /api/photos, /api/login, /api/admin/*
 netlify/functions/ical-sync.mjs  Tarea programada: lee los calendarios de los canales cada 15 min
+lib/notify.mjs               Notificaciones por correo (Resend o Gmail)
+public/reserva.html          Página del huésped: confirmación + check-in en línea (TRA, selfie y documento)
+public/assets/pdf.js         Generador de PDF propio, sin librerías externas
+public/assets/docs.js        Confirmación, ficha de reserva con registro hotelero y listado en PDF; WhatsApp
 public/index.html            Sitio público
 public/admin.html            Panel de administración
 public/assets/               styles.css, common.js, guest.js, admin.js
@@ -156,6 +160,74 @@ Los canales no envían todo:
 El botón **Sincronizar ahora** fuerza una lectura inmediata. Si un canal falla (enlace vencido, por ejemplo), lo ya importado no se toca y la tarjeta muestra el error.
 
 > Como la información llega con retraso, el riesgo de sobreventa nunca es cero. Revisa el aviso «Posible sobreventa» en la pestaña Hoy.
+
+## Notificaciones por correo
+
+El sistema envía un correo cuando:
+
+- alguien pide una reserva en el sitio web;
+- un huésped completa el check-in en línea;
+- entra o se cancela una reserva de Booking/Airbnb;
+- hay una posible sobreventa;
+- un calendario de canal deja de leerse.
+
+Los avisos de canales llegan agrupados y una sola vez por novedad. El destino por defecto es **cbernal@gesoltec.co**. Se cambia en **Alojamiento → Notificaciones por correo**, donde se pueden poner varios correos separados por coma o pausar los avisos.
+
+Configura **un** servicio de correo en Netlify (*Site configuration → Environment variables*) y vuelve a desplegar.
+
+**Opción A: Resend (la más simple)**
+
+1. Crea una cuenta gratuita en <https://resend.com> **con el correo cbernal@gesoltec.co**.
+2. Ve a *API Keys → Create API Key* y copia la clave (`re_…`).
+3. En Netlify agrega `RESEND_API_KEY` con esa clave.
+4. Vuelve a desplegar y pulsa **Enviar correo de prueba** en el panel.
+
+Sin verificar un dominio, Resend solo entrega al correo dueño de la cuenta. Para enviar a otros correos, verifica el dominio gesoltec.co en Resend (*Domains*, son unos registros DNS). Después agrega `NOTIFY_FROM`, por ejemplo `Portal Norte 170 <reservas@gesoltec.co>`.
+
+**Opción B: Gmail de tu cuenta de Google.** Sirve si ya conectaste Google Calendar con OAuth (opción 2 de esa sección).
+
+1. Genera el refresh token en OAuth Playground con **dos** permisos: `https://www.googleapis.com/auth/calendar.events` y `https://www.googleapis.com/auth/gmail.send`.
+2. Habilita **Gmail API** en el proyecto de Google Cloud.
+3. Reemplaza `GOOGLE_REFRESH_TOKEN` en Netlify y vuelve a desplegar.
+
+Si las dos opciones están configuradas, se usa Resend. Un correo que falla nunca bloquea la reserva; el panel muestra el último resultado.
+
+## Check-in en línea, fotos y documentos
+
+Cada reserva tiene un **enlace privado del huésped** (`/reserva?r=…&t=…`). Está en el detalle de la reserva, en la tarjeta **Huésped en línea**, con los botones *Copiar enlace* y *Enviar por WhatsApp*. El mensaje de WhatsApp ya va escrito con los datos de la reserva.
+
+**Qué hace el huésped en el enlace:**
+
+- Ve su confirmación, la descarga en PDF o la comparte, y abre la ubicación y el WhatsApp del hotel.
+- Hace el **check-in en línea** para cada persona, incluidos los niños.
+  - Llena los datos de la TRA: documento, nacionalidad, fecha de nacimiento, procedencia, destino, motivo y transporte.
+  - Toma o sube su **selfie** y la **foto del documento** (frente obligatorio, reverso opcional).
+  - Para menores de edad la selfie es opcional.
+- Acepta la autorización de datos (Ley 1581 de 2012).
+
+**Qué pasa al enviar:**
+
+- Se crean o actualizan las fichas de huéspedes, con las fotos.
+- La reserva queda marcada con «Check-in en línea» y el nombre del titular.
+- Te llega un correo.
+- Si lo envía de nuevo, se corrigen las mismas fichas sin duplicarlas.
+
+**Privacidad:**
+
+- Las fotos de identidad van en un almacén separado (`portal-norte-ids`). No tienen URL pública: solo se ven con la sesión del panel.
+- Se borran al eliminar la ficha del huésped o al reemplazar la foto.
+- El enlace del huésped solo funciona con su código y vence 30 días después de la salida.
+- El check-in en línea se cierra si la reserva se cancela o finaliza.
+
+En la ficha del huésped (pestaña Huéspedes) también puedes tomar o subir la selfie y el documento desde el panel.
+
+## Imprimir y compartir
+
+Los PDF se generan en el navegador, sin servicios externos:
+
+- **Confirmación de reserva:** datos de la estadía, pago, saldo, enlace de check-in, cómo llegar y políticas. Está en el detalle de la reserva con *Descargar PDF*, *Imprimir* y *Compartir PDF*. En el celular, «Compartir PDF» abre la hoja de compartir, y desde ahí se elige WhatsApp.
+- **Ficha de reserva y registro hotelero:** estancia, pago y una tarjeta por huésped con los datos TRA, la selfie y las fotos del documento. Al final lleva la autorización y las líneas de firma.
+- **Listado de reservas:** pestaña Reservas → *Imprimir listado*. Usa los filtros que tengas aplicados (fechas, estado, canal, búsqueda) e incluye los totales.
 
 ## Mantenimiento
 
