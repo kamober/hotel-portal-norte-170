@@ -123,6 +123,7 @@ function renderHero(){
     const mw=$("#mWa");mw.hidden=false;mw.href=`https://wa.me/${wa}`;mw.target="_blank";mw.rel="noopener";mw.textContent="WhatsApp "+h.whatsapp;}
 }
 function renderPerks(){
+  if(!document.getElementById("perks")) return;
   const h=G.hotel, am=(h.amenities||[]).join(" ").toLowerCase();
   const items=[
     {ic:"phone",t:"Recepción smart",s:"Videoportero y cerraduras con clave o huella"},
@@ -166,6 +167,7 @@ function renderNear(){
     || `<div class="empty">${G.loaded?"Pronto agregaremos los lugares cercanos.":"Cargando…"}</div>`;
 }
 function renderWhy(){
+  if(!document.getElementById("feats")) return;
   const h=G.hotel, am=(h.amenities||[]);
   const feats=[
     {ic:"bus",t:"Transporte a la mano",s:"Portal Norte y rutas hacia la Sabana"},
@@ -196,9 +198,8 @@ function renderDirect(){
   const rates=G.rooms.map(r=>Number(r.rate)||0).filter(Boolean);
   const minRate=rates.length?Math.min(...rates):0;
   const k=minRate>=1000?`$${Math.round(minRate/1000)}k`:cop(minRate);
-  $("#directBg").innerHTML=`<img src="/assets/promo/hero-fachada.jpg" alt="" loading="lazy">`;
-  const ls=$("#lsWa"); if(ls&&wa) ls.href=`https://wa.me/${wa}?text=${encodeURIComponent("Hola, quiero información de estadías largas en "+hName()+".")}`;
-  $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
+  $("#directBg").innerHTML=`<img src="/assets/promo/hero-pasillo.jpg" alt="" loading="lazy">`;
+  if($("#stats")) $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
     .map(([v,l])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
 }
 function renderFooter(){
