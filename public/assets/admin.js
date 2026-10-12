@@ -50,7 +50,7 @@ async function loadState(){
     render();
   }catch(e){ if(S.token) setSync("off", e.message || "Sin conexión"); }
 }
-function setSync(state,txt){const s=$("#sync");s.className="sync "+state;s.querySelector("span").textContent=txt;}
+function setSync(state,txt){const s=$("#sync");s.className="icon-btn sync "+state;s.title=txt;s.querySelector("span").textContent=txt;const x=$("#syncTxt");if(x)x.textContent=(state==="on"?"● ":"○ ")+txt;}
 
 /* ---------- sesión ---------- */
 function logout(msg){
@@ -115,7 +115,7 @@ function render(){
   $("#cSol").textContent = S.reqs.filter(x=>x.status==="nueva").length || "";
   $("#cGu").textContent = S.guests.length || "";
   $("#cRo").textContent = S.rooms.length || "";
-  if(S.hotel){ $("#hName").innerHTML = nameHTML(S.hotel.name||"Portal Norte 170"); $("#hAddr").textContent = (S.hotel.address||"") + (S.hotel.zone? " · "+S.hotel.zone : ""); }
+  if(S.hotel){ $("#hName").innerHTML = nameHTML(S.hotel.name||"Portal Norte 170").replace(/^Hotel\s+/,'<span class="hp">Hotel </span>'); $("#hAddr").textContent = (S.hotel.address||"") + (S.hotel.zone? " · "+S.hotel.zone : ""); }
   ({panel:renderPanel,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:renderSol,hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
 }
 function liRes(r, actions){
@@ -125,35 +125,85 @@ function liRes(r, actions){
     <div class="grp" style="gap:6px">${actions||""}<button class="btn sm" data-open="${esc(r.id)}">Ver</button></div></div>`;
 }
 function renderPanel(){
-  const t = todayISO();
-  $("#todayLbl").textContent = new Intl.DateTimeFormat("es-CO",{timeZone:"America/Bogota",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
+  const t = todayISO(), R = S.dashR || 7, nRooms = S.rooms.length || 10;
+  $("#todayLbl").textContent = "Resumen de reservas y actividad · " + new Intl.DateTimeFormat("es-CO",{timeZone:"America/Bogota",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
+  document.querySelectorAll("#dashRange button").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.r===R)));
+  renderPanelAlerts();
   const act = S.res.filter(active);
   const inHouse = act.filter(r=>r.checkIn<=t && r.checkOut>t);
   const arr = act.filter(r=>r.checkIn===t), dep = act.filter(r=>r.checkOut===t);
-  const month = t.slice(0,7);
-  const monthRev = act.filter(r=>r.checkIn.slice(0,7)===month).reduce((s,r)=>s+(Number(r.total)||0),0);
-  const debt = act.filter(r=>balance(r)>0 && r.checkIn<=addDays(t,7)).reduce((s,r)=>s+balance(r),0);
-  const nRooms = S.rooms.length || 10, occ = inHouse.length;
+  // ventas: reservas que entran este mes vs. el mes anterior
+  const month=t.slice(0,7), pm=(()=>{const [y,m]=month.split("-").map(Number);return m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,"0")}`;})();
+  const rev=mm=>act.filter(r=>r.checkIn.slice(0,7)===mm).reduce((s,r)=>s+(Number(r.total)||0),0);
+  const monthRev=rev(month), prevRev=rev(pm);
+  const delta=(a,b)=>b>0?Math.round((a-b)/b*100):null;
+  const dRev=delta(monthRev,prevRev);
+  const debtList=act.filter(r=>balance(r)>0 && r.checkIn<=addDays(t,7)), debt=debtList.reduce((s,r)=>s+balance(r),0);
+  const chipD=(d,ghost)=>d==null?"":`<span class="chip ${ghost?"ghost":d>=0?"up":"down"}">${d>=0?"+":""}${d}%</span>`;
+  // ocupación del periodo elegido (noches-habitación)
+  const occ=(from,n)=>{let used=0;for(let i=0;i<n;i++){const d=addDays(from,i);used+=act.filter(r=>r.checkIn<=d&&r.checkOut>d).length;}return {used,cap:n*nRooms,pct:n*nRooms?Math.round(used/(n*nRooms)*100):0};};
+  const cur=occ(t,R), prev=occ(addDays(t,-R),R), dOcc=cur.pct-prev.pct;
+  const comingN=act.filter(r=>r.checkIn>t&&r.checkIn<addDays(t,R)).length;
+  // medidor: habitaciones ocupadas esta noche
+  const tonight=inHouse.length, pctT=Math.round(tonight/nRooms*100), guestsIn=inHouse.reduce((s,r)=>s+(Number(r.adults)||1)+(Number(r.children)||0),0);
+  const segs=22, filled=Math.round(tonight/nRooms*segs);
+  let gs="";
+  for(let i=0;i<segs;i++){const a=Math.PI*(1-(i+.5)/segs), cx=160+Math.cos(a)*118, cy=160-Math.sin(a)*118, deg=90-(a*180/Math.PI);
+    const k=filled>1?i/(filled-1):1, col=i<filled?`rgb(${Math.round(63+(14-63)*k)},${Math.round(107+(42-107)*k)},${Math.round(147+(66-147)*k)})`:"var(--soft-2)";
+    gs+=`<rect x="${(cx-5.5).toFixed(1)}" y="${(cy-20).toFixed(1)}" width="11" height="40" rx="5.5" fill="${col}" transform="rotate(${deg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`;}
   $("#kpis").innerHTML = `
-    <div class="kpi"><span class="eyebrow">Ocupación hoy</span><b class="num">${occ}/${nRooms}</b><small>${Math.round(occ/nRooms*100)||0}% de las habitaciones</small></div>
-    <div class="kpi"><span class="eyebrow">Llegadas</span><b class="num">${arr.length}</b><small>check-in ${esc(S.hotel?.checkinFrom||"15:00")}–${esc(S.hotel?.checkinTo||"18:00")}</small></div>
-    <div class="kpi"><span class="eyebrow">Salidas</span><b class="num">${dep.length}</b><small>check-out antes de ${esc(S.hotel?.checkout||"11:00")}</small></div>
-    <div class="kpi"><span class="eyebrow">Ventas del mes</span><b class="num" style="font-size:1.3rem">${cop(monthRev)}</b><small>reservas que entran este mes</small></div>
-    <div class="kpi"><span class="eyebrow">Solicitudes nuevas</span><b class="num">${S.reqs.filter(x=>x.status==="nueva").length}</b><small>desde el sitio web</small></div>
-    <div class="kpi"><span class="eyebrow">Saldo por cobrar</span><b class="num" style="font-size:1.3rem">${cop(debt)}</b><small>estancias hasta 7 días</small></div>`;
-  renderPanelAlerts();
+    <div class="stack">
+      <div class="panel kpi-dark"><div class="w-h"><h3>Ventas del mes</h3><button class="more" type="button" data-go="res" aria-label="Ver reservas">···</button></div>
+        <div class="big" style="margin-top:14px">${cop(monthRev)}</div>
+        <div class="kpi-row">${chipD(dRev,true)}<small>${dRev==null?"reservas que entran este mes":"frente al mes anterior"}</small></div></div>
+      <div class="panel"><div class="w-h"><h3>Saldo por cobrar</h3><button class="more" type="button" data-go="res" aria-label="Ver reservas">···</button></div>
+        <div class="big" style="margin-top:14px;font-size:2rem">${cop(debt)}</div>
+        <div class="kpi-row"><span class="chip">${debtList.length} reserva${debtList.length===1?"":"s"}</span><small>con llegada en los próximos 7 días</small></div></div>
+    </div>
+    <div class="panel"><div class="w-h"><h3>Ocupación</h3><button class="more" type="button" data-go="cal" aria-label="Ver disponibilidad">···</button></div>
+      <div class="seg" style="margin-top:12px" role="group" aria-label="Periodo">${[7,14,30].map(n=>`<button type="button" data-r="${n}" aria-pressed="${n===R}">${n} días</button>`).join("")}</div>
+      <div class="kpi-row" style="justify-content:space-between;margin-top:18px"><div class="big">${cur.used}<small style="font-size:1rem;color:var(--muted);font-weight:500"> / ${cur.cap} noches</small></div><span class="chip ${dOcc>=0?"up":"down"}">${dOcc>=0?"+":""}${dOcc}%</span></div>
+      <div class="progress" role="img" aria-label="Ocupación ${cur.pct}%"><i style="width:${Math.max(2,cur.pct)}%"></i></div>
+      <div class="p-foot"><span>Ocupación <b>${cur.pct}%</b> · próximos ${R} días</span><span><b>+${comingN}</b> llegadas</span></div></div>
+    <div class="panel gauge-card"><div class="w-h"><h3>Esta noche</h3><button class="more" type="button" data-go="cal" aria-label="Ver disponibilidad">···</button></div>
+      <div class="gauge"><svg viewBox="0 0 320 190" role="img" aria-label="${tonight} de ${nRooms} habitaciones ocupadas">${gs}</svg>
+        <div class="center"><b>${tonight}<span style="font-size:1.2rem;color:var(--muted)">/${nRooms}</span></b><small>habitaciones ocupadas</small></div></div>
+      <div class="g-foot">${guestsIn} huésped${guestsIn===1?"":"es"} en casa · ${arr.length} llegada${arr.length===1?"":"s"} y ${dep.length} salida${dep.length===1?"":"s"} hoy <span class="chip">${pctT}%</span></div></div>`;
+  // estadística semanal + próximas llegadas
+  const days=[...Array(7)].map((_,i)=>addDays(t,i));
+  const vals=days.map(d=>Math.round(act.filter(r=>r.checkIn<=d&&r.checkOut>d).length/nRooms*100));
+  const avg=Math.round(vals.reduce((a,b)=>a+b,0)/7), hi=vals.indexOf(Math.max(...vals));
+  const wd=d=>new Intl.DateTimeFormat("es-CO",{timeZone:"UTC",weekday:"short"}).format(new Date(d+"T12:00:00Z")).replace(".","");
+  const next=act.filter(r=>r.checkIn>=t).sort((a,b)=>a.checkIn.localeCompare(b.checkIn)).slice(0,4);
+  const chCount={}; act.filter(r=>r.checkIn.slice(0,7)===month).forEach(r=>chCount[r.channel]=(chCount[r.channel]||0)+1);
+  const ini=n=>String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  $("#dash2").innerHTML = `
+    <div class="panel"><div class="w-h"><h3>Ocupación de la semana</h3><div class="seg" role="group" aria-label="Vista"><button type="button" aria-pressed="true">Por noche</button><button type="button" data-go="cal" aria-pressed="false">Calendario</button></div></div>
+      <div class="stats"><div class="lead"><b>${avg}%</b><small>ocupación promedio de los próximos 7 días · día más alto: ${wd(days[hi])}</small></div>
+        <div class="bars">${days.map((d,i)=>`<div class="b ${i===hi&&vals[i]>0?"hi":[0,6].includes(dow(d))?"we":""}" title="${fd(d,{weekday:"long"})}: ${vals[i]}% ocupado"><span class="chip ${vals[i]<30?"down":""}">${vals[i]}%</span><span class="col" style="height:${Math.max(6,vals[i])}%"></span><small>${wd(d)}</small></div>`).join("")}</div></div></div>
+    <div class="panel arrivals"><div class="w-h"><h3>Próximas llegadas</h3><button class="more" type="button" data-go="res" aria-label="Ver reservas">···</button></div>
+      <div class="arr-list">${next.map(r=>{const ro=roomById(r.roomId);return `<button class="arr" type="button" data-open="${esc(r.id)}"><span class="who"><span class="av">${esc(ini(resGuest(r)))}</span><span><b>${esc(resGuest(r))}</b><small>${r.checkIn===t?"Llega hoy":"Llega el "+fd(r.checkIn,{weekday:"short"})} · ${nights(r)} noche${nights(r)===1?"":"s"} · ${esc(chan(r.channel).n)}</small></span></span>
+        <span class="badge"><i>${esc(ro?ro.number:"?")}</i>${esc(ro?(ro.type||"Hab."):"Hab.")}</span></button>`;}).join("")||`<div class="empty">No hay llegadas programadas.</div>`}</div>
+      ${Object.keys(chCount).length?`<div class="ch-row">${Object.entries(chCount).sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<span class="ch" style="--c:${chan(k).c}">${esc(chan(k).n)} · ${n}</span>`).join("")}</div>`:""}</div>`;
   const ciBtn = r => (r.status==="encasa"||r.block)?'':`<button class="btn sm primary" data-ci="${esc(r.id)}">Check-in</button>`;
   const coBtn = r => (r.status==="finalizada"||r.block)?'':`<button class="btn sm" data-co="${esc(r.id)}">Check-out</button>`;
   $("#arr").innerHTML = arr.map(r=>liRes(r,ciBtn(r))).join("") || `<div class="empty">No hay llegadas programadas para hoy.</div>`;
   $("#dep").innerHTML = dep.map(r=>liRes(r,coBtn(r))).join("") || `<div class="empty">No hay salidas programadas para hoy.</div>`;
   $("#inh").innerHTML = inHouse.map(r=>liRes(r,"")).join("") || `<div class="empty">No hay huéspedes alojados esta noche.</div>`;
-  const nx = act.filter(r=>r.checkIn>t && r.checkIn<=addDays(t,7)).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
-  $("#next").innerHTML = nx.map(r=>liRes(r,"")).join("") || `<div class="empty">Sin llegadas en los próximos 7 días.</div>`;
-  let bars="";
-  for(let i=0;i<14;i++){const d=addDays(t,i);const n=act.filter(r=>r.checkIn<=d && r.checkOut>d).length;
-    bars+=`<div class="c ${[0,6].includes(dow(d))?"we":""}" title="${fd(d,{weekday:"long"})}: ${n} ocupadas"><em>${n||""}</em><i style="height:${Math.round(n/nRooms*80)}%"></i><small>${Number(d.slice(8))}</small></div>`;}
-  $("#occ").innerHTML = bars;
 }
+$("#t-panel").addEventListener("click",e=>{
+  const r=e.target.closest("[data-r]"); if(r){S.dashR=+r.dataset.r;try{localStorage.setItem("pn170dashR",S.dashR);}catch(_){}renderPanel();return;}
+  const g=e.target.closest("[data-go]"); if(g){setTab(g.dataset.go);return;}
+});
+try{const v=+localStorage.getItem("pn170dashR");if([7,14,30].includes(v))S.dashR=v;}catch(_){}
+$("#dashPrint").onclick=async()=>{
+  const t=todayISO(), R=S.dashR||7, end=addDays(t,R);
+  const list=S.res.filter(r=>active(r)&&r.checkIn<end&&r.checkOut>t).sort((a,b)=>a.checkIn.localeCompare(b.checkIn));
+  if(!list.length){toast("No hay reservas en ese periodo.");return;}
+  const b=$("#dashPrint"); b.disabled=true;
+  try{const logo=await PNDocs.logoBadge();PNDocs.openPdf(PNDocs.reservationList({hotel:S.hotel||{},rows:resRows(list),title:"Reservas del periodo",subtitle:`Del ${fd(t,{year:"numeric"})} al ${fd(addDays(end,-1),{year:"numeric"})}`,logo}).blob(),`Reservas-${t}.pdf`);}catch(e){toast("No se pudo generar el PDF.");}
+  b.disabled=false;
+};
 
 /* ---------- calendario ---------- */
 const NDAYS = 21;
@@ -969,12 +1019,13 @@ function fillOnline(box,r){
     if(a==="sprint") run(b,async()=>PNDocs.printPdf(await sheetPdf(r),name("Ficha")));
   };
 }
+function resRows(list){const short={directo:"Directo",web:"Sitio web"};
+  return list.map(r=>{const ro=roomById(r.roomId);return {id:r.id,guest:resGuest(r),room:ro?String(ro.number):"?",in:fd(r.checkIn,{year:"numeric"}),out:fd(r.checkOut,{year:"numeric"}),
+    nights:nights(r),people:(Number(r.adults)||1)+(Number(r.children)||0),channel:short[r.channel]||chan(r.channel).n,status:(STATUS[r.status]||{n:r.status}).n,total:r.status==="cancelada"?0:r.total,balance:r.status==="cancelada"?0:Math.max(0,balance(r))};});}
 async function printList(){
   const list=S.resList||[]; if(!list.length){toast("No hay reservas en la lista para imprimir.");return;}
   const sel=id=>{const e=$(id);return e&&e.selectedIndex>=0?e.options[e.selectedIndex].text:"";};
-  const short={directo:"Directo",web:"Sitio web"};
-  const rows=list.map(r=>{const ro=roomById(r.roomId);return {id:r.id,guest:resGuest(r),room:ro?String(ro.number):"?",in:fd(r.checkIn,{year:"numeric"}),out:fd(r.checkOut,{year:"numeric"}),
-    nights:nights(r),people:(Number(r.adults)||1)+(Number(r.children)||0),channel:short[r.channel]||chan(r.channel).n,status:(STATUS[r.status]||{n:r.status}).n,total:r.status==="cancelada"?0:r.total,balance:r.status==="cancelada"?0:Math.max(0,balance(r))};});
+  const rows=resRows(list);
   const q=$("#rQ").value.trim();
   const sub=[sel("#rWhen"),$("#rSt").value?sel("#rSt"):"",$("#rCh").value?sel("#rCh"):"",q?`búsqueda «${q}»`:""].filter(Boolean).join(" · ");
   const b=$("#rPrint"); b.disabled=true;
