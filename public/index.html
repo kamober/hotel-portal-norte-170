@@ -3,552 +3,490 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Hotel Portal Norte 170 · Habitaciones en Suba, Bogotá</title>
-<meta name="description" content="Hotel y coliving a una cuadra del Portal Norte, en Villa del Prado (estrato 4), Bogotá. Recepción inteligente, check-in electrónico, cocina compartida, zona retro y estadías largas para estudiantes.">
-<meta property="og:title" content="Hotel Portal Norte 170">
-<meta property="og:description" content="Habitaciones privadas cerca del Portal Norte, Bogotá. Reserva en línea.">
+<title>Hotel Portal Norte 170 · Hotel y coliving inteligente en Bogotá</title>
+<meta name="description" content="Hotel y coliving inteligente a una cuadra del Portal Norte, en Villa del Prado (estrato 4), Bogotá. Recepción smart, check-in digital, cocina compartida y zona retro.">
+<meta property="og:title" content="Hotel Portal Norte 170 · Coliving Bogotá">
+<meta property="og:description" content="Habitaciones privadas a una cuadra del Portal Norte. Recepción smart y check-in digital. Reserva en línea.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/assets/og-image.png">
-<meta name="theme-color" content="#0E2A42">
+<meta name="theme-color" content="#EAF1F9">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="/assets/favicon-64.png">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500;1,8..60,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
-/* Sitio público: hero a sangre con buscador rectangular, franja de beneficios, secciones partidas y bandas marino. */
-body.site{padding:0;background:var(--bg)}
-.container{max-width:1200px;margin:0 auto;padding-inline:20px}
-.ico{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-h1,h2{font-weight:500;letter-spacing:-.01em}
-h1 em,h2 em{font-style:italic}
-.eyebrow{letter-spacing:.2em;font-size:.7rem}
-.btn{border-radius:8px}
-.btn.ghost-light{background:#fff;color:var(--navy);border-color:#fff}
-.btn.ghost-light:hover{background:var(--sand);border-color:var(--sand)}
-.btn.outline{background:transparent;color:var(--fg);border:1.5px solid var(--fg)}
-.btn.outline:hover{background:var(--fg);color:var(--bg)}
-.btn .ico{width:16px;height:16px}
+/* ===== Sitio público · estilo vidrio esmerilado (glass) en tonos hielo, con el rojo del logo como acento ===== */
+@font-face{font-family:"Poppins";src:url(/assets/fonts/poppins-light.woff) format("woff");font-weight:300;font-display:swap}
+@font-face{font-family:"Poppins";src:url(/assets/fonts/poppins-regular.woff) format("woff");font-weight:400;font-display:swap}
+@font-face{font-family:"Poppins";src:url(/assets/fonts/poppins-medium.woff) format("woff");font-weight:500;font-display:swap}
+@font-face{font-family:"Poppins";src:url(/assets/fonts/poppins-bold.woff) format("woff");font-weight:700;font-display:swap}
+body.glass{
+  --g-bg:#E9F0F8; --g-ink:#0F2740; --g-muted:#5C6F86; --g-line:rgba(255,255,255,.75); --g-hair:rgba(15,39,64,.08);
+  --g-pane:rgba(255,255,255,.52); --g-pane-2:rgba(255,255,255,.72); --g-blue:#4E86E8; --g-sky:#7CC6F3; --g-red:#D93A2E;
+  --g-grad:linear-gradient(100deg,#4E86E8 0%,#6FB2F0 55%,#8ED3F5 100%);
+  --g-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 24px 60px rgba(32,74,128,.12);
+  --fg:var(--g-ink); --muted:var(--g-muted); --surface:#fff; --line:rgba(15,39,64,.1);
+  --display:"Poppins",var(--body);
+  margin:0;padding:22px 18px 30px;color:var(--g-ink);font-family:var(--body);
+  background:radial-gradient(900px 600px at 85% -5%,#D3E3F6 0,transparent 60%),radial-gradient(700px 500px at -10% 30%,#F4F8FC 0,transparent 60%),radial-gradient(800px 600px at 50% 110%,#D9E6F4 0,transparent 60%),var(--g-bg);
+  background-attachment:fixed}
+@media (prefers-color-scheme:dark){body.glass{color-scheme:light}}
+.glass *{box-sizing:border-box}
+.shell{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.pane{position:relative;background:var(--g-pane);border:1px solid var(--g-line);border-radius:30px;box-shadow:var(--g-shadow);backdrop-filter:blur(22px) saturate(1.2);-webkit-backdrop-filter:blur(22px) saturate(1.2);padding:28px}
+.ico{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.kicker{display:flex;align-items:center;gap:10px;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--g-ink)}
+.kicker::before{content:"";width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,var(--g-blue) 23% 45%,rgba(78,134,232,.25) 46%)}
+.glass h1,.glass h2,.glass h3{font-family:var(--display);letter-spacing:-.01em;margin:0}
+.glass .sub{color:var(--g-muted);line-height:1.6;font-size:.92rem;margin:0}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font:600 .8rem/1 var(--body);letter-spacing:.1em;text-transform:uppercase;padding:16px 26px;border-radius:14px;text-decoration:none;cursor:pointer;border:1px solid transparent;transition:transform .2s,box-shadow .2s}
+.gbtn .ico{width:16px;height:16px}
+.gbtn.pri{background:var(--g-grad);color:#fff;box-shadow:0 12px 26px rgba(78,134,232,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+.gbtn.pri:hover{transform:translateY(-1px);box-shadow:0 16px 32px rgba(78,134,232,.42)}
+.gbtn.sec{background:rgba(255,255,255,.55);color:var(--g-ink);border-color:rgba(15,39,64,.14)}
+.gbtn.sec:hover{background:#fff}
+.gbtn:focus-visible{outline:2px solid var(--g-blue);outline-offset:3px}
+.gbtn.sm{padding:11px 16px;font-size:.72rem;border-radius:12px}
 
-/* Hero */
-.hero{position:relative;overflow:hidden;overflow:clip;color:#fff;background:var(--navy);min-height:clamp(560px,76vh,720px);display:flex;flex-direction:column}
-.hero .bg{position:absolute;inset:0}
-.hero .bg img{width:100%;height:100%;object-fit:cover}
-.hero .bg svg{width:100%;height:100%;display:block}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,28,46,.72) 0%,rgba(9,28,46,.40) 42%,rgba(9,28,46,0) 70%),linear-gradient(180deg,rgba(9,28,46,.45) 0%,transparent 22%)}
-.hero > .nav,.hero > .hero-body,.hero > .search-wrap{position:relative;z-index:2;width:100%}
-.menu-btn{display:none;width:44px;height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(9,28,46,.35);color:#fff;place-items:center;cursor:pointer}
-.menu-btn .ico{width:22px;height:22px}
-.menu-btn:focus-visible{outline:2px solid #fff}
-.m-menu{position:relative;z-index:5;width:100%}
-.m-menu .container{display:flex;flex-direction:column;background:#fff;border-radius:12px;padding:6px;box-shadow:0 18px 40px rgba(9,28,46,.35);width:calc(100% - 40px);margin-top:-6px}
-.m-menu a{color:var(--ink);text-decoration:none;font-weight:600;padding:13px 14px;border-radius:8px}
-.m-menu a:hover,.m-menu a:focus-visible{background:#F4EDE2}
-@media (max-width:900px){.menu-btn{display:grid}}
-.nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:18px;padding-top:calc(18px + env(safe-area-inset-top,0px))}
-.brandmark{display:inline-flex;align-items:center;gap:12px;color:inherit;text-decoration:none}
-.brandmark .mk{width:50px;height:50px;border-radius:50%;background:var(--cream);padding:4px;flex:none}
-.brandmark b{display:block;font-family:var(--display);font-weight:600;font-size:1.35rem;line-height:1;letter-spacing:-.01em;white-space:nowrap}
-.brandmark small{display:block;font-size:.58rem;letter-spacing:.24em;font-weight:600;opacity:.8;margin-top:5px;white-space:nowrap}
-.nav ul{display:flex;gap:28px;list-style:none;margin:0;padding:0;font-size:.88rem;font-weight:500}
-.nav ul a{color:inherit;text-decoration:none;opacity:.88}
-.nav ul a:hover{opacity:1;text-decoration:underline;text-underline-offset:5px}
-.nav .right{display:flex;align-items:center;gap:14px}
-.nav .wa{font-size:.84rem;font-weight:600;color:inherit;text-decoration:none;white-space:nowrap;opacity:.9}
-@media (max-width:900px){.nav ul{display:none}}
-@media (max-width:520px){.nav .wa{display:none}.brandmark small{display:none}.nav .right .btn.brand{display:none}.brandmark b{font-size:1.2rem}}
-.m-menu a.m-cta{background:var(--accent);color:#fff;text-align:center;margin-top:4px}
-.m-menu a.m-cta:hover{background:var(--accent-hover)}
-@media (min-width:521px){.m-menu a.m-cta{display:none}}
-
-.hero-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding-block:28px 28px}
-.hero .eyebrow{color:#fff;opacity:.85}
-.hero h1{font-size:clamp(2.6rem,6vw,4.4rem);line-height:1.02;margin-top:14px;max-width:13ch}
-.hero p.lead{font-size:1.02rem;max-width:46ch;margin:18px 0 0;opacity:.92;line-height:1.6}
-.caption{position:absolute;right:24px;bottom:40px;z-index:2;color:#fff;text-align:right;font-size:.82rem;line-height:1.45;max-width:240px}
-.caption b{display:block;font-family:var(--display);font-style:italic;font-weight:500;font-size:1.5rem;line-height:1.15;margin-bottom:4px}
-@media (max-width:900px){.caption{display:none}}
-
-/* Buscador */
-.search-wrap{padding-bottom:44px}
-.search{background:#fff;color:var(--ink);border-radius:12px;box-shadow:0 20px 50px rgba(9,28,46,.30);padding:10px;display:grid;grid-template-columns:1fr 1fr .8fr .8fr auto;gap:0;align-items:stretch;max-width:860px}
-.search label{display:flex;align-items:center;gap:12px;padding:8px 16px;border-right:1px solid #ECE6DC;min-width:0;cursor:pointer}
-.search label .ico{color:var(--ink-muted)}
-.search label span{display:flex;flex-direction:column;min-width:0;font-size:.74rem;font-weight:600;color:var(--ink)}
-.search input{border:0;padding:2px 0 0;font-size:.86rem;color:var(--ink-muted);background:transparent;font-weight:500}
-.search input:focus-visible{outline:none;box-shadow:0 2px 0 var(--accent)}
-.search button{border-radius:8px;padding:12px 22px;margin-left:8px}
-@media (max-width:900px){
-  .search{grid-template-columns:1fr 1fr;gap:8px;max-width:none}
-  .search label{border:0;background:#F7F3EC;border-radius:8px}
-  .search button{grid-column:1/-1;margin:0}
-}
-@media (prefers-color-scheme:dark){.search{color:var(--ink)}}
-
-/* Franja de beneficios */
-.perks{background:var(--surface);border-bottom:1px solid var(--line)}
-.perks .container{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 28px;padding-block:30px}
-.perks .perk{border:0!important;padding:0!important}
-.perk{display:flex;align-items:center;gap:14px;padding-inline:16px;border-left:1px solid var(--line);min-width:0}
-.perk:first-child{border-left:0;padding-left:0}
-.perk .circ{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--fg);flex:none}
-.perk .circ .ico{width:24px;height:24px}
-.perk b{display:block;font-size:.84rem;font-weight:600}
-.perk small{display:block;font-size:.74rem;color:var(--muted);line-height:1.4}
-@media (max-width:1000px){.perks .container{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.perk{border:0;padding:0}}
-@media (max-width:520px){.perks .container{grid-template-columns:1fr;gap:12px;padding-block:20px}.perk .circ{width:44px;height:44px}}
-
-/* Secciones */
-.sec{padding-block:64px}
-@media (max-width:600px){.sec{padding-block:44px}.hero-body{padding-block:16px 20px}.search-wrap{padding-bottom:28px}}
-.sec h2{font-size:clamp(1.9rem,3.6vw,2.5rem);line-height:1.12;margin-top:8px}
-.sec p.sub{color:var(--muted);margin:14px 0 0;max-width:46ch;line-height:1.6}
-
-/* Habitaciones: columna de intro + rejilla */
-.rooms-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:40px;align-items:start}
-.rooms-intro{position:sticky;top:20px;display:flex;flex-direction:column;gap:18px}
-.pills{display:flex;flex-wrap:wrap;gap:8px}
-.pills button{font:inherit;font-size:.8rem;font-weight:500;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
-.pills button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
-.pills button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.avail-line{font-size:.82rem;color:var(--muted);line-height:1.5}
-@media (max-width:900px){.rooms-layout{grid-template-columns:1fr}.rooms-intro{position:static}}
-.cards{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .2s,transform .2s}
-.card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
-.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.card .img{position:relative;aspect-ratio:4/3;max-width:100%;background:linear-gradient(160deg,#F6EEE2,#E9DCC8);display:grid;place-items:center;overflow:hidden}
-.card .img img.photo{width:100%;height:100%;object-fit:cover}
-.card .img .ph{display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--display);font-size:1.4rem;color:var(--wood-deep)}
-.card .img .ph img{width:88px;height:88px}
-.card .badge{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.95);color:var(--ink);font-size:.7rem;font-weight:600;padding:4px 10px;border-radius:999px}
-.card .badge.ok{color:var(--grass-deep)}
-.card .badge.no{color:#B3261E}
-.card .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
-.card h3{font-size:1.08rem;font-weight:600}
-.card .meta{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--muted);flex-wrap:wrap}
-.card .meta span{display:inline-flex;align-items:center;gap:5px}
-.card .meta .ico{width:15px;height:15px}
-.card .meta i{width:1px;height:12px;background:var(--line)}
-.card .cfoot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:12px}
-.card .price b{font-size:1rem;font-weight:700}
-.card .price small{font-size:.74rem;color:var(--muted)}
-.card .go{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;color:var(--fg)}
-.card .go .ico{width:15px;height:15px}
-.card.off{opacity:.6}
-.card.off:hover{transform:none}
-@media (max-width:600px){
-  .cards{grid-template-columns:1fr;gap:12px}
-  .card{flex-direction:row;min-height:132px}
-  .card .img{width:40%;flex:none;aspect-ratio:auto}
-  .card .img .ph img{width:56px;height:56px}
-  .card .img .ph{font-size:1.05rem}
-  .card .badge{left:6px;top:6px;font-size:.62rem;padding:3px 7px}
-  .card .body{padding:10px 12px;gap:4px;min-width:0}
-  .card h3{font-size:.98rem}
-  .card .meta{font-size:.72rem}
-  .card .meta.bath{display:none}
-  .card .cfoot{padding-top:6px}
-  .card .go{width:28px;height:28px}
-}
-
-/* Ubicación: panel marino + cerca de ti */
-.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-.split .dark{position:relative;color:#fff;background:var(--navy);min-height:440px;display:flex;align-items:flex-end;overflow:hidden}
-.split .dark .bg{position:absolute;inset:0}
-.split .dark .bg svg,.split .dark .bg img{width:100%;height:100%;object-fit:cover;display:block}
-.split .dark::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,28,46,.85),rgba(9,28,46,.35))}
-.split .dark .in{position:relative;z-index:1;padding:48px clamp(20px,5vw,56px);max-width:560px}
-.split .dark .eyebrow{color:#fff;opacity:.8}
-.split .dark h2{font-size:clamp(1.9rem,3.4vw,2.4rem);line-height:1.12;margin-top:10px;font-weight:500}
-.split .dark p{opacity:.9;line-height:1.6;margin:14px 0 0}
-.split .dark .loc{display:flex;align-items:center;gap:8px;font-size:.84rem;margin:18px 0 22px}
-.split .light{background:var(--sand);padding:48px clamp(20px,4vw,48px)}
-.split .light h2{font-size:clamp(1.8rem,3vw,2.2rem);font-weight:500}
-.split .light p.sub{margin-top:8px}
-.near{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-top:24px}
-.near .it{background:var(--surface);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.near .tile{aspect-ratio:16/10;background:var(--navy);color:#fff;display:grid;place-items:center}
-.near .tile .ico{width:30px;height:30px;stroke-width:1.4}
-.near .it:nth-child(3n+2) .tile{background:#1F4E79}
-.near .it:nth-child(3n) .tile{background:var(--wood-deep)}
-.near .txt{padding:10px 12px 12px}
-.near b{display:block;font-size:.84rem;font-weight:600;line-height:1.3}
-.near small{color:var(--muted);font-size:.74rem}
-@media (prefers-color-scheme:dark){.split .light{background:var(--band)}}
-@media (max-width:600px){.near{grid-template-columns:1fr;gap:8px}.near .it{flex-direction:row;align-items:center}.near .tile{width:64px;aspect-ratio:1;flex:none}.near .tile .ico{width:24px;height:24px}.split .dark{min-height:380px}}
-@media (max-width:900px){.split{grid-template-columns:1fr}}
-
-/* Por qué elegirnos */
-.why{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.1fr) minmax(0,.95fr);gap:28px;align-items:stretch}
-.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}
-.feat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start}
-.feat .ico{width:26px;height:26px;color:var(--navy);flex:none;stroke-width:1.5}
-.feat b{display:block;font-size:.84rem}
-.feat small{display:block;font-size:.74rem;color:var(--muted);line-height:1.4;margin-top:2px}
-@media (prefers-color-scheme:dark){.feat .ico{color:var(--fg)}}
-.why-img{position:relative;border-radius:14px;overflow:hidden;min-height:360px;background:var(--navy)}
-.why-img .bg{position:absolute;inset:0}
-.why-img .bg svg,.why-img .bg img{width:100%;height:100%;object-fit:cover;display:block}
-.why-img .cap{position:absolute;left:22px;bottom:20px;color:#fff;font-family:var(--display);font-style:italic;font-size:1.6rem;line-height:1.15;max-width:12ch;text-shadow:0 2px 12px rgba(0,0,0,.4)}
-.rules-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px}
-.rules-card .q{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
-.rules-card .q .ico{width:20px;height:20px}
-.rules-card .rule{font-size:1.02rem;line-height:1.55;flex:1;min-height:110px}
-.rules-card .times{display:flex;gap:18px;font-size:.8rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
-.rules-card .times b{display:block;font-family:var(--mono);color:var(--fg);font-size:.95rem}
-.rules-card .ctrl{display:flex;align-items:center;justify-content:space-between}
-.rules-card .ctrl button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--fg);display:grid;place-items:center;cursor:pointer}
-.rules-card .ctrl button:focus-visible{outline:2px solid var(--accent)}
-.rules-card .ctrl .ico{width:16px;height:16px}
-.rules-card .count{font-family:var(--mono);font-size:.8rem;color:var(--muted)}
-@media (max-width:1000px){.why{grid-template-columns:1fr}.why-img{min-height:280px}}
-
-/* Banda reserva directo */
-.direct{position:relative;color:#fff;background:var(--navy);overflow:hidden}
-.direct .bg{position:absolute;inset:0;opacity:.5}
-.direct .bg svg,.direct .bg img{width:100%;height:100%;display:block;object-fit:cover}
-.direct::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,28,46,.92) 0%,rgba(9,28,46,.6) 60%,rgba(9,28,46,.4))}
-.direct .container{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:32px;align-items:center;padding-block:56px}
-.direct .eyebrow{color:#fff;opacity:.8}
-.direct h2{font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:500;margin-top:10px;line-height:1.15}
-.direct p{opacity:.9;margin:12px 0 22px;max-width:44ch;line-height:1.6}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:rgba(9,28,46,.6);border:1px solid rgba(255,255,255,.18);border-radius:14px;overflow:hidden;justify-self:end;width:min(100%,460px)}
-.stats div{padding:18px 10px;text-align:center;border-left:1px solid rgba(255,255,255,.14)}
-.stats div:first-child{border-left:0}
-.stats b{display:block;font-family:var(--display);font-size:1.7rem;font-weight:500;line-height:1}
-.stats small{display:block;font-size:.72rem;opacity:.8;margin-top:6px}
-@media (max-width:820px){.direct .container{grid-template-columns:1fr}.stats{justify-self:stretch;width:auto;grid-template-columns:repeat(2,minmax(0,1fr))}.stats div:nth-child(3){border-left:0}.stats div:nth-child(n+3){border-top:1px solid rgba(255,255,255,.14)}}
-
-/* Pie */
-.foot{background:var(--navy-deep);color:#fff}
-.foot .top{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding-block:34px;border-bottom:1px solid rgba(255,255,255,.12)}
-.foot nav{display:flex;gap:26px;flex-wrap:wrap;font-size:.84rem}
-.foot nav a,.foot .legal a{color:rgba(255,255,255,.82);text-decoration:none}
-.foot nav a:hover,.foot .legal a:hover{color:#fff}
-.foot .contact{font-size:.82rem;color:rgba(255,255,255,.75);display:flex;flex-direction:column;gap:4px;text-align:right}
-.foot .legal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:18px 24px;font-size:.74rem;color:rgba(255,255,255,.6)}
-@media (max-width:700px){.foot .contact{text-align:left}}
-
-.mine .li{padding:12px 0}
-.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
-
-
-/* ===== Home compacta · estilo tecnológico ===== */
-body.site h1,body.site h2{font-family:var(--body);font-weight:700;letter-spacing:-.035em}
-body.site h1 em,body.site h2 em{font-style:normal;color:var(--glow);text-shadow:0 0 24px rgba(255,90,78,.35)}
-body.site .sec h2 em,body.site .loc-sec h2 em{color:var(--accent);text-shadow:none}
-body.site .card h3,body.site .brandmark b{font-family:var(--body);font-weight:700;letter-spacing:-.02em}
-body.site{--glow:#FF5A4E;--ice:#9CC3EA;--deep:#06121F;--glass:rgba(255,255,255,.06);--gline:rgba(156,195,234,.16)}
-.sec{padding-block:52px}
-.eyebrow{font-family:var(--mono);letter-spacing:.16em;font-size:.68rem;font-weight:500}
-.sec-h{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:22px}
-.sec-h h2{font-size:clamp(1.7rem,3.2vw,2.3rem);line-height:1.1;margin-top:8px}
-.sec-h .sub{max-width:46ch;margin:0;color:var(--muted);line-height:1.55;font-size:.92rem}
-.sec-h.dark .sub{color:rgba(255,255,255,.7)}
-.sec-h.dark .eyebrow{color:var(--ice)}
-/* fondo técnico: retícula fina + brillo */
-.techbg{background:radial-gradient(700px 300px at 85% 0%,rgba(255,90,78,.14),transparent 70%),radial-gradient(600px 300px at 0% 100%,rgba(156,195,234,.12),transparent 70%),linear-gradient(var(--gline) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--gline) 1px,transparent 1px) 0 0/48px 48px,var(--deep)}
-
-/* Portada */
-.hero{min-height:clamp(540px,82vh,680px)}
-.hero .bg .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 1.4s ease,transform 7.5s ease-out}
-.hero .bg .slide.on{opacity:1;transform:scale(1)}
-.hero::after{background:linear-gradient(90deg,rgba(6,18,31,.92) 0%,rgba(6,18,31,.62) 45%,rgba(6,18,31,.25) 75%,rgba(6,18,31,.45) 100%),linear-gradient(180deg,rgba(6,18,31,.6) 0%,transparent 26%,transparent 60%,rgba(6,18,31,.85) 100%)}
-.hero::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(var(--gline) 1px,transparent 1px) 0 0/56px 56px,linear-gradient(90deg,var(--gline) 1px,transparent 1px) 0 0/56px 56px;mask-image:linear-gradient(90deg,transparent,#000 55%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 55%,transparent);opacity:.7}
-.hero > .hero-meta{position:relative;z-index:2}
-.hero-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);align-items:center;gap:28px;padding-block:12px}
-.hero .eyebrow{color:var(--ice);opacity:1}
-.hero h1{font-size:clamp(2.4rem,5vw,3.9rem);max-width:13ch;margin-top:10px}
-.hero p.lead{font-size:.98rem;margin-top:14px;max-width:44ch}
-.hud{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-wrap:wrap;gap:8px}
-.hud li{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;padding:7px 12px;border-radius:8px;background:rgba(6,18,31,.55);border:1px solid rgba(156,195,234,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.hud i{width:7px;height:7px;border-radius:50%;background:#5BE38A;box-shadow:0 0 0 0 rgba(91,227,138,.6);animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(91,227,138,.55)}70%{box-shadow:0 0 0 8px rgba(91,227,138,0)}100%{box-shadow:0 0 0 0 rgba(91,227,138,0)}}
-.hero-logo{position:relative;justify-self:center;width:clamp(200px,22vw,300px);aspect-ratio:1}
-.hero-logo .disc{position:absolute;inset:12%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF8EA,var(--cream) 60%,#F0DDBD);box-shadow:0 0 0 1px rgba(255,255,255,.4),0 0 40px rgba(255,90,78,.35),0 24px 60px rgba(0,0,0,.5);display:grid;place-items:center;animation:float 6s ease-in-out infinite}
-.hero-logo .disc img{width:72%;height:auto;filter:drop-shadow(0 10px 14px rgba(9,28,46,.25))}
-.hero-logo .ring{position:absolute;inset:0;animation:spin 40s linear infinite}
-.hero-logo .ring svg{width:100%;height:100%;overflow:visible}
-.hero-logo .ring text{fill:var(--ice);font:500 10px var(--mono);letter-spacing:3px}
-.hero-logo::after{content:"";position:absolute;inset:4%;border-radius:50%;border:1px dashed rgba(156,195,234,.35)}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.hero-logo .disc,.hero-logo .ring,.hud i{animation:none}.hero .bg .slide{transition:opacity .3s}}
-.hero-meta{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:12px}
-.slide-cap{margin:0;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;opacity:.85;display:flex;align-items:center;gap:10px}
-.slide-cap::before{content:"";width:22px;height:2px;background:var(--glow);box-shadow:0 0 8px var(--glow)}
+/* --- Portada --- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;z-index:3}
+.brand{display:flex;align-items:center;gap:12px;color:inherit;text-decoration:none;min-width:0}
+.brand img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(15,39,64,.18))}
+.brand b{display:block;font:600 .82rem/1.1 var(--body);letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.brand small{display:block;font-size:.64rem;letter-spacing:.2em;color:var(--g-muted);margin-top:3px;white-space:nowrap}
+.status{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;border:1px solid rgba(15,39,64,.14);background:rgba(255,255,255,.5);font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:#3FBF7F;box-shadow:0 0 0 0 rgba(63,191,127,.6);animation:pulse 2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(63,191,127,0)}100%{box-shadow:0 0 0 0 rgba(63,191,127,0)}}
+.nav{display:flex;align-items:center;gap:22px}
+.nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0;font-size:.84rem;font-weight:500}
+.nav ul a{color:var(--g-ink);text-decoration:none;opacity:.8}
+.nav ul a:hover{opacity:1}
+.nav .wa{font-size:.8rem;font-weight:600;color:var(--g-ink);text-decoration:none;white-space:nowrap}
+.menu-btn{display:none;width:44px;height:44px;border-radius:12px;border:1px solid rgba(15,39,64,.14);background:rgba(255,255,255,.6);color:var(--g-ink);place-items:center;cursor:pointer}
+.m-menu{position:absolute;left:16px;right:16px;top:86px;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid #fff;border-radius:20px;box-shadow:0 24px 50px rgba(32,74,128,.2);padding:8px;display:flex;flex-direction:column}
+.m-menu[hidden]{display:none}
+.m-menu a{color:var(--g-ink);text-decoration:none;font-weight:600;padding:13px 14px;border-radius:12px}
+.m-menu a:hover{background:#EEF4FB}
+.m-menu a.m-cta{background:var(--g-grad);color:#fff;text-align:center;margin-top:4px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:28px;align-items:stretch;margin-top:18px}
+.hero-copy{display:flex;flex-direction:column;justify-content:center;padding:18px 0 6px}
+.chrome{font-family:var(--display);font-weight:700;text-transform:uppercase;line-height:.92;letter-spacing:.02em;font-size:clamp(3rem,7.6vw,6.2rem);margin:0;
+  background:linear-gradient(178deg,#FFFFFF 0%,#DCE6F1 22%,#8597AC 46%,#F4F8FC 52%,#A9BBCE 72%,#FFFFFF 92%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-stroke:1.4px rgba(110,132,158,.55);filter:drop-shadow(0 10px 14px rgba(32,74,128,.18)) drop-shadow(0 1px 0 #fff)}
+.chrome span{display:block}
+.chrome .star{display:inline-block;width:.3em;height:.3em;margin-left:.12em;vertical-align:.95em;filter:drop-shadow(0 0 10px rgba(110,127,240,.6))}
+.chrome .spark-old{display:inline-block;width:.32em;height:.32em;margin-left:.1em;vertical-align:top;background:radial-gradient(circle,#fff 0 10%,transparent 11%),conic-gradient(from 45deg,transparent 0 20%,#6E7FF0 20% 30%,transparent 30% 45%,#6E7FF0 45% 55%,transparent 55% 70%,#6E7FF0 70% 80%,transparent 80% 95%,#6E7FF0 95%);-webkit-text-stroke:0;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%)}
+.role{font-size:clamp(1.05rem,1.8vw,1.3rem);font-weight:500;margin:18px 0 0;color:var(--g-ink)}
+.lead{color:var(--g-muted);line-height:1.65;max-width:44ch;margin:14px 0 26px;font-size:.95rem}
+.ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero-media{position:relative;border-radius:26px;overflow:hidden;min-height:420px;background:#CFDCEA;border:1px solid rgba(255,255,255,.8);box-shadow:0 30px 60px rgba(32,74,128,.18)}
+.hero-media .bg{position:absolute;inset:0}
+.hero-media .slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity 1.4s ease,transform 7.5s ease-out}
+.hero-media .slide.on{opacity:1;transform:scale(1)}
+.hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(200deg,rgba(255,255,255,.25),transparent 40%),linear-gradient(0deg,rgba(15,39,64,.55),transparent 45%);pointer-events:none}
+.hero-media .meta{position:absolute;left:20px;right:150px;bottom:18px;z-index:2;color:#fff}
+.slide-cap{margin:0 0 10px;font-size:.82rem;font-weight:500;text-shadow:0 1px 8px rgba(0,0,0,.35)}
 .dots{display:flex;gap:6px}
-.dots button{all:unset;cursor:pointer;padding:8px 2px}
-.dots i{display:block;width:22px;height:3px;border-radius:3px;background:rgba(255,255,255,.35);transition:width .3s,background .3s}
-.dots button[aria-current="true"] i{width:40px;background:var(--glow);box-shadow:0 0 8px var(--glow)}
+.dots button{all:unset;cursor:pointer;padding:6px 0}
+.dots i{display:block;width:20px;height:3px;border-radius:3px;background:rgba(255,255,255,.5);transition:width .3s,background .3s}
+.dots button[aria-current="true"] i{width:38px;background:#fff}
 .dots button:focus-visible i{outline:2px solid #fff;outline-offset:3px}
-.search{border-radius:14px}
-@media (max-width:900px){
-  .hero-body{grid-template-columns:1fr;gap:6px}
-  .hero-logo{grid-row:1;justify-self:start;width:150px}
-  .hero-logo .ring text{font-size:12px;letter-spacing:2px}
-}
-@media (max-width:520px){.hero-logo{width:132px}.hero-meta{flex-direction:column;align-items:flex-start;gap:2px}.hud li{font-size:.66rem;padding:6px 10px}}
+.badge-orb{position:absolute;right:16px;bottom:16px;z-index:2;width:118px;height:118px;border-radius:50%;background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:grid;place-items:center;box-shadow:0 12px 30px rgba(15,39,64,.25)}
+.badge-orb img{width:58px;height:58px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+.badge-orb svg{position:absolute;inset:4px;width:calc(100% - 8px);height:calc(100% - 8px);animation:spin 28s linear infinite}
+.badge-orb text{fill:#fff;font:600 8.6px var(--body);letter-spacing:2.2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.badge-orb svg,.status i{animation:none}.hero-media .slide{transition:opacity .3s}}
+.search{margin-top:22px;display:grid;grid-template-columns:1fr 1fr .75fr .75fr auto;align-items:stretch;background:rgba(255,255,255,.7);border:1px solid #fff;border-radius:20px;padding:8px;box-shadow:0 12px 30px rgba(32,74,128,.1)}
+.search label{display:flex;align-items:center;gap:12px;padding:8px 16px;border-right:1px solid rgba(15,39,64,.08);min-width:0;cursor:pointer}
+.search label .ico{color:var(--g-blue)}
+.search label span{display:flex;flex-direction:column;min-width:0;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--g-muted)}
+.search input{border:0;padding:3px 0 0;font-size:.92rem;color:var(--g-ink);background:transparent;font-weight:600;letter-spacing:0;text-transform:none;width:100%}
+.search input:focus-visible{outline:none;box-shadow:0 2px 0 var(--g-blue)}
+.search .gbtn{margin-left:8px}
 
-/* Tecnología */
-.tech{color:#fff;padding-block:52px 40px}
-.tech{background:radial-gradient(700px 300px at 85% 0%,rgba(255,90,78,.14),transparent 70%),radial-gradient(600px 300px at 0% 100%,rgba(156,195,234,.12),transparent 70%),linear-gradient(var(--gline) 1px,transparent 1px) 0 0/48px 48px,linear-gradient(90deg,var(--gline) 1px,transparent 1px) 0 0/48px 48px,var(--deep)}
-.t-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
-.t-card{position:relative;display:flex;flex-direction:column;background:var(--glass);border:1px solid rgba(156,195,234,.18);border-radius:18px;overflow:hidden;color:#fff;text-decoration:none;transition:border-color .25s,transform .25s,box-shadow .25s}
-a.t-card:hover{border-color:rgba(255,90,78,.6);transform:translateY(-3px);box-shadow:0 0 0 1px rgba(255,90,78,.25),0 18px 40px rgba(0,0,0,.35)}
-a.t-card:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
-.t-img{height:150px;overflow:hidden;position:relative;background:#0B1E31}
-.t-img img{width:100%;height:100%;object-fit:cover;filter:saturate(.9) contrast(1.05)}
-.t-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(6,18,31,.85))}
-.t-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:4px}
-.t-k{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;color:var(--glow)}
-.t-body h3{font-size:1.06rem;font-weight:600;font-family:var(--body)}
-.t-body p{margin:0;font-size:.84rem;line-height:1.5;color:rgba(255,255,255,.72)}
-.t-img.phone{display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,rgba(156,195,234,.25),transparent 70%),#0B1E31}
-.t-img.phone::after{display:none}
-.ph-scr{width:96px;height:132px;border-radius:16px;border:2px solid rgba(156,195,234,.6);background:linear-gradient(180deg,#10304E,#0A1C2E);box-shadow:0 0 24px rgba(156,195,234,.25);padding:10px 8px;display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:.54rem}
-.ph-scr b{font-family:var(--body);font-size:.72rem;margin-bottom:2px}
-.ph-scr .ok{color:#5BE38A}
-.ph-scr .key{margin-top:auto;text-align:center;background:var(--glow);color:#fff;border-radius:6px;padding:3px 0;font-weight:600}
-.amen{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.amen a,.amen span{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;font-size:.82rem;font-weight:600;color:#fff;text-decoration:none;background:var(--glass);border:1px solid rgba(156,195,234,.22)}
-.amen a:hover{border-color:var(--glow)}
-.amen .ico{width:17px;height:17px;color:var(--ice)}
-@media (max-width:1000px){.t-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){.amen{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-20px;padding-inline:20px}.amen::-webkit-scrollbar{display:none}.amen a,.amen span{flex:none}.sec-h.dark .sub{display:none}.ph-scr{transform:scale(.78)}.t-k{font-size:.58rem}.t-grid{grid-template-columns:1fr 1fr;gap:10px}.t-img{height:110px}.t-body{padding:10px 12px 14px}.t-body p{display:none}.t-body h3{font-size:.92rem}}
+/* --- Cifras --- */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) 1.25fr;align-items:center;padding:24px 28px}
+.stat{padding:0 22px;border-right:1px solid var(--g-hair);display:flex;flex-direction:column;gap:6px}
+.stat:first-child{padding-left:4px}
+.stat .ico{width:26px;height:26px;color:var(--g-ink);opacity:.75}
+.stat b{font-family:var(--display);font-weight:400;font-size:2.1rem;line-height:1;margin-top:6px}
+.stat b sup{font-size:.55em;vertical-align:.5em;margin-left:2px}
+.stat small{color:var(--g-muted);font-size:.8rem;line-height:1.35}
+.quote{padding-left:26px;font-size:.88rem;line-height:1.6;color:var(--g-muted)}
+.quote p{margin:0 0 10px;color:var(--g-ink)}
 
-/* Galería */
-.gal-sec{color:#fff;padding-block:12px 52px;background:var(--deep)}
+/* --- Destacados --- */
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.round{width:38px;height:38px;border-radius:50%;border:1px solid rgba(15,39,64,.14);background:rgba(255,255,255,.6);display:grid;place-items:center;color:var(--g-ink);text-decoration:none}
+.round .ico{width:16px;height:16px}
+.feat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.fcard{display:flex;flex-direction:column;background:var(--g-pane-2);border:1px solid #fff;border-radius:24px;padding:12px 12px 18px;text-decoration:none;color:inherit;box-shadow:0 10px 30px rgba(32,74,128,.08);transition:transform .25s,box-shadow .25s}
+.fcard:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(32,74,128,.16)}
+.fcard:focus-visible{outline:2px solid var(--g-blue);outline-offset:3px}
+.fcard .ph{position:relative;aspect-ratio:16/10;border-radius:18px;overflow:hidden;background:#0F2740}
+.fcard .ph img{width:100%;height:100%;object-fit:cover}
+.fcard .ph::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.18),transparent 45%),linear-gradient(0deg,rgba(15,39,64,.45),transparent 50%)}
+.fcard .n{position:absolute;left:14px;top:12px;z-index:1;color:#fff;font:500 1.1rem var(--display);text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.fcard .ov{position:absolute;left:16px;bottom:14px;z-index:1;color:#fff;font:700 1.05rem/1.1 var(--display);text-transform:uppercase;letter-spacing:.04em;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.fcard h3{font-weight:500;font-size:1.15rem;margin:16px 8px 6px}
+.fcard p{margin:0 8px 14px;color:var(--g-muted);font-size:.86rem;line-height:1.5}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:auto 8px 0}
+.tags span{font-size:.7rem;font-weight:500;padding:6px 12px;border-radius:999px;border:1px solid rgba(15,39,64,.12);background:rgba(255,255,255,.6)}
+
+/* --- Tres paneles --- */
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.trio .pane{padding:24px}
+.incl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:13px}
+.incl li{display:flex;flex-direction:column;gap:7px;font-size:.84rem}
+.incl li>span{display:flex;justify-content:space-between;gap:10px}
+.incl li em{font-style:normal;font-size:.72rem;color:var(--g-muted)}
+.incl li i{display:block;height:3px;border-radius:3px;background:var(--g-grad);box-shadow:0 2px 6px rgba(78,134,232,.3)}
+.stack-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;font-size:.72rem;color:var(--g-muted);line-height:1.25}
+.tile span{width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.75);border:1px solid #fff;box-shadow:0 8px 18px rgba(32,74,128,.1);display:grid;place-items:center;color:var(--g-blue)}
+.tile span .ico{width:24px;height:24px;stroke-width:1.5}
+.tile:nth-child(3n+2) span{color:#6E7FF0}.tile:nth-child(3n) span{color:#2FA6C9}
+.philo{position:relative;height:250px;margin-top:4px}
+.philo .orbit{position:absolute;left:50%;top:50%;width:190px;height:190px;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid rgba(110,132,158,.35)}
+.philo .orbit i{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--g-blue);box-shadow:0 0 10px rgba(78,134,232,.7)}
+.philo .orbit i:nth-child(1){left:50%;top:-5px;margin-left:-4.5px}.philo .orbit i:nth-child(2){right:-5px;top:50%;margin-top:-4.5px}
+.philo .orbit i:nth-child(3){left:50%;bottom:-5px;margin-left:-4.5px}.philo .orbit i:nth-child(4){left:-5px;top:50%;margin-top:-4.5px}
+.philo .core{position:absolute;left:50%;top:50%;width:112px;height:112px;transform:translate(-50%,-50%) rotate(45deg);border-radius:28px;background:linear-gradient(135deg,rgba(255,255,255,.95),rgba(170,205,240,.55));border:1px solid #fff;box-shadow:0 18px 40px rgba(78,134,232,.35),inset 0 0 30px rgba(255,255,255,.8);display:grid;place-items:center}
+.philo .core img{width:76px;height:76px;transform:rotate(-45deg);object-fit:contain}
+.philo .lb{position:absolute;font-size:.74rem;text-align:center;color:var(--g-ink);line-height:1.25;font-weight:500}
+.philo .lb.t{left:50%;top:0;transform:translateX(-50%)}.philo .lb.b{left:50%;bottom:0;transform:translateX(-50%)}
+.philo .lb.l{left:0;top:50%;transform:translateY(-50%)}.philo .lb.r{right:0;top:50%;transform:translateY(-50%)}
+
+/* --- Galería --- */
 .galeria{outline:none}
-.g-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:12px}
+.g-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;margin-bottom:14px}
 .g-tabs::-webkit-scrollbar{display:none}
-.g-tabs button{all:unset;cursor:pointer;white-space:nowrap;padding:7px 13px;border-radius:8px;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;color:rgba(255,255,255,.75);border:1px solid rgba(156,195,234,.22)}
-.g-tabs button:hover{color:#fff;border-color:var(--ice)}
-.g-tabs button[aria-selected="true"]{background:var(--glow);border-color:var(--glow);color:#fff;box-shadow:0 0 14px rgba(255,90,78,.45)}
-.g-tabs button:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
-.g-stage{position:relative;height:clamp(300px,46vw,500px);border-radius:18px;overflow:hidden;background:#071827;border:1px solid rgba(156,195,234,.18)}
+.g-tabs button{all:unset;cursor:pointer;white-space:nowrap;padding:8px 14px;border-radius:999px;font-size:.76rem;font-weight:500;border:1px solid rgba(15,39,64,.12);background:rgba(255,255,255,.55);color:var(--g-ink)}
+.g-tabs button[aria-selected="true"]{background:var(--g-grad);border-color:transparent;color:#fff;box-shadow:0 8px 18px rgba(78,134,232,.3)}
+.g-tabs button:focus-visible{outline:2px solid var(--g-blue);outline-offset:2px}
+.g-stage{position:relative;height:clamp(280px,40vw,460px);border-radius:22px;overflow:hidden;background:#C9D7E6;border:1px solid #fff}
 .g-slide{position:absolute;inset:0;margin:0;opacity:0;transition:opacity .7s ease}
 .g-slide.on{opacity:1}
 .g-slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1}
-.g-slide .g-blur{object-fit:cover;filter:blur(28px) brightness(.5);transform:scale(1.15);z-index:0}
-.g-cap{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:46px 22px 18px;background:linear-gradient(180deg,transparent,rgba(6,18,31,.92));display:flex;flex-direction:column;gap:2px}
-.g-cap b{font-size:1.15rem;font-weight:600}
-.g-cap small{opacity:.8;font-size:.84rem;max-width:60ch}
-.g-n{font-family:var(--mono);font-size:.68rem;color:var(--ice);letter-spacing:.12em}
-.g-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;border-radius:12px;border:1px solid rgba(156,195,234,.35);background:rgba(6,18,31,.6);backdrop-filter:blur(8px);color:#fff;display:grid;place-items:center;cursor:pointer}
-.g-nav:hover{border-color:var(--glow);box-shadow:0 0 14px rgba(255,90,78,.4)}
+.g-slide .g-blur{object-fit:cover;filter:blur(26px) brightness(.85) saturate(1.1);transform:scale(1.15);z-index:0}
+.g-cap{position:absolute;left:14px;bottom:14px;z-index:2;max-width:min(560px,calc(100% - 28px));padding:14px 18px;border-radius:16px;background:rgba(255,255,255,.72);border:1px solid #fff;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;flex-direction:column;gap:2px}
+.g-cap b{font:500 1.05rem var(--display)}
+.g-cap small{color:var(--g-muted);font-size:.82rem}
+.g-n{font-family:var(--mono);font-size:.66rem;color:var(--g-blue);letter-spacing:.12em}
+.g-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:42px;height:42px;border-radius:50%;border:1px solid #fff;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);color:var(--g-ink);display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 18px rgba(32,74,128,.15)}
 .g-nav.prev{left:12px}.g-nav.next{right:12px}
-.g-nav:focus-visible{outline:2px solid var(--glow)}
-.g-bar{position:absolute;left:0;right:0;top:0;height:2px;z-index:3;background:rgba(255,255,255,.1)}
-.g-bar i{display:block;height:100%;width:0;background:var(--glow);box-shadow:0 0 8px var(--glow);animation:gbar linear forwards}
+.g-nav:focus-visible{outline:2px solid var(--g-blue)}
+.g-bar{position:absolute;left:0;right:0;top:0;height:3px;z-index:3;background:rgba(255,255,255,.3)}
+.g-bar i{display:block;height:100%;width:0;background:var(--g-grad);animation:gbar linear forwards}
 @keyframes gbar{to{width:100%}}
-.g-thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 2px;scrollbar-width:none}
+.g-thumbs{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
 .g-thumbs::-webkit-scrollbar{display:none}
-.g-thumbs button{all:unset;cursor:pointer;flex:none;width:76px;aspect-ratio:4/3;border-radius:8px;overflow:hidden;opacity:.45;outline:1.5px solid transparent;outline-offset:2px;transition:opacity .2s}
-.g-thumbs button:hover{opacity:.85}
-.g-thumbs button[aria-current="true"]{opacity:1;outline-color:var(--glow)}
+.g-thumbs button{all:unset;cursor:pointer;flex:none;width:74px;aspect-ratio:4/3;border-radius:10px;overflow:hidden;opacity:.55;outline:2px solid transparent;outline-offset:2px}
+.g-thumbs button[aria-current="true"]{opacity:1;outline-color:var(--g-blue)}
 .g-thumbs img{width:100%;height:100%;object-fit:cover}
-@media (max-width:700px){.g-stage{height:62vw;min-height:240px}.g-cap{padding:36px 14px 12px}.g-cap b{font-size:1rem}.g-cap small{display:none}.g-nav{width:36px;height:36px}.g-thumbs button{width:62px}}
 
-/* Habitaciones: más compactas */
-.rooms-layout{grid-template-columns:240px minmax(0,1fr);gap:28px}
-.cards{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
-.card{border-radius:14px}
-.card .img{aspect-ratio:16/11}
-.card .body{padding:12px 14px 14px;gap:4px}
-.card h3{font-size:1rem}
-.card .badge{font-family:var(--mono);font-size:.64rem;letter-spacing:.04em}
-@media (max-width:900px){.rooms-layout{grid-template-columns:1fr}}
+/* --- Habitaciones --- */
+.rooms-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.rooms-head h2{font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);margin-top:10px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pills button{font:inherit;font-size:.76rem;font-weight:500;padding:7px 14px;border-radius:999px;border:1px solid rgba(15,39,64,.12);background:rgba(255,255,255,.6);color:var(--g-ink);cursor:pointer}
+.pills button[aria-pressed="true"]{background:var(--g-ink);border-color:var(--g-ink);color:#fff}
+.pills button:focus-visible{outline:2px solid var(--g-blue);outline-offset:2px}
+.avail-line{font-size:.8rem;color:var(--g-muted);line-height:1.5;margin-top:6px}
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(205px,1fr))}
+.card{background:var(--g-pane-2);border:1px solid #fff;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;padding:8px;box-shadow:0 8px 22px rgba(32,74,128,.07);transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:0 18px 34px rgba(32,74,128,.14)}
+.card:focus-visible{outline:2px solid var(--g-blue);outline-offset:2px}
+.card .img{position:relative;aspect-ratio:16/11;border-radius:14px;overflow:hidden;background:linear-gradient(160deg,#F3F7FC,#DCE7F3);display:grid;place-items:center}
+.card .img img.photo{width:100%;height:100%;object-fit:cover}
+.card .img .ph{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 1.1rem var(--display);color:var(--g-muted)}
+.card .img .ph img{width:74px;height:74px;object-fit:contain}
+.card .badge{position:absolute;left:8px;top:8px;background:rgba(255,255,255,.85);backdrop-filter:blur(6px);font-size:.66rem;font-weight:600;padding:4px 10px;border-radius:999px}
+.card .badge.ok{color:#2E8B57}.card .badge.no{color:var(--g-red)}
+.card .body{padding:10px 8px 6px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card h3{font:500 .98rem var(--display)}
+.card .meta{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--g-muted);flex-wrap:wrap}
+.card .meta span{display:inline-flex;align-items:center;gap:4px}
+.card .meta .ico{width:14px;height:14px}
+.card .meta i{width:1px;height:10px;background:rgba(15,39,64,.15)}
+.card .cfoot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px}
+.card .price b{font-size:.95rem;font-weight:700}
+.card .price small{font-size:.7rem;color:var(--g-muted)}
+.card .go{width:30px;height:30px;border-radius:50%;background:var(--g-grad);display:grid;place-items:center;color:#fff}
+.card .go .ico{width:14px;height:14px}
+.card.off{opacity:.6}.card.off:hover{transform:none}
+.mine .li{padding:12px 0}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.banner{background:#FFF4E5;border:1px solid #F5D7A8;border-radius:16px;padding:12px 16px;font-size:.86rem}
 
-/* Ubicación compacta */
-.loc-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:32px;align-items:center}
-.loc-photo{position:relative;border-radius:18px;overflow:hidden;height:100%;min-height:300px;max-height:420px}
-.loc-photo img{width:100%;height:100%;object-fit:cover}
-.pin-chip{position:absolute;left:12px;bottom:12px;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;padding:7px 13px;border-radius:999px;font-weight:700;font-size:.8rem;box-shadow:0 0 18px rgba(198,45,36,.45)}
-.pin-chip .ico{width:16px;height:16px}
-.loc-copy h2{font-size:clamp(1.7rem,3.2vw,2.3rem);line-height:1.1;margin-top:8px}
-.loc-copy .loc{display:flex;align-items:center;gap:8px;font-weight:600;font-size:.88rem;margin:12px 0 16px}
+/* --- Ubicación --- */
+.loc{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:24px;align-items:stretch}
+.loc-photo{position:relative;border-radius:22px;overflow:hidden;min-height:300px;border:1px solid #fff}
+.loc-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pin{position:absolute;left:14px;bottom:14px;display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.8);backdrop-filter:blur(10px);font-size:.78rem;font-weight:600}
+.pin .ico{width:16px;height:16px;color:var(--g-red)}
+.loc h2{font-weight:500;font-size:clamp(1.5rem,2.6vw,2rem);margin:10px 0 6px}
+.addr{display:flex;align-items:center;gap:8px;font-size:.86rem;font-weight:500;margin:4px 0 16px}
+.addr .ico{width:17px;height:17px;color:var(--g-red)}
 .poi-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.poi{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
-.poi .ico{width:34px;height:34px;padding:7px;flex:none;border-radius:10px;background:var(--navy);color:#fff}
-.poi b{display:block;font-size:.86rem}
-.poi small{display:block;font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poi{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.6);border:1px solid #fff;border-radius:14px;padding:10px 12px;min-width:0}
+.poi .ico{width:34px;height:34px;padding:7px;border-radius:10px;background:rgba(78,134,232,.12);color:var(--g-blue)}
+.poi b{display:block;font-size:.84rem;font-weight:600}
+.poi small{display:block;font-size:.74rem;color:var(--g-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .poi>div{min-width:0}
 .loc-acts{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
-.near-wrap summary{cursor:pointer;font-weight:600;font-size:.86rem;color:var(--muted)}
+.near-wrap summary{cursor:pointer;font-weight:600;font-size:.84rem;color:var(--g-muted)}
 .near-wrap[open]{flex-basis:100%}
-.near-wrap .near{margin-top:12px}
-@media (max-width:900px){.loc-grid{grid-template-columns:1fr}.loc-photo{min-height:220px;max-height:260px}}
-@media (max-width:420px){.poi-grid{grid-template-columns:1fr}}
+.near{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:12px}
+.near .it{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.6);border-radius:12px;padding:8px 10px}
+.near .tile{width:30px;height:30px;border-radius:9px;background:rgba(78,134,232,.12);color:var(--g-blue);display:grid;place-items:center;flex:none}
+.near .tile .ico{width:16px;height:16px}
+.near b{display:block;font-size:.8rem;font-weight:600;line-height:1.3}
+.near small{color:var(--g-muted);font-size:.72rem}
 
-/* Contacto + normas */
-.direct{background:var(--deep)}
-.direct::after{background:linear-gradient(90deg,rgba(6,18,31,.95) 0%,rgba(6,18,31,.75) 60%,rgba(6,18,31,.6))}
-.direct .container{padding-block:44px}
-.direct .eyebrow{color:var(--ice);opacity:1}
-.direct .rules-card{background:rgba(255,255,255,.06);border:1px solid rgba(156,195,234,.22);border-radius:18px;color:#fff;padding:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:10px;box-shadow:none}
-.direct .rules-card .rule{font-size:1rem;line-height:1.5;min-height:3em}
-.direct .rules-card .times{display:flex;gap:18px;font-size:.8rem;color:rgba(255,255,255,.72);border-color:rgba(156,195,234,.2)}
-.direct .rules-card .times b{display:block;font-family:var(--mono);font-size:.95rem;color:#fff}
-.direct .rules-card .ctrl{display:flex;justify-content:space-between;align-items:center}
-.direct .rules-card .ctrl button{width:36px;height:36px;border-radius:10px;border:1px solid rgba(156,195,234,.35);background:transparent;color:#fff;display:grid;place-items:center;cursor:pointer}
-.direct .rules-card .ctrl button:hover{border-color:var(--glow)}
-.direct .rules-card .count{font-family:var(--mono);font-size:.74rem;opacity:.7}
-@media (max-width:800px){.direct .container{grid-template-columns:1fr}}
-.foot{background:#040D17}
+/* --- Contacto --- */
+.contact{display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:20px;align-items:stretch}
+.contact h2{font:500 clamp(1.5rem,2.6vw,2.05rem)/1.15 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.contact .cta p{color:var(--g-muted);font-size:.9rem;line-height:1.6;margin:14px 0 22px}
+.inner{background:rgba(255,255,255,.55);border:1px solid #fff;border-radius:22px;padding:22px}
+.inner .lbl{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--g-muted);margin-bottom:12px}
+.clist{display:flex;flex-direction:column;gap:12px;font-size:.86rem}
+.clist>span,.clist>a{display:flex;align-items:center;gap:12px;color:var(--g-ink);text-decoration:none}
+.clist .ico{width:18px;height:18px;color:var(--g-muted)}
+.rules{display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}
+.rules::after{content:"";position:absolute;right:-30px;bottom:-30px;width:150px;height:150px;background:url(/assets/logo-mark.png) center/contain no-repeat;opacity:.12;pointer-events:none}
+.rules .rule{font-size:.95rem;line-height:1.5;min-height:3em}
+.rules .times{display:flex;gap:20px;font-size:.72rem;color:var(--g-muted);text-transform:uppercase;letter-spacing:.08em}
+.rules .times b{display:block;font:500 1rem var(--display);color:var(--g-ink);letter-spacing:0;text-transform:none}
+.rules .ctrl{display:flex;justify-content:space-between;align-items:center;margin-top:auto}
+.rules .ctrl button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(15,39,64,.14);background:rgba(255,255,255,.7);color:var(--g-ink);display:grid;place-items:center;cursor:pointer}
+.rules .ctrl .ico{width:16px;height:16px}
+.rules .count{font-family:var(--mono);font-size:.72rem;color:var(--g-muted)}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:6px 10px 0;font-size:.72rem;color:var(--g-muted)}
+.foot a{color:var(--g-muted)}
+.foot .mid{display:flex;align-items:center;gap:14px}
+.foot .spark{width:14px;height:14px;background:var(--g-blue);clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%)}
+.foot .tag{letter-spacing:.14em;text-transform:uppercase}
+.foot-brand{display:flex;align-items:center;gap:10px}
+.foot-brand img{width:30px;height:30px}
 
+/* --- Ventanas (habitación, solicitud) en el mismo estilo --- */
+.glass .btn{border-radius:12px}
+.glass .btn.primary{background:var(--g-grad);border-color:transparent;color:#fff;box-shadow:0 10px 22px rgba(78,134,232,.3)}
+.glass .btn.primary:hover{filter:brightness(1.05)}
+.glass .btn.primary:disabled{opacity:.5}
+.glass .hero-ph{background:linear-gradient(160deg,#F3F7FC,#DCE7F3);border-radius:14px}
+
+/* --- Aparición suave --- */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* --- Tablet y celular --- */
+@media (max-width:1080px){
+  .nav ul{display:none}.menu-btn{display:grid}.status{display:none}
+  .stats{grid-template-columns:repeat(4,minmax(0,1fr))}.quote{grid-column:1/-1;padding:18px 4px 0;border-top:1px solid var(--g-hair);margin-top:18px}
+  .trio{grid-template-columns:1fr 1fr}.trio .pane:last-child{grid-column:1/-1}
+  .contact{grid-template-columns:1fr 1fr}.contact .cta{grid-column:1/-1}
+}
+@media (max-width:820px){
+  body.glass{padding:12px 10px 24px}
+  .pane{padding:20px;border-radius:24px}
+  .hero-grid{grid-template-columns:1fr;gap:18px}
+  .hero-media{min-height:300px;order:-1}
+  .hero-copy{padding:0}
+  .search{grid-template-columns:1fr 1fr;gap:6px;padding:8px}
+  .search label{border:0;background:rgba(255,255,255,.7);border-radius:14px}
+  .search .gbtn{grid-column:1/-1;margin:2px 0 0}
+  .stats{grid-template-columns:1fr 1fr;row-gap:18px}.stat{border:0;padding:0 8px}
+  .feat-grid{grid-template-columns:1fr;gap:12px}.fcard{flex-direction:row;gap:14px;padding:10px;align-items:center}
+  .fcard .ph{width:42%;flex:none;aspect-ratio:4/3}.fcard .ov{display:none}.fcard h3{margin:0 0 4px;font-size:1rem}.fcard p{margin:0 0 8px;font-size:.8rem}.fcard .tags{margin:0}.fcard>div{min-width:0}
+  .trio{grid-template-columns:1fr}.trio .pane:last-child{grid-column:auto}
+  .loc{grid-template-columns:1fr}.loc-photo{min-height:200px}
+  .contact{grid-template-columns:1fr}
+}
+@media (max-width:480px){
+  .brand small{display:none}.brand b{font-size:.74rem;letter-spacing:.12em}
+  .nav .gbtn{display:none}
+  .chrome{font-size:clamp(2.5rem,13.5vw,3.4rem)}
+  .ctas .gbtn{flex:1 1 140px;padding:14px 16px}
+  .hero-media .meta{right:120px}.badge-orb{width:96px;height:96px}.badge-orb img{width:46px;height:46px}
+  .poi-grid{grid-template-columns:1fr}
+  .stat b{font-size:1.7rem}
+  .g-cap small{display:none}
+  .search label{padding:8px 10px;gap:8px}.search label .ico{display:none}.search input{font-size:.86rem}
+  .gbtn{letter-spacing:.06em}.ctas .gbtn{padding:14px 12px;font-size:.74rem}
+  .fcard .tags span{padding:4px 9px;font-size:.66rem}.fcard .tags{gap:5px}
+  .cards{grid-template-columns:1fr 1fr;gap:10px}.card{padding:6px;border-radius:16px}.card .body{padding:8px 4px 4px}.card h3{font-size:.86rem}.card .meta{font-size:.66rem}.card .meta.bath{display:none}.card .price b{font-size:.84rem}.card .price small{display:none}.card .go{width:26px;height:26px}.card .img .ph img{width:54px;height:54px}
+}
 </style>
 </head>
-<body class="site">
+<body class="glass">
+<div class="shell">
 
-<header class="hero" id="hero">
-  <div class="bg" id="heroBg" aria-hidden="true"></div>
-  <nav class="container nav" aria-label="Principal">
-    <a class="brandmark" href="/" aria-label="Hotel Portal Norte 170, inicio"><img class="mk" src="/assets/logo-mark.png" alt="" width="50" height="50"><span><b id="brandName">Portal Norte 170</b><small>HOTEL · COLIVING · BOGOTÁ</small></span></a>
-    <ul>
-      <li><a href="#tecnologia">Tecnología</a></li>
-      <li><a href="#galeria">Galería</a></li>
-      <li><a href="#habitaciones">Habitaciones</a></li>
-      <li><a href="#ubicacion">Ubicación</a></li>
-    </ul>
-    <div class="right"><a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a><a class="btn brand" href="#habitaciones">Reservar <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="mMenu"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
-  </nav>
-  <div class="m-menu" id="mMenu" hidden><div class="container"><a href="#tecnologia">Tecnología</a><a href="#galeria">Galería</a><a href="#habitaciones">Habitaciones</a><a href="#ubicacion">Ubicación</a><a href="#contacto">Contacto</a><a href="#mineSec" id="mMine" hidden>Mis solicitudes</a><a href="#contacto" id="mWa" hidden>WhatsApp</a><a href="#habitaciones" class="m-cta">Reservar habitación</a></div></div>
-  <div class="container hero-body">
+<header class="pane" id="hero">
+  <div class="top">
+    <a class="brand" href="/" aria-label="Hotel Portal Norte 170, inicio"><img src="/assets/logo-mark.png" alt="" width="44" height="44"><span><b id="brandName">Portal Norte 170</b><small>HOTEL · COLIVING · BOGOTÁ</small></span></a>
+    <span class="status"><i></i>Reserva en línea abierta</span>
+    <nav class="nav" aria-label="Principal">
+      <ul><li><a href="#destacados">El hotel</a></li><li><a href="#galeria">Galería</a></li><li><a href="#habitaciones">Habitaciones</a></li><li><a href="#ubicacion">Ubicación</a></li><li><a href="#contacto">Contacto</a></li></ul>
+      <a class="wa" id="navWa" href="#contacto" hidden>WhatsApp</a>
+      <a class="gbtn pri sm" href="#habitaciones">Reservar</a>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="mMenu"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    </nav>
+  </div>
+  <div class="m-menu" id="mMenu" hidden><a href="#destacados">El hotel</a><a href="#galeria">Galería</a><a href="#habitaciones">Habitaciones</a><a href="#ubicacion">Ubicación</a><a href="#contacto">Contacto</a><a href="#mineSec" id="mMine" hidden>Mis solicitudes</a><a href="#contacto" id="mWa" hidden>WhatsApp</a><a href="#habitaciones" class="m-cta">Reservar habitación</a></div>
+
+  <div class="hero-grid">
     <div class="hero-copy">
-      <div class="eyebrow" id="heroEyebrow">HOTEL · COLIVING · NORTE DE BOGOTÁ</div>
-      <h1 id="heroTitle">Tu casa <em>en el norte</em> de Bogotá</h1>
-      <p class="lead" id="heroLead">Hotel y coliving inteligente en Villa del Prado, zona residencial estrato 4. Llegas, te registras desde el celular y entras con tu clave.</p>
-      <ul class="hud" aria-label="Lo más destacado">
-        <li><i></i>Acceso con clave, tarjeta o huella</li>
-        <li><i></i>Check-in 100% digital</li>
-        <li><i></i>A 1 cuadra del Portal Norte</li>
-      </ul>
+      <h1 class="chrome" aria-label="Portal Norte 170"><span>Portal<svg class="star" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="stg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9AA8FF"/><stop offset="1" stop-color="#5B6CF0"/></linearGradient></defs><path d="M20 0 C21.5 13 27 18.5 40 20 C27 21.5 21.5 27 20 40 C18.5 27 13 21.5 0 20 C13 18.5 18.5 13 20 0Z" fill="url(#stg)"/></svg></span><span>Norte 170</span></h1>
+      <p class="role">Hotel &amp; Coliving inteligente en Bogotá</p>
+      <p class="lead">A una cuadra del Portal Norte, en Villa del Prado, zona residencial estrato 4. Te registras desde el celular, entras con clave o huella y descansas como en casa.</p>
+      <div class="ctas">
+        <a class="gbtn pri" href="#habitaciones">Ver habitaciones <svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>
+        <a class="gbtn sec" href="#ubicacion">Cómo llegar <svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></a>
+      </div>
     </div>
-    <div class="hero-logo" aria-hidden="true">
-      <div class="disc"><img src="/assets/logo-mark.png" alt="" width="260" height="260"></div>
-      <div class="ring"><svg viewBox="0 0 200 200"><defs><path id="rp" d="M100,100 m-82,0 a82,82 0 1,1 164,0 a82,82 0 1,1 -164,0"/></defs><text><textPath href="#rp">PORTAL NORTE 170 · HOTEL · COLIVING · BOGOTÁ · </textPath></text></svg></div>
+    <div class="hero-media">
+      <div class="bg" id="heroBg" aria-hidden="true"></div>
+      <div class="meta"><p class="slide-cap" id="heroSlideCap" aria-live="polite"></p><div class="dots" id="heroDots" role="group" aria-label="Fotos de portada"></div></div>
+      <div class="badge-orb" aria-hidden="true">
+        <svg viewBox="0 0 200 200"><defs><path id="orbp" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"/></defs><text><textPath href="#orbp">PORTAL NORTE 170 · CHECK-IN DIGITAL · RECEPCIÓN SMART · </textPath></text></svg>
+        <img src="/assets/logo-mark.png" alt="">
+      </div>
     </div>
   </div>
-  <div class="hero-meta container"><p class="slide-cap" id="heroSlideCap" aria-live="polite"></p><div class="dots" id="heroDots" role="group" aria-label="Fotos de portada"></div></div>
-  <div class="container search-wrap">
-    <form class="search" id="search" aria-label="Buscar disponibilidad">
-      <label><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Llegada<input type="date" id="gIn" required></span></label>
-      <label><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Salida<input type="date" id="gOut" required></span></label>
-      <label><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Adultos<input type="number" id="gAd" min="1" max="6" value="1"></span></label>
-      <label><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3"/><path d="M7 20c1-3 3-4.5 5-4.5s4 1.5 5 4.5"/></svg><span>Niños<input type="number" id="gCh" min="0" max="4" value="0"></span></label>
-      <button class="btn brand" type="submit">Buscar habitaciones <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    </form>
-  </div>
+
+  <form class="search" id="search" aria-label="Buscar disponibilidad">
+    <label><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Llegada<input type="date" id="gIn" required></span></label>
+    <label><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Salida<input type="date" id="gOut" required></span></label>
+    <label><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>Adultos<input type="number" id="gAd" min="1" max="6" value="1"></span></label>
+    <label><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3"/><path d="M7 20c1-3 3-4.5 5-4.5s4 1.5 5 4.5"/></svg><span>Niños<input type="number" id="gCh" min="0" max="4" value="0"></span></label>
+    <button class="gbtn pri" type="submit">Buscar <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button>
+  </form>
 </header>
 
-<section class="tech" id="tecnologia">
-  <div class="container">
-    <div class="sec-h dark">
-      <div><div class="eyebrow">// HOSPEDAJE INTELIGENTE</div><h2>Tecnología que <em>te abre la puerta</em></h2></div>
-      <p class="sub">Recepción smart, check-in digital y seguridad monitoreada en una casa remodelada, segura y bien ubicada.</p>
-    </div>
-    <div class="t-grid">
-      <a class="t-card" href="#galeria" data-open-cat="acceso"><div class="t-img"><img src="/assets/promo/videoportero.jpg" alt="Videoportero con lector de tarjeta" loading="lazy"></div>
-        <div class="t-body"><span class="t-k">01 · RECEPCIÓN SMART</span><h3>Videoportero</h3><p>Te vemos y te abrimos a distancia, a cualquier hora de llegada acordada.</p></div></a>
-      <a class="t-card" href="#galeria" data-open-cat="acceso"><div class="t-img"><img src="/assets/promo/cerradura.jpg" alt="Cerradura inteligente" loading="lazy"></div>
-        <div class="t-body"><span class="t-k">02 · ACCESO BIOMÉTRICO</span><h3>Cerraduras inteligentes</h3><p>Entra con clave, tarjeta o huella. Sin llaves.</p></div></a>
-      <div class="t-card t-phone"><div class="t-img phone"><div class="ph-scr"><b>Check-in</b><span class="ok">✓ TRA registrada</span><span class="ok">✓ Selfie</span><span class="ok">✓ Documento</span><span class="key">Clave: ••••</span></div></div>
-        <div class="t-body"><span class="t-k">03 · CHECK-IN DIGITAL</span><h3>Registro desde el celular</h3><p>Llenas la TRA y subes selfie y documento antes de llegar.</p></div></div>
-      <a class="t-card" href="#galeria" data-open-cat="seguridad"><div class="t-img"><img src="/assets/promo/emergencia.jpg" alt="Botiquín y camilla de emergencia" loading="lazy"></div>
-        <div class="t-body"><span class="t-k">04 · SEGURIDAD</span><h3>Monitoreo y emergencias</h3><p>Monitoreo, extintores, botiquín, camilla y planos de evacuación.</p></div></a>
-    </div>
-    <div class="amen">
-      <a href="#galeria" data-open-cat="cocina"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 7v3H17"/></svg>Cocina compartida</a>
-      <a href="#galeria" data-open-cat="retro"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="17.8" cy="13.8" r="1"/></svg>Zona retro arcade</a>
-      <a href="#galeria" data-open-cat="habitaciones"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19V6M3 14h18v5M21 14v-1.5A3.5 3.5 0 0 0 17.5 9H11v5"/><circle cx="7" cy="11" r="2"/></svg>Habitaciones amobladas</a>
-      <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19.3" r=".9"/></svg>Wi‑Fi estable</span>
-      <span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/></svg>Zona segura estrato 4</span>
-    </div>
+<section class="pane stats reveal" aria-label="El hotel en cifras">
+  <div class="stat"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/></svg><b>1</b><small>Cuadra del<br>Portal Norte</small></div>
+  <div class="stat"><svg class="ico" viewBox="0 0 24 24"><path d="M3 19V6M3 14h18v5M21 14v-1.5A3.5 3.5 0 0 0 17.5 9H11v5"/><circle cx="7" cy="11" r="2"/></svg><b id="statRooms">10</b><small>Habitaciones<br>privadas</small></div>
+  <div class="stat"><svg class="ico" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 12.5 11 14l3.5-3.5"/></svg><b>100<sup>%</sup></b><small>Check-in<br>digital</small></div>
+  <div class="stat"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/></svg><b>4</b><small>Estrato<br>residencial seguro</small></div>
+  <div class="quote"><p>«Llegas, te registras desde el celular y entras con tu clave. Nosotros nos encargamos del resto.»</p>— Recepción Portal Norte 170</div>
+</section>
+
+<section class="pane reveal" id="destacados">
+  <div class="head"><span class="kicker">Lo que nos hace diferentes</span><a class="round" href="#galeria" aria-label="Ver galería"><svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a></div>
+  <div class="feat-grid">
+    <a class="fcard" href="#galeria" data-open-cat="acceso"><div class="ph"><img src="/assets/promo/videoportero.jpg" alt="Videoportero con lector de tarjeta" loading="lazy"><span class="n">01</span><span class="ov">Recepción<br>smart</span></div>
+      <div><h3>Recepción inteligente</h3><p>Videoportero y cerraduras con clave, tarjeta o huella: entras sin esperar llaves.</p><div class="tags"><span>Biométrico</span><span>Sin llaves</span></div></div></a>
+    <a class="fcard" href="#galeria" data-open-cat="cocina"><div class="ph"><img src="/assets/promo/cocina-comedor.jpg" alt="Cocina compartida con comedor" loading="lazy"><span class="n">02</span><span class="ov">Cocina<br>compartida</span></div>
+      <div><h3>Cocina y comedor</h3><p>Nevera, estufa a gas, campana y lavaplatos para cocinar como en casa.</p><div class="tags"><span>Equipada</span><span>Comedor</span></div></div></a>
+    <a class="fcard" href="#galeria" data-open-cat="retro"><div class="ph"><img src="/assets/promo/retro-zona.jpg" alt="Zona retro con máquina arcade" loading="lazy"><span class="n">03</span><span class="ov">Zona<br>retro</span></div>
+      <div><h3>Máquina arcade</h3><p>Clásicos de los 90 para dos jugadores. Desconéctate después del trabajo o la clase.</p><div class="tags"><span>2 jugadores</span><span>Clásicos</span></div></div></a>
   </div>
 </section>
 
-<section class="gal-sec" id="galeria">
-  <div class="container">
-    <div class="sec-h dark"><div><div class="eyebrow">// GALERÍA</div><h2>Recorre <em>todo el hotel</em></h2></div></div>
-    <div id="galeriaBox" class="galeria" tabindex="-1"></div>
-  </div>
+<div class="trio">
+  <section class="pane reveal" aria-labelledby="inclT">
+    <div class="head" style="margin-bottom:16px"><span class="kicker" id="inclT">Incluido en tu estadía</span></div>
+    <ul class="incl">
+      <li><span>Wi‑Fi estable <em>Incluido</em></span><i></i></li>
+      <li><span>Escritorio y silla ergonómica <em>Incluido</em></span><i></i></li>
+      <li><span>Ropa de cama tipo hotel <em>Incluido</em></span><i></i></li>
+      <li><span>Cocina compartida equipada <em>Incluido</em></span><i></i></li>
+      <li><span>Zona retro arcade <em>Incluido</em></span><i></i></li>
+      <li><span>Aseo en zonas comunes <em>Incluido</em></span><i></i></li>
+    </ul>
+  </section>
+  <section class="pane reveal" aria-labelledby="techT">
+    <div class="head" style="margin-bottom:16px"><span class="kicker" id="techT">Tecnología y seguridad</span></div>
+    <div class="stack-grid">
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/><circle cx="12" cy="8" r="2"/><path d="M10 14h4M10 17h4"/></svg></span>Videoportero</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><path d="M8 11V8a4 4 0 0 1 8 0"/><path d="M12 12c-2.5 0-4 1.6-4 4M12 12c2.5 0 4 1.6 4 4M12 15v5M9 20c0-2 1.3-3 3-3s3 1 3 3"/></svg></span>Huella</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h1M12 7h1M15 7h0M9 11h1M12 11h1M15 11h0M9 15h1M12 15h1M15 15h0"/></svg></span>Clave digital</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 12.5 11 14l3.5-3.5M10 18.5h4"/></svg></span>Check-in digital</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.8 16a5 5 0 0 1 6.4 0"/><circle cx="12" cy="19.3" r=".9"/></svg></span>Wi‑Fi</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><path d="M3 7h12l3-3v12l-3-3H3z"/><circle cx="9" cy="10" r="2"/></svg></span>Monitoreo</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><path d="M9 3h6M12 3v3M8 9a4 4 0 0 1 8 0v11H8z"/><path d="M16 11l3-2"/></svg></span>Extintores</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M9 6V4h6v2M12 10v6M9 13h6"/></svg></span>Botiquín</div>
+      <div class="tile"><span><svg class="ico" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 12h8V4M12 20v-4h8"/></svg></span>Plan de evacuación</div>
+    </div>
+  </section>
+  <section class="pane reveal" aria-labelledby="philoT">
+    <div class="head" style="margin-bottom:6px"><span class="kicker" id="philoT">Nuestra filosofía</span></div>
+    <div class="philo" role="img" aria-label="Seguridad, comodidad, tecnología y ubicación alrededor de la casa hongo">
+      <div class="orbit"><i></i><i></i><i></i><i></i></div>
+      <div class="core"><img src="/assets/logo-mark.png" alt=""></div>
+      <span class="lb t">Seguridad<br>primero</span><span class="lb r">Comodidad<br>de hotel</span><span class="lb b">Tecnología<br>sin llaves</span><span class="lb l">Ubicación<br>estratégica</span>
+    </div>
+  </section>
+</div>
+
+<section class="pane reveal" id="galeria">
+  <div class="head"><span class="kicker">Recorre todo el hotel</span></div>
+  <div id="galeriaBox" class="galeria" tabindex="-1"></div>
 </section>
 
-<main>
-  <div class="container"><div class="banner" id="gNoDb" hidden style="margin-top:24px">No pudimos cargar la disponibilidad en este momento. Recarga la página en unos minutos o escríbenos por WhatsApp.</div></div>
-
-  <section class="container sec" id="habitaciones">
-    <div class="rooms-layout">
-      <div class="rooms-intro">
-        <div><div class="eyebrow">// HABITACIONES</div><h2>Habitaciones <em>cómodas</em> y privadas</h2>
-          <p class="sub" id="roomsLead">Cada habitación tiene cama, armario, escritorio y Wi‑Fi. Elige tus fechas arriba y mira cuáles están libres.</p></div>
-        <div class="pills" id="cats" role="group" aria-label="Tipo de habitación"></div>
-        <div class="avail-line" id="roomsSub">Cargando disponibilidad…</div>
-        <a class="btn outline" href="#ubicacion" style="align-self:flex-start">Cómo llegar <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </div>
-      <div class="cards" id="rooms"></div>
-    </div>
-  </section>
-
-  <section class="container sec mine" id="mineSec" hidden style="padding-top:0">
-    <div class="eyebrow">TUS RESERVAS</div><h2>Mis solicitudes</h2>
-    <div class="panel" style="margin-top:18px"><div class="list" id="mine"></div></div>
-  </section>
-
-  <section class="sec loc-sec" id="ubicacion">
-    <div class="container loc-grid">
-      <div class="loc-photo"><img src="/assets/promo/zona-portal-norte.jpg" alt="Entrada del Portal del Norte de TransMilenio" loading="lazy"><span class="pin-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Portal del Norte · 1 cuadra</span></div>
-      <div class="loc-copy">
-        <div class="eyebrow">// UBICACIÓN EXCLUSIVA Y SEGURA</div>
-        <h2>Todo cerca, <em>en el norte</em></h2>
-        <div class="loc"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><span id="addrLine">Calle 174A # 47-24, Suba, Bogotá</span></div>
-        <div class="poi-grid">
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/></svg><div><b>Transporte</b><small>Portal Norte · Terminal del Norte</small></div></div>
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l6-5 6 5v11M10 20v-5h4v5"/></svg><div><b>Cultura</b><small>Teatro Mayor Julio Mario Santo Domingo</small></div></div>
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><div><b>Compras</b><small>CC Santafé · Éxito · D1 · Ara</small></div></div>
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 7v3H17"/></svg><div><b>Comida</b><small>Restaurantes y panaderías</small></div></div>
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9l10-5 10 5-10 5L2 9z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg><div><b>Universidades</b><small>Universidades del norte</small></div></div>
-          <div class="poi"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg><div><b>Salud</b><small>Clínicas del norte</small></div></div>
-        </div>
-        <div class="loc-acts"><a class="btn brand" id="mapLink" href="https://www.google.com/maps/search/?api=1&query=Calle+174A+47-24+Bogot%C3%A1" target="_blank" rel="noopener">Ver en el mapa <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-          <details class="near-wrap"><summary>Distancias</summary><div class="near" id="near"></div></details></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="direct" id="contacto">
-    <div class="bg" id="directBg" aria-hidden="true"></div>
-    <div class="container">
-      <div>
-        <div class="eyebrow">// RESERVA DIRECTO</div>
-        <h2>Escríbenos y asegura <em>tu habitación</em></h2>
-        <p id="directLead">Te confirmamos disponibilidad, llegada y forma de pago directamente con el alojamiento.</p>
-        <a class="btn ghost-light" id="ctaBtn" href="#habitaciones">Ver habitaciones <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </div>
-      <div class="rules-card" id="normas" aria-roledescription="carrusel" aria-label="Antes de llegar">
-        <div class="eyebrow" style="margin:0">// ANTES DE LLEGAR</div>
-        <div class="rule" id="ruleText" aria-live="polite">Cargando normas de la casa…</div>
-        <div class="times" id="ruleTimes"></div>
-        <div class="ctrl"><div style="display:flex;gap:8px"><button type="button" id="rulePrev" aria-label="Norma anterior"><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button><button type="button" id="ruleNext" aria-label="Norma siguiente"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div><span class="count" id="ruleCount"></span></div>
-      </div>
-    </div>
-  </section>
+<main class="pane" id="habitaciones">
+  <div class="banner" id="gNoDb" hidden style="margin-bottom:14px">No pudimos cargar la disponibilidad en este momento. Recarga la página en unos minutos o escríbenos por WhatsApp.</div>
+  <div class="rooms-head">
+    <div><span class="kicker">Habitaciones</span><h2>Elige tu habitación</h2><div class="avail-line" id="roomsSub">Cargando disponibilidad…</div></div>
+    <div class="pills" id="cats" role="group" aria-label="Tipo de habitación"></div>
+  </div>
+  <div class="cards" id="rooms"></div>
 </main>
 
-<footer class="foot">
-    <div class="container top">
-    <a class="brandmark" href="/" aria-label="Hotel Portal Norte 170, inicio"><img class="mk" src="/assets/logo-mark.png" alt="" width="50" height="50"><span><b>Portal Norte 170</b><small>HOTEL · COLIVING · BOGOTÁ</small></span></a>
-    <nav aria-label="Pie de página"><a href="#tecnologia">Tecnología</a><a href="#galeria">Galería</a><a href="#habitaciones">Habitaciones</a><a href="#ubicacion">Ubicación</a><a href="#contacto">Contacto</a><a href="#mineSec" id="footMine">Mis solicitudes</a></nav>
-    <div class="contact" id="footContact"><span>Calle 174A # 47-24, Bogotá</span></div>
+<section class="pane mine" id="mineSec" hidden>
+  <span class="kicker">Tus reservas</span><h2 style="font-weight:500;margin-top:8px">Mis solicitudes</h2>
+  <div class="list" id="mine" style="margin-top:12px"></div>
+</section>
+
+<section class="pane reveal" id="ubicacion">
+  <div class="loc">
+    <div class="loc-photo"><img src="/assets/promo/zona-portal-norte.jpg" alt="Entrada del Portal del Norte de TransMilenio" loading="lazy"><span class="pin"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Portal del Norte · 1 cuadra</span></div>
+    <div>
+      <span class="kicker">Ubicación exclusiva y segura</span>
+      <h2>Todo cerca, en el norte de Bogotá</h2>
+      <div class="addr"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg><span id="addrLine">Calle 174A # 47-24, Suba, Bogotá</span></div>
+      <div class="poi-grid">
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/></svg><div><b>Transporte</b><small>Portal Norte · Terminal del Norte</small></div></div>
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><path d="M4 20h16M6 20V9l6-5 6 5v11M10 20v-5h4v5"/></svg><div><b>Cultura</b><small>Teatro Mayor Julio Mario Santo Domingo</small></div></div>
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><div><b>Compras</b><small>CC Santafé · Éxito · D1 · Ara</small></div></div>
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10M17 21V3c-2.5 1.5-3.5 4-3.5 7v3H17"/></svg><div><b>Comida</b><small>Restaurantes y panaderías</small></div></div>
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5L2 9z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></svg><div><b>Universidades</b><small>Universidades del norte</small></div></div>
+        <div class="poi"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg><div><b>Salud</b><small>Clínicas del norte</small></div></div>
+      </div>
+      <div class="loc-acts"><a class="gbtn pri sm" id="mapLink" href="https://www.google.com/maps/search/?api=1&query=Calle+174A+47-24+Bogot%C3%A1" target="_blank" rel="noopener">Ver en el mapa</a>
+        <details class="near-wrap"><summary>Distancias</summary><div class="near" id="near"></div></details></div>
+    </div>
   </div>
-  <div class="container legal"><span id="copy">© Hotel Portal Norte 170</span><span>Tratamiento de datos personales conforme a la Ley 1581 de 2012 · <a href="/admin">Administración</a></span></div>
+</section>
+
+<section class="pane reveal" id="contacto">
+  <div class="contact">
+    <div class="cta"><h2>Reservemos tu<br>próxima estadía</h2>
+      <p id="directLead">Te confirmamos disponibilidad, llegada y forma de pago directamente con el alojamiento.</p>
+      <a class="gbtn pri" id="ctaBtn" href="#habitaciones">Reservar ahora <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+    <div class="inner"><div class="lbl">Contacto</div><div class="clist" id="footContact"><span>Calle 174A # 47-24, Bogotá</span></div></div>
+    <div class="inner rules" id="normas" aria-roledescription="carrusel" aria-label="Antes de llegar">
+      <div class="lbl" style="margin:0">Antes de llegar</div>
+      <div class="rule" id="ruleText" aria-live="polite">Cargando normas de la casa…</div>
+      <div class="times" id="ruleTimes"></div>
+      <div class="ctrl"><div style="display:flex;gap:8px"><button type="button" id="rulePrev" aria-label="Norma anterior"><svg class="ico" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button><button type="button" id="ruleNext" aria-label="Norma siguiente"><svg class="ico" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div><span class="count" id="ruleCount"></span></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <span class="foot-brand"><img src="/assets/logo-mark.png" alt="" width="30" height="30"><span id="copy">© Hotel Portal Norte 170</span></span>
+  <span class="mid"><a href="#mineSec" id="footMine">Mis solicitudes</a><i class="spark" aria-hidden="true"></i><a href="/admin">Administración</a></span>
+  <span class="tag">Descansa · Estudia · Trabaja</span>
 </footer>
 
+</div>
 <div id="modalRoot"></div>
 <script src="/assets/common.js"></script>
 <script src="/assets/promo.js"></script>

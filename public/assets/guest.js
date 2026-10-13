@@ -23,6 +23,7 @@ const P = {
   shower:'<path d="M4 11a8 8 0 0 1 16 0H4z"/><path d="M12 3v1M8 15v1M12 15v2M16 15v1M10 19v1M14 19v1"/>',
   shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/><path d="m9 12 2 2 4-4"/>',
   door:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><circle cx="15" cy="12" r=".9"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
   phone:'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M10 7h4M10 11h4M10 15h4"/>',
   check:'<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 12.5 11 14l3.5-3.5M10 18.5h4"/>',
   game:'<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="17.8" cy="13.8" r="1"/>',
@@ -116,7 +117,7 @@ function renderHero(){
   $("#brandName").textContent=shortName();
   // La portada rota las fotos del hotel; si en el panel se eligió una portada, entra primero.
   if(h.heroPhoto && window.PNPromo) PNPromo.heroFirst(photoUrl(h.heroPhoto));
-  if(h.tagline && h.tagline.trim() && !/^tu base en el norte de bogot/i.test(h.tagline)) $("#heroTitle").textContent=h.tagline;
+  const st=document.getElementById("statRooms"); if(st && G.rooms.length) st.textContent=G.rooms.length;
   void photo;
   const wa=waNum(), nw=$("#navWa");
   if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;
@@ -198,13 +199,21 @@ function renderDirect(){
   const rates=G.rooms.map(r=>Number(r.rate)||0).filter(Boolean);
   const minRate=rates.length?Math.min(...rates):0;
   const k=minRate>=1000?`$${Math.round(minRate/1000)}k`:cop(minRate);
-  $("#directBg").innerHTML=`<img src="/assets/promo/hero-pasillo.jpg" alt="" loading="lazy">`;
+  const dbg=document.getElementById("directBg"); if(dbg) dbg.innerHTML=`<img src="/assets/promo/hero-pasillo.jpg" alt="" loading="lazy">`;
   if($("#stats")) $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
     .map(([v,l])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
 }
 function renderFooter(){
   const h=G.hotel;
-  $("#footContact").innerHTML=[h.address&&esc(h.address),h.phone&&`Tel. <span class="num">${esc(h.phone)}</span>`,h.whatsapp&&`WhatsApp <span class="num">${esc(h.whatsapp)}</span>`,h.email&&esc(h.email)].filter(Boolean).map(x=>`<span>${x}</span>`).join("");
+  const wa=waNum(), maps="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((h.address||"Calle 174A # 47-24")+", Bogotá");
+  const rows=[
+    h.address&&`<a href="${maps}" target="_blank" rel="noopener">${ico("pin")}${esc(h.address)}</a>`,
+    h.whatsapp&&`<a href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico("chat")}WhatsApp <span class="num">${esc(h.whatsapp)}</span></a>`,
+    h.phone&&`<a href="tel:${esc(String(h.phone).replace(/[^\d+]/g,""))}">${ico("phone")}<span class="num">${esc(h.phone)}</span></a>`,
+    h.email&&`<a href="mailto:${esc(h.email)}">${ico("mail")}${esc(h.email)}</a>`,
+    `<span>${ico("key")}Check-in ${esc(h.checkinFrom||"15:00")} · Salida ${esc(h.checkout||"11:00")}</span>`,
+  ].filter(Boolean);
+  $("#footContact").innerHTML=rows.join("");
   $("#copy").textContent=`© ${new Date().getFullYear()} ${hName()} · Bogotá, Colombia`;
 }
 function renderMine(){
