@@ -118,6 +118,13 @@ function renderHero(){
   // La portada rota las fotos del hotel; si en el panel se eligió una portada, entra primero.
   if(h.heroPhoto && window.PNPromo) PNPromo.heroFirst(photoUrl(h.heroPhoto));
   const st=document.getElementById("statRooms"); if(st && G.rooms.length) st.textContent=G.rooms.length;
+  const rates=G.rooms.map(r=>Number(r.rate)||0).filter(Boolean), hp=document.getElementById("heroPrice");
+  if(hp && rates.length){ hp.textContent=cop(Math.min(...rates)); }
+  const rc=document.getElementById("roomCount"); if(rc && G.rooms.length) rc.textContent=`${G.rooms.length} habitaciones`;
+  const tc=document.getElementById("topContact"); if(tc){ const it=[];
+    if(h.email) it.push(`<a href="mailto:${esc(h.email)}">${ico("mail")}${esc(h.email)}</a>`);
+    if(h.whatsapp||h.phone) it.push(`<a href="${h.whatsapp?"https://wa.me/"+waNum():"tel:"+esc(String(h.phone).replace(/[^\d+]/g,""))}" target="_blank" rel="noopener">${ico(h.whatsapp?"chat":"phone")}${esc(h.whatsapp||h.phone)}</a>`);
+    it.push(`<span>${ico("pin")}${esc(h.address||"Calle 174A # 47-24, Bogotá")}</span>`); tc.innerHTML=it.join(""); }
   void photo;
   const wa=waNum(), nw=$("#navWa");
   if(wa){nw.hidden=false;nw.href=`https://wa.me/${wa}`;nw.target="_blank";nw.rel="noopener";nw.textContent="WhatsApp "+h.whatsapp;
@@ -154,7 +161,7 @@ function renderRooms(){
       <div class="img">${c?`<img class="photo" src="${photoUrl(c)}" alt="${esc(r.name||"Habitación")}" loading="lazy">`:`<div class="ph"><img src="/assets/logo-mark.png" alt="">${esc(r.number)}</div>`}
         <span class="badge ${st.ok?"ok":"no"}">${st.ok?"Disponible":esc(st.why)}</span></div>
       <div class="body">
-        <h3>${esc(r.name||r.type||"Habitación")}</h3>
+        <h3>${esc(r.name||r.type||"Habitación")}</h3><div class="where">${ico("pin")}Villa del Prado · Bogotá</div>
         <div class="meta"><span>${ico("user")}${r.capacity||"?"} pers.</span><i></i><span>${esc(r.beds||"")}</span></div><div class="meta bath">Baño ${esc(r.bath||"")}</div>
         <div class="cfoot"><span class="price"><b>${cop(rate)}</b> <small>/ noche</small>${n>1?`<br><small>${cop(rate*n)} por ${n} noches</small>`:""}</span><span class="go">${ico("arrow")}</span></div>
       </div>
