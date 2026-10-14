@@ -123,14 +123,27 @@ Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actu
 4. Autoriza el alcance `https://www.googleapis.com/auth/calendar.events` con cbernal@gesoltec.co. Luego pulsa *Exchange authorization code for tokens* y copia el **refresh token**.
 5. En Netlify agrega `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `GOOGLE_REFRESH_TOKEN`. Después vuelve a desplegar y sincroniza.
 
-Si Google falla, la reserva se guarda igual y el panel muestra un aviso. Para reintentar, pulsa «Sincronizar todas las reservas».
+> **Importante:** con gesoltec.co (Google Workspace) elige el tipo de usuario **«Interno»** en la pantalla de consentimiento. Si queda «Externo» en modo **Prueba**, Google invalida el refresh token a los 7 días y la sincronización deja de funcionar sin aviso (el botón «Probar conexión» lo detecta).
+
+**Qué se actualiza al instante** (en cuanto se guarda el cambio, sin esperar):
+
+- Reserva creada, editada (fechas, habitación, estado, pagos, notas), cancelada o eliminada.
+- Reservas aceptadas desde una solicitud del sitio web, y las que entran o cambian desde Booking/Airbnb.
+- Check-in en línea completado por el huésped, contrato firmado o anulado.
+- Cambios en la ficha del huésped (nombre, teléfono) o de la habitación (número, nombre): se actualizan todos sus eventos vigentes.
+- Cambios en la hora de check-in/check-out, el nombre o la dirección del hotel: se mueven todos los eventos vigentes.
+
+**Comprobar la conexión.** En **Alojamiento → Google Calendar** pulsa **Probar conexión**: crea y borra un evento de prueba y, si falla, muestra el error exacto de Google y qué corregir (calendario no compartido, API no habilitada, token vencido…). La tarjeta muestra también la última sincronización y su resultado.
+
+**Si Google falla**, la reserva se guarda igual, el panel avisa y el cambio queda en una **cola de reintentos**: la función programada lo reintenta cada 15 minutos (hasta 12 horas), o puedes pulsar **Reintentar ahora**.
 
 ### B) Suscripción iCal (sin configuración)
 
 En **Alojamiento → Google Calendar** está el enlace privado del feed (`/api/calendar/<token>.ics`). Para usarlo:
 
 - Pulsa **Agregar a Google Calendar**, o en Google Calendar ve a *Otros calendarios → + → Desde URL* y pega el enlace.
-- Google refresca las suscripciones cada pocas horas, así que el feed no es instantáneo. Es solo lectura.
+- Google refresca las suscripciones cada pocas horas, así que el feed **no es instantáneo**. Es solo lectura.
+- Si activas la opción A, **quita esta suscripción de Google Calendar** (o verás cada reserva dos veces). Suscribirla más de una vez también duplica los eventos.
 - El enlace es privado. Si se filtra, cámbialo: define `CALENDAR_FEED_TOKEN` con un valor nuevo (o cambia `TOKEN_SECRET`) y vuelve a desplegar.
 
 ## Booking.com y Airbnb (iCal)

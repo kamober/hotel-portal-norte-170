@@ -25,7 +25,7 @@ async function save(path, data, merge){
   const [kind, id] = path.split("/");
   let rec;
   try{
-    if(kind === "hotel"){ rec = await api("PUT","admin/hotel", merge ? Object.assign({}, S.hotel, data) : data); S.hotel = rec; }
+    if(kind === "hotel"){ rec = await api("PUT","admin/hotel", merge ? Object.assign({}, S.hotel, data) : data); const g = rec._gcal; delete rec._gcal; S.hotel = rec; gcalWarn(g); }
     else if(kind === "requests"){ rec = await api("PATCH","admin/requests/"+encodeURIComponent(id), data); upsert("reqs", rec); }
     else {
       const arr = ARR[kind]; const cur = S[arr].find(x=>x.id===id) || {};
@@ -886,27 +886,47 @@ function openHotelForm(){
 }
 
 /* ---------- Google Calendar ---------- */
-function gcalWarn(g){ if(g && g.ok===false) setTimeout(()=>toast("Se guardó, pero Google Calendar no se actualizó: "+g.error),1400); }
+function gcalWarn(g){
+  if(!g) return;
+  if(g.ok===false||g.failed) setTimeout(()=>toast("Se guardó, pero Google Calendar no se actualizó ("+(g.error||"error")+"). Se reintentará automáticamente."),1400);
+  if(S.gcal) S.gcal=null; // refresca la tarjeta la próxima vez que se muestre
+}
 async function loadGcal(){ try{ S.gcal=await api("GET","admin/gcal/status"); }catch(_){ S.gcal={error:true}; } renderGcal(); }
 function renderGcal(){
   const box=$("#gcalCard"); if(!box) return;
   if(!S.gcal){ box.innerHTML=`<div class="empty">Consultando la conexión con Google Calendar…</div>`; loadGcal(); return; }
   const g=S.gcal, feed=g.feedPath?location.origin+g.feedPath:"";
   const sub=feed?"https://calendar.google.com/calendar/r?cid="+encodeURIComponent(feed.replace(/^https?:/,"webcal:")):"";
+  const last=g.last, q=g.queue||{count:0};
+  const lastHtml=!g.configured?"":last?(last.ok?`<div class="note ok">Última sincronización correcta: ${esc(fdt(last.at))}${last.resId?" · "+esc(last.resId):""}.</div>`
+      :`<div class="note bad">Último intento falló (${esc(fdt(last.at))}): ${esc(last.error||"")}</div>`):`<div class="note">Aún no se ha escrito ningún evento. Usa «Probar conexión».</div>`;
+  const qHtml=q.count?`<div class="note warn" style="margin-top:6px">${q.count} reserva${q.count===1?"":"s"} pendiente${q.count===1?"":"s"} de llegar al calendario (se reintenta cada 15 min). <button class="btn sm" id="gcalRetry" type="button">Reintentar ahora</button></div>`:"";
   box.innerHTML=`
-    <div class="toolbar"><div class="grp"><h3>Google Calendar</h3>${g.configured?'<span class="pill ok">Conectado</span>':'<span class="pill warn">Sin conectar</span>'}</div>
-      ${g.configured?`<button class="btn sm primary" id="gcalSync" type="button">Sincronizar todas las reservas</button>`:""}</div>
+    <div class="toolbar"><div class="grp"><h3>Google Calendar</h3>${g.configured?(last&&last.ok===false?'<span class="pill bad">Con errores</span>':'<span class="pill ok">Conectado</span>'):'<span class="pill warn">Sin conectar</span>'}</div>
+      <div class="grp">${g.configured?`<button class="btn sm" id="gcalTest" type="button">Probar conexión</button><button class="btn sm primary" id="gcalSync" type="button">Sincronizar todas las reservas</button>`:""}</div></div>
     <div class="grid g2" style="margin-top:12px">
       <div><div class="eyebrow">Tiempo real</div>
-        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Cada reserva se crea, actualiza o borra en el calendario <b>${esc(g.calendarId)}</b> al guardarla. Conexión: ${g.mode==="oauth"?"cuenta de Google (OAuth)":"cuenta de servicio"}.</p>`
-          :`<p style="margin:.4em 0 0;font-size:.88rem">Falta agregar las credenciales de Google en las variables de entorno de Netlify. Los pasos están en el README, sección «Google Calendar». Calendario destino: <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b>.</p>`}
+        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Al instante, en el calendario <b>${esc(g.calendarId)}</b>: reservas nuevas, cambios de fechas, habitación o estado, cancelaciones, check-in en línea, contrato firmado y cambios en la ficha del huésped o la habitación. Conexión: ${g.mode==="oauth"?"cuenta de Google (OAuth)":"cuenta de servicio"}.</p>${lastHtml}${qHtml}`
+          :`<p style="margin:.4em 0 0;font-size:.88rem">Falta agregar las credenciales de Google en las variables de entorno de Netlify, por eso las reservas solo llegan por el enlace iCal (Google lo revisa cada pocas horas). Los pasos están en el README, sección «Google Calendar». Calendario destino: <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b>.</p>`}
         <div id="gcalNote" style="margin-top:8px"></div></div>
-      <div><div class="eyebrow">Enlace privado iCal</div>
-        ${feed?`<p style="margin:.4em 0 6px;font-size:.88rem">Suscríbelo en Google Calendar, Apple Calendar u Outlook. Se actualiza solo (Google lo revisa cada pocas horas). No lo compartas: muestra nombres y teléfonos de huéspedes.</p>
+      <div><div class="eyebrow">Enlace privado iCal (respaldo)</div>
+        ${feed?`<p style="margin:.4em 0 6px;font-size:.88rem">Solo lectura y lento: Google lo revisa cada varias horas. ${g.configured?"Con la conexión en tiempo real activa no lo necesitas en Google Calendar (si lo tienes suscrito, verás cada reserva duplicada).":""} Úsalo en Apple Calendar u Outlook. No lo compartas: muestra nombres y teléfonos.</p>
           <div class="grp"><input id="gcalFeed" readonly value="${esc(feed)}" style="flex:1 1 220px;font-family:var(--mono);font-size:.78rem"><button class="btn sm" id="gcalCopy" type="button">Copiar</button></div>
-          <a class="btn sm" style="margin-top:8px" href="${esc(sub)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>`
+          ${g.configured?"":`<a class="btn sm" style="margin-top:8px" href="${esc(sub)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>`}`
           :`<p style="margin:.4em 0 0;font-size:.88rem">Disponible cuando se configure TOKEN_SECRET en Netlify.</p>`}</div>
     </div>`;
+  const ts=$("#gcalTest"); if(ts) ts.onclick=async()=>{
+    ts.disabled=true; ts.textContent="Probando…"; const n=$("#gcalNote");
+    try{const r=await api("POST","admin/gcal/test");
+      n.innerHTML=r.ok?`<div class="note ok">Conexión correcta: se creó y borró un evento de prueba en <b>${esc(r.calendarId)}</b>.</div>`
+        :`<div class="note bad"><b>Falló en «${esc(r.step)}»:</b> ${esc(r.error)}${r.hint?`<br>${esc(r.hint)}`:""}</div>`;}
+    catch(e){n.innerHTML=`<div class="note bad">${esc(e.message)}</div>`;}
+    ts.disabled=false; ts.textContent="Probar conexión";
+  };
+  const rt=$("#gcalRetry"); if(rt) rt.onclick=async()=>{
+    rt.disabled=true; try{const r=await api("POST","admin/gcal/retry"); toast(r.failed?`${r.ok} enviada(s), ${r.failed} siguen fallando.`:`${r.ok} reserva(s) enviadas al calendario.`);}catch(e){toast(e.message);}
+    S.gcal=null; renderGcal();
+  };
   const cp=$("#gcalCopy"); if(cp) cp.onclick=()=>{const i=$("#gcalFeed");const fb=()=>{i.focus();i.select();toast("Enlace seleccionado: cópialo con Ctrl+C.");};try{navigator.clipboard.writeText(i.value).then(()=>toast("Enlace copiado"),fb);}catch(_){fb();}};
   const sy=$("#gcalSync"); if(sy) sy.onclick=async()=>{
     sy.disabled=true; sy.textContent="Sincronizando…"; const n=$("#gcalNote");

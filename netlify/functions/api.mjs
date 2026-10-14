@@ -8,6 +8,7 @@ import * as gcal from "../../lib/gcal.mjs";
 import * as ical from "../../lib/ical.mjs";
 import * as notifier from "../../lib/notify.mjs";
 import * as contract from "../../lib/contract.mjs";
+import * as calsync from "../../lib/calsync.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -210,22 +211,9 @@ function cleanFeeds(list) {
     return { id, channel, url };
   }).filter(Boolean);
 }
-const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("Google Calendar no respondió a tiempo.")), ms))]);
-async function syncToCalendar(store, rec, deleted = false) {
-  if (!gcal.isConfigured()) return { skipped: true };
-  try {
-    if (deleted) return await withTimeout(gcal.deleteReservation(rec.id), 8000);
-    const [room, guest, hotel] = await Promise.all([
-      rec.roomId ? store.get("rooms/" + rec.roomId, { type: "json" }) : null,
-      rec.guestId ? store.get("guests/" + rec.guestId, { type: "json" }) : null,
-      store.get("hotel", { type: "json" }),
-    ]);
-    return await withTimeout(gcal.syncReservation(rec, room, guest, hotel || {}), 8000);
-  } catch (e) {
-    console.error("gcal", e);
-    return { ok: false, error: e.message };
-  }
-}
+// Toda escritura en Google Calendar pasa por calsync: inmediata y, si falla, a la cola de reintentos.
+const syncToCalendar = (store, rec, deleted = false) => calsync.syncOne(store, rec, deleted);
+const touchesEvent = ["name", "address", "checkinFrom", "checkout"];
 
 /* ---------- enlace del huésped: confirmación y check-in en línea ---------- */
 function guestSig(resId) { return secret() ? createHmac("sha256", secret()).update("guest:" + resId).digest("hex").slice(0, 24) : ""; }
@@ -276,6 +264,7 @@ async function signContract(req, store, r, b, via) {
   const cur = (await store.get("res/" + r.id, { type: "json" })) || r;
   const next = { ...cur, contract: rec, updatedAt: signedAt };
   await store.setJSON("res/" + r.id, next);
+  await syncToCalendar(store, next);
   await notifier.notify(store, hotel, {
     subject: `Contrato firmado ${r.id}`, title: "Contrato de hospedaje firmado", tone: "ok",
     intro: `${signerName} firmó el contrato y las políticas del hotel ${via === "recepcion" ? "en recepción" : "desde su enlace"}.`,
@@ -411,8 +400,11 @@ async function handleAdmin(req, parts, store) {
 
   if (kind === "hotel" && m === "PUT") {
     const b = await readBody(req);
+    const prev = (await store.get("hotel", { type: "json" })) || {};
     const rec = { ...b, updatedAt: new Date().toISOString() };
     await store.setJSON("hotel", rec);
+    // Si cambian horarios, nombre o dirección, se actualizan los eventos de las reservas vigentes.
+    if (touchesEvent.some((k) => (prev[k] || "") !== (rec[k] || ""))) return json({ ...rec, _gcal: await calsync.resyncWhere(store, () => true, { hotel: rec }) });
     return json(rec);
   }
 
@@ -434,8 +426,11 @@ async function handleAdmin(req, parts, store) {
   if (kind === "gcal") {
     if (id === "status" && m === "GET") {
       const t = feedToken();
-      return json({ configured: gcal.isConfigured(), mode: gcal.authMode(), calendarId: gcal.calendarId(), feedPath: t ? `/api/calendar/${t}.ics` : null });
+      return json({ configured: gcal.isConfigured(), mode: gcal.authMode(), calendarId: gcal.calendarId(), feedPath: t ? `/api/calendar/${t}.ics` : null,
+        last: await store.get("gcal/last", { type: "json" }), queue: await calsync.queueInfo(store) });
     }
+    if (id === "test" && m === "POST") return json(await calsync.testConnection());
+    if (id === "retry" && m === "POST") return json(await calsync.processQueue(store));
     if (id === "sync" && m === "POST") {
       if (!gcal.isConfigured()) return fail(400, "Google Calendar no está configurado. Revisa las variables de entorno en Netlify.");
       const from = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
@@ -465,6 +460,7 @@ async function handleAdmin(req, parts, store) {
       if (!r.contract) return fail(404, "No hay contrato firmado para anular.");
       const next = { ...r, contractHistory: [...(r.contractHistory || []), { ...r.contract, voidedAt: new Date().toISOString() }], updatedAt: new Date().toISOString() };
       delete next.contract; await store.setJSON("res/" + rid, next);
+      await syncToCalendar(store, next);
       return json({ voided: true });
     }
     return fail(405, "Método no permitido.");
@@ -573,6 +569,9 @@ async function handleAdmin(req, parts, store) {
     }
     await store.setJSON(key, rec);
     if (kind === "reservations") return json({ ...rec, _gcal: await syncToCalendar(store, rec) });
+    // Cambios en el huésped (nombre, teléfono) o en la habitación (número, nombre) se reflejan en sus eventos.
+    if (kind === "guests") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.guestId === id || (r.companions || []).includes(id)) });
+    if (kind === "rooms") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.roomId === id) });
     return json(rec);
   }
 
