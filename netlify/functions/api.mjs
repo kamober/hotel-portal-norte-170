@@ -7,6 +7,7 @@ import seed from "../../lib/seed.mjs";
 import * as gcal from "../../lib/gcal.mjs";
 import * as ical from "../../lib/ical.mjs";
 import * as notifier from "../../lib/notify.mjs";
+import * as contract from "../../lib/contract.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -242,6 +243,54 @@ async function loadGuestRes(store, resId, sig) {
 }
 const canCheckin = (r) => ["pendiente", "confirmada", "encasa"].includes(r.status) && r.checkOut >= todayBogota();
 
+/* ---------- contrato de hospedaje firmado ---------- */
+const clientIp = (req) => str((req.headers.get("x-nf-client-connection-ip") || req.headers.get("x-forwarded-for") || "").split(",")[0], 60);
+function contractView(r, hotel) {
+  const text = contract.textOf(hotel);
+  const c = r.contract;
+  return { signed: !!c, signedAt: c?.signedAt, signerName: c?.signerName, via: c?.via, hash: c?.hash, version: c ? c.version : contract.versionOf(text),
+    text: c ? undefined : text, declarations: contract.DECLARATIONS };
+}
+async function signContract(req, store, r, b, via) {
+  if (r.contract) return fail(409, "Esta reserva ya tiene el contrato firmado.");
+  if (r.status === "cancelada") return fail(409, "La reserva está cancelada.");
+  const signerName = str(b.signerName, 120), signerDoc = str(b.signerDoc, 40);
+  if (signerName.length < 3) return fail(400, "Escribe el nombre completo de quien firma.");
+  if (digits(signerDoc).length < 4 && signerDoc.replace(/\s/g, "").length < 5) return fail(400, "Escribe el número de documento de quien firma.");
+  const decl = {};
+  for (const dc of contract.DECLARATIONS) { if (b.accept?.[dc.k] !== true) return fail(400, "Debes marcar todas las declaraciones para firmar."); decl[dc.k] = true; }
+  const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.signature || ""));
+  const sig = m ? Buffer.from(m[1], "base64") : null;
+  if (!sig || sig.length < 1500 || sig.length > 400_000 || sig[0] !== 0xff || sig[1] !== 0xd8) return fail(400, "La firma no es válida. Firma de nuevo en el recuadro.");
+  const hotel = (await store.get("hotel", { type: "json" })) || {};
+  const [room, guest] = await Promise.all([store.get("rooms/" + r.roomId, { type: "json" }), r.guestId ? store.get("guests/" + r.guestId, { type: "json" }) : null]);
+  const companions = (await Promise.all((r.companions || []).map((id) => store.get("guests/" + id, { type: "json" })))).filter(Boolean);
+  const text = contract.textOf(hotel), version = contract.versionOf(text), signedAt = new Date().toISOString();
+  const hash = contract.fingerprint({ text, res: r, signerName, signerDoc, signedAt, signatureJpeg: sig, declarations: decl });
+  const rec = { signedAt, signerName, signerDoc, via, version, hash, declarations: decl, ip: clientIp(req), userAgent: str(req.headers.get("user-agent"), 300) };
+  const pdf = contract.buildPdf({ hotel, res: r, room, guest, companions, text, contract: rec, signatureJpeg: sig });
+  const ts = Date.now().toString(36), st = idPhotos();
+  rec.signatureId = `${r.id}_SIG_${ts}`; rec.pdfId = `${r.id}_CT_${ts}`; rec.pdfSha256 = contract.sha256(pdf);
+  await st.set(rec.signatureId, sig, { metadata: { contentType: "image/jpeg", resId: r.id, kind: "firma" } });
+  await st.set(rec.pdfId, pdf, { metadata: { contentType: "application/pdf", resId: r.id, kind: "contrato", sha256: rec.pdfSha256 } });
+  const cur = (await store.get("res/" + r.id, { type: "json" })) || r;
+  const next = { ...cur, contract: rec, updatedAt: signedAt };
+  await store.setJSON("res/" + r.id, next);
+  await notifier.notify(store, hotel, {
+    subject: `Contrato firmado ${r.id}`, title: "Contrato de hospedaje firmado", tone: "ok",
+    intro: `${signerName} firmó el contrato y las políticas del hotel ${via === "recepcion" ? "en recepción" : "desde su enlace"}.`,
+    rows: [["Reserva", r.id], ["Habitación", room ? `${room.number} · ${room.name || room.type || ""}` : r.roomId], ["Estancia", `${r.checkIn} → ${r.checkOut}`], ["Código de verificación", hash]],
+    button: { url: notifier.baseUrl(req) + "/admin", label: "Ver el contrato en el panel" },
+  });
+  return json({ ok: true, signedAt, hash, version });
+}
+async function sendContractPdf(r, inline) {
+  if (!r.contract || !r.contract.pdfId) return fail(404, "Esta reserva aún no tiene contrato firmado.");
+  const e = await idPhotos().getWithMetadata(r.contract.pdfId, { type: "arrayBuffer" });
+  if (!e) return fail(404, "No se encontró el PDF del contrato.");
+  return new Response(e.data, { headers: { "Content-Type": "application/pdf", "Cache-Control": "private, no-store", "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="Contrato-${r.id}.pdf"` } });
+}
+
 async function handleGuest(req, rest, store) {
   const [resId, sig, action] = rest;
   const r = await loadGuestRes(store, resId || "", sig || "");
@@ -256,9 +305,17 @@ async function handleGuest(req, rest, store) {
       res: pick(r, ["id", "status", "checkIn", "checkOut", "adults", "children", "rate", "total", "paid", "channel", "externalRef", "eta", "roomId"]),
       titular: guest ? { first: guest.first || "", last: guest.last || "", phone: guest.phone || "", email: guest.email || "" } : { first: r.guestName && !r.source ? r.guestName : "" },
       checkin: r.checkin ? { at: r.checkin.at, people: r.checkin.people } : null,
+      contract: contractView(r, hotel),
+      wifi: r.contract && hotel && hotel.wifiName ? { name: hotel.wifiName, pass: hotel.wifiPass || "" } : null,
       canCheckin: canCheckin(r), docTypes: DOC_TYPES, today: todayBogota(),
     });
   }
+
+  if (action === "contract" && m === "POST") {
+    if (!canCheckin(r)) return fail(409, "Esta reserva ya no admite la firma en línea. Fírmalo en recepción.");
+    return await signContract(req, store, r, await readBody(req, 600_000), "enlace");
+  }
+  if (action === "contract.pdf" && m === "GET") return await sendContractPdf(r, false);
 
   if (action === "photo" && m === "POST") {
     if (!canCheckin(r)) return fail(409, "Esta reserva ya no admite registro en línea.");
@@ -393,6 +450,26 @@ async function handleAdmin(req, parts, store) {
     return fail(404, "Ruta no encontrada.");
   }
 
+  if (kind === "contract") {
+    if (id === "text" && m === "GET") {
+      const hotel = await store.get("hotel", { type: "json" }); const text = contract.textOf(hotel);
+      return json({ text, version: contract.versionOf(text), isDefault: text === contract.DEFAULT_TEXT, defaultText: contract.DEFAULT_TEXT, declarations: contract.DECLARATIONS });
+    }
+    const rid = String(id || "").replace(/\.pdf$/, "");
+    if (!ID_RE.test(rid)) return fail(404, "Ruta no encontrada.");
+    const r = await store.get("res/" + rid, { type: "json" });
+    if (!r) return fail(404, "Reserva no encontrada.");
+    if (m === "GET" && /\.pdf$/.test(id)) return await sendContractPdf(r, true);
+    if (m === "POST") return await signContract(req, store, r, await readBody(req, 600_000), "recepcion");
+    if (m === "DELETE") {
+      if (!r.contract) return fail(404, "No hay contrato firmado para anular.");
+      const next = { ...r, contractHistory: [...(r.contractHistory || []), { ...r.contract, voidedAt: new Date().toISOString() }], updatedAt: new Date().toISOString() };
+      delete next.contract; await store.setJSON("res/" + rid, next);
+      return json({ voided: true });
+    }
+    return fail(405, "Método no permitido.");
+  }
+
   if (kind === "notify") {
     const hotel = await store.get("hotel", { type: "json" });
     if (id === "status" && m === "GET")
@@ -487,6 +564,13 @@ async function handleAdmin(req, parts, store) {
     if (kind === "rooms") { const f = cleanFeeds(b.icalFeeds); if (f === undefined) delete b.icalFeeds; else b.icalFeeds = f; }
     if (kind === "guests" && !str(b.first)) return fail(400, "El nombre del huésped es obligatorio.");
     const rec = cleanRecord(b, id);
+    if (kind === "reservations") {
+      // La firma del contrato solo la escribe el módulo de firma: nunca se toma del panel (evita perderla o alterarla con una copia vieja).
+      const prev = await store.get(key, { type: "json" });
+      if (prev && prev.contract) rec.contract = prev.contract; else delete rec.contract;
+      if (prev && prev.contractHistory) rec.contractHistory = prev.contractHistory; else delete rec.contractHistory;
+      if (prev && prev.checkin && !rec.checkin) rec.checkin = prev.checkin;
+    }
     await store.setJSON(key, rec);
     if (kind === "reservations") return json({ ...rec, _gcal: await syncToCalendar(store, rec) });
     return json(rec);

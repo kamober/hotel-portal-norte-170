@@ -128,7 +128,7 @@ function checkinHTML(){
     return `<section class="gcard"><div class="bd"><h2>Check-in en línea</h2><p class="muted" style="margin:0">${res.status==="cancelada"?"Esta reserva está cancelada.":"El registro en línea ya no está disponible para esta reserva."} Si necesitas ayuda, escríbenos por WhatsApp.</p></div></section>`;
   }
   return `<section aria-labelledby="ciTitle" style="display:flex;flex-direction:column;gap:14px">
-    <div class="sec-h"><h2 id="ciTitle">Check-in en línea</h2><div class="steps"><span>1 · Tu viaje</span><span>2 · Huéspedes y fotos</span><span>3 · Autorización</span></div></div>
+    <div class="sec-h"><h2 id="ciTitle">Check-in en línea</h2><div class="steps"><span>1 · Tu viaje</span><span>2 · Huéspedes y fotos</span><span>3 · Autorización</span><span>4 · Contrato</span></div></div>
     <p class="muted" style="margin:0">Completa la tarjeta de registro hotelero (TRA) que exige la ley en Colombia para cada persona que se aloja, incluidos los niños. Tus datos se guardan de forma privada y solo los ve el hotel.</p>
     <fieldset><legend>1 · Tu viaje</legend><div class="grid g2">
       <label class="f">Hora estimada de llegada<input type="time" data-t="eta" value="${esc(S.trip.eta)}"></label>
@@ -149,8 +149,32 @@ function checkinHTML(){
     <datalist id="countries">${COUNTRIES.map(c=>`<option value="${esc(c)}">`).join("")}</datalist>
   </section>`;
 }
+/* ---------- contrato y políticas (se firma al hacer el check-in) ---------- */
+function contractHTML(){
+  const c=D.contract; if(!c) return "";
+  const when=iso=>new Date(iso).toLocaleString("es-CO",{timeZone:"America/Bogota",day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}).replace(/\.$/,"");
+  if(c.signed){
+    return `<section class="gcard"><div class="bd">
+      <div class="done"><span aria-hidden="true" style="font-size:1.6rem">✓</span><div><b>Contrato y políticas firmados</b>
+        <p>Firmado por ${esc(c.signerName||"")} el ${esc(when(c.signedAt))}. Código de verificación <span class="num" style="font-size:.8rem">${esc(c.hash||"")}</span>.</p></div></div>
+      <div class="acts"><a class="btn primary" href="${API}/contract.pdf">Descargar contrato (PDF)</a></div>
+      ${D.wifi?`<div class="wifi"><b>Wi‑Fi del alojamiento</b><span>Red <span class="num">${esc(D.wifi.name)}</span></span>${D.wifi.pass?`<span>Contraseña <span class="num">${esc(D.wifi.pass)}</span></span>`:""}</div>`:""}
+    </div></section>`;
+  }
+  if(!D.canCheckin) return `<section class="gcard"><div class="bd"><h2>Contrato y políticas</h2><p class="muted" style="margin:0">Firma el contrato de hospedaje en recepción al llegar.</p></div></section>`;
+  if(!D.checkin) return `<section class="gcard"><div class="bd"><h2>4 · Contrato y políticas</h2><p class="muted" style="margin:0">Cuando envíes el check-in se habilita aquí la lectura y firma del contrato de hospedaje con las políticas del hotel. Es obligatorio para ingresar.</p></div></section>`;
+  const t=S.people[0]||{};
+  return `<section class="gcard" id="ctSec" aria-labelledby="ctTitle"><div class="bd">
+    <div class="sec-h"><h2 id="ctTitle">Último paso: firma el contrato</h2><span class="pill warn">Pendiente</span></div>
+    <p class="muted" style="margin:0">Lee las políticas del hotel y los términos y condiciones, marca las declaraciones y firma. Recibirás el contrato en PDF.</p>
+    <div id="ctForm" style="display:flex;flex-direction:column;gap:12px">${PNSign.formHTML(c,{name:`${D.titular.first||t.first||""} ${D.titular.last||t.last||""}`.trim(),doc:t.docNumber||""})}</div>
+    <div id="ctErr" role="alert"></div>
+    <button class="btn primary" type="button" id="ctSend" style="padding:13px;font-size:1rem">Firmar contrato</button>
+  </div></section>`;
+}
+async function refresh(){ try{ const r=await fetch(API); if(r.ok){ D=await r.json(); } }catch(_){} }
 function render(){
-  $("#app").innerHTML = confirmationHTML() + checkinHTML() + `<p class="foot-g">${esc(D.hotel.name||"")} · ${esc(D.hotel.address||"")}${D.hotel.whatsapp?" · WhatsApp "+esc(D.hotel.whatsapp):""}</p>`;
+  $("#app").innerHTML = confirmationHTML() + checkinHTML() + contractHTML() + `<p class="foot-g">${esc(D.hotel.name||"")} · ${esc(D.hotel.address||"")}${D.hotel.whatsapp?" · WhatsApp "+esc(D.hotel.whatsapp):""}</p>`;
   bind();
 }
 function renderPeople(){ const box=$("#people"); if(!box) return; box.innerHTML=S.people.map(personHTML).join(""); const lg=box.closest("fieldset").querySelector("legend"); if(lg) lg.textContent=`2 · Huéspedes y fotos (${S.people.length})`; }
@@ -165,6 +189,16 @@ function bind(){
     window.open(PNDocs.waUrl("", text), "_blank", "noopener");
   };
   const redo = $("#redo"); if(redo) redo.onclick = () => { showForm = true; render(); $("#ciTitle").scrollIntoView({behavior:"smooth"}); };
+  const cf=$("#ctForm");
+  if(cf){ const collect=PNSign.mount(cf); $("#ctSend").onclick=async()=>{
+    const err=$("#ctErr"), btn=$("#ctSend"); err.innerHTML="";
+    const v=collect(); if(v.error){ err.innerHTML=`<div class="note bad">${esc(v.error)}</div>`; return; }
+    btn.disabled=true; btn.textContent="Firmando…";
+    try{ const r=await fetch(API+"/contract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(v.data)}); const j=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||"No se pudo registrar la firma.");
+      await refresh(); render(); toast("¡Contrato firmado! Ya puedes descargarlo."); const cs=document.querySelector(".done"); cs&&cs.scrollIntoView({behavior:"smooth",block:"center"});
+    }catch(e){ err.innerHTML=`<div class="note bad">${esc(e.message)}</div>`; btn.disabled=false; btn.textContent="Firmar contrato"; }
+  }; }
 }
 let bound=false;
 function bindOnce(){
@@ -228,7 +262,8 @@ async function submit(){
     if(!r.ok) throw new Error(j.error||"No se pudo enviar. Intenta de nuevo.");
     try{ localStorage.removeItem(DKEY); }catch(_){}
     D.checkin={at:j.at,people:j.people}; showForm=false; D.titular={...D.titular,first:people[0].first,last:people[0].last};
-    render(); window.scrollTo({top:0,behavior:"smooth"}); toast("¡Listo! Recibimos tu check-in.");
+    await refresh(); render();
+    const ct=document.getElementById("ctSec"); if(ct){ ct.scrollIntoView({behavior:"smooth"}); toast("Check-in recibido. Ahora firma el contrato."); } else { window.scrollTo({top:0,behavior:"smooth"}); toast("¡Listo! Recibimos tu check-in."); }
   }catch(e){ err.innerHTML=`<div class="note bad">${esc(e.message)}</div>`; btn.disabled=false; btn.textContent="Enviar check-in"; }
 }
 load();

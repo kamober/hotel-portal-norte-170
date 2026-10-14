@@ -223,6 +223,35 @@ Cada reserva tiene un **enlace privado del huésped** (`/reserva?r=…&t=…`). 
 
 En la ficha del huésped (pestaña Huéspedes) también puedes tomar o subir la selfie y el documento desde el panel.
 
+## Contrato de hospedaje y políticas (firma electrónica)
+
+Al hacer el check-in, el huésped titular lee y firma el **contrato de hospedaje**. El contrato incluye las políticas del hotel, los términos y condiciones generales y la cláusula de no reembolso.
+
+**Dónde se firma:**
+- **En línea:** en su enlace de reserva, después de enviar el check-in (paso 4 · Contrato).
+- **En recepción:** al pulsar *Check-in* en el panel, si la reserva no tiene contrato, se abre la ventana de firma para entregarle el dispositivo al huésped. También está el botón *Firmar en recepción* en el detalle de la reserva. Existe la opción «Check-in sin firma», con doble confirmación, para casos excepcionales.
+
+**Qué debe hacer el huésped:**
+1. Desplazarse hasta el final del texto.
+2. Marcar las tres declaraciones: acepta las políticas y los términos, acepta que la reserva no es reembolsable y autoriza el tratamiento de datos.
+3. Escribir su nombre y documento.
+4. Firmar con el dedo, un lápiz o el mouse.
+
+**Qué se guarda en la reserva:**
+- El nombre y el documento de quien firma.
+- La fecha y hora (Bogotá) y el medio (enlace o recepción).
+- La dirección IP y el dispositivo.
+- La versión del texto y un **código de verificación**: la huella SHA-256 del texto, la reserva, el firmante, la fecha y la imagen de la firma.
+- El **PDF del contrato**, generado en el servidor al momento de firmar. Se guarda en el almacén privado (`portal-norte-ids`) junto con su propia huella; el huésped lo descarga desde su enlace y el panel lo abre con *Ver contrato (PDF)*.
+- *Anular firma* conserva la firma anterior en el historial y permite volver a firmar.
+- Los datos de la firma no se pueden modificar desde el panel.
+
+El texto se edita en **Alojamiento → Contrato y políticas**. Formato: «# » título, «## » subtítulo, «- » viñeta, «> » cláusula destacada. Cada cambio crea una versión nueva, y los contratos ya firmados conservan la suya.
+
+En la misma tarjeta se configura el **Wi‑Fi**, que el huésped ve solo después de firmar.
+
+> Recomendación: pide a un abogado que revise el texto del contrato, en especial la cláusula de no reembolso frente al Estatuto del Consumidor (Ley 1480 de 2011). La firma electrónica con registro de evidencias se apoya en la Ley 527 de 1999.
+
 ## Imprimir y compartir
 
 Los PDF se generan en el navegador, sin servicios externos:

@@ -358,6 +358,7 @@ function renderHotel(){
   <div class="panel" id="gcalCard"></div>
   <div class="panel" id="icalCard"></div>
   <div class="panel" id="notifyCard"></div>
+  <div class="panel" id="contractCard"></div>
   <div class="facts">
     <div class="panel"><div class="eyebrow">Foto de portada del sitio</div><div class="hero-ph" style="margin-top:8px">${h.heroPhoto?`<img src="${photoUrl(h.heroPhoto)}" alt="Portada">`:`<div style="height:100%;display:grid;place-items:center;color:var(--muted);font-size:.86rem">Sin portada: se muestra la ilustración</div>`}</div></div>
     <div class="panel"><div class="eyebrow">Frase de portada</div><p style="margin:.3em 0 .8em;font-family:var(--display);font-size:1.3rem;font-weight:700">${esc(h.tagline||"Tu base en el norte de Bogotá")}</p>
@@ -387,7 +388,7 @@ function renderHotel(){
     <div class="panel"><h3>Fuentes consultadas</h3><ul class="plain" style="margin-top:10px">${(h.sources||[]).map(s=>`<li>${link(s.url,s.title)}</li>`).join("")}</ul>
       ${h.taxNote?`<p class="muted" style="font-size:.8rem;margin:10px 0 0">${esc(h.taxNote)}</p>`:""}</div>
   </div>`;
-  renderGcal(); renderIcal(); renderNotify();
+  renderGcal(); renderIcal(); renderNotify(); loadContractCard();
 }
 
 /* ---------- reserva: formulario ---------- */
@@ -535,8 +536,9 @@ function openResDetail(id){
     if(r.status==="cancelada") ov.querySelector("#dPayBox").hidden=true;
   }, true);
 }
-async function doCheckIn(id){const r=S.res.find(x=>x.id===id);if(!r)return;const g=guestById(r.guestId);
+async function doCheckIn(id,o){o=o||{};const r=S.res.find(x=>x.id===id);if(!r)return;const g=guestById(r.guestId);
   if(g && !tra(g).ok){toast("Completa la ficha del huésped (TRA) antes del check-in.");openGuestForm(g,{afterSave:()=>doCheckIn(id)});return;}
+  if(!r.contract && !o.skipContract){ openContractSign(r,{onDone:()=>doCheckIn(id,{skipContract:true}),allowSkip:()=>doCheckIn(id,{skipContract:true})}); return; }
   try{await save("reservations/"+id,{status:"encasa",checkedInAt:new Date().toISOString()},true);toast("Check-in registrado · "+resGuest(r));closeModal();}catch(_){}}
 async function doCheckOut(id){const r=S.res.find(x=>x.id===id);if(!r)return;
   try{await save("reservations/"+id,{status:"finalizada",checkedOutAt:new Date().toISOString()},true);
@@ -987,7 +989,7 @@ function waText(r){
     `📅 Salida: ${fd(r.checkOut,{weekday:"long",day:"numeric",month:"long"})} antes de las ${h.checkout||"11:00"}`,
     `👥 ${r.adults||1} adulto(s)${r.children?`, ${r.children} niño(s)`:""} · ${nights(r)} noche(s)`,
     r.total?`💵 Total ${cop(r.total)} · Abonado ${cop(r.paid)} · Saldo ${cop(bal)}`:null,"",
-    link?(r.checkin?`Aquí puedes ver y descargar tu confirmación en PDF:\n${link}`:`✅ Antes de llegar, haz tu check-in en línea: llena el registro hotelero (TRA) y sube la selfie y el documento de cada huésped. Ahí mismo descargas tu confirmación en PDF:\n${link}`):null,"",
+    link?(r.checkin?`Aquí puedes ver y descargar tu confirmación en PDF:\n${link}`:`✅ Antes de llegar, haz tu check-in en línea: llena el registro hotelero (TRA), sube la selfie y el documento de cada huésped y firma el contrato con las políticas del hotel. Ahí mismo descargas tu confirmación en PDF:\n${link}`):null,"",
     h.address?`📍 ${h.address}${h.zone?" · "+h.zone:""}`:null].filter(x=>x!==null).join("\n");
 }
 function fillOnline(box,r){
@@ -998,6 +1000,13 @@ function fillOnline(box,r){
       <a class="btn sm primary" target="_blank" rel="noopener" href="${esc(PNDocs.waUrl(g&&g.phone,waText(r)))}">Enviar por WhatsApp</a></div>
       <div class="muted" style="font-size:.76rem;margin-top:4px">${g&&g.phone?"Se abre WhatsApp con el mensaje listo para "+esc(g.phone)+".":"La reserva no tiene teléfono: WhatsApp te pedirá elegir el contacto."} El huésped ve su confirmación, descarga el PDF y hace el check-in con selfie y documento.</div>`
       :`<div class="note warn" style="margin-top:10px">Configura TOKEN_SECRET en Netlify para generar enlaces de huésped.</div>`}
+    <div class="ct-status ${r.contract?"ok":""}">
+      <div><span class="eyebrow">Contrato y políticas</span>
+        ${r.contract?`<b>Firmado por ${esc(r.contract.signerName)}</b><small>${fdt(r.contract.signedAt)} · ${r.contract.via==="recepcion"?"en recepción":"en línea"} · código ${esc(r.contract.hash)}</small>`
+          :`<b>Pendiente de firma</b><small>Se firma con el check-in: el huésped desde su enlace o aquí en recepción.</small>`}</div>
+      <div class="grp">${r.contract?`<button class="btn sm primary" type="button" data-on="ctpdf">Ver contrato (PDF)</button><button class="btn sm" type="button" data-on="ctvoid">Anular firma</button>`
+          :(r.status!=="cancelada"?`<button class="btn sm primary" type="button" data-on="ctsign">Firmar en recepción</button>`:"")}</div>
+    </div>
     <div class="doc-acts">
       <div><span class="eyebrow">Confirmación</span><div class="grp"><button class="btn sm" type="button" data-on="cpdf">Descargar PDF</button><button class="btn sm" type="button" data-on="cprint">Imprimir</button>${canShareFiles?`<button class="btn sm" type="button" data-on="cshare">Compartir PDF</button>`:""}</div></div>
       <div><span class="eyebrow">Ficha y registro hotelero</span><div class="grp"><button class="btn sm" type="button" data-on="spdf">Descargar PDF</button><button class="btn sm" type="button" data-on="sprint">Imprimir</button></div></div>
@@ -1012,6 +1021,10 @@ function fillOnline(box,r){
     const pp=e.target.closest("[data-gid]"); if(pp){openGuestForm(guestById(pp.dataset.gid));return;}
     const b=e.target.closest("[data-on]"); if(!b) return; const a=b.dataset.on, name=n=>`${n}-${r.id}.pdf`;
     if(a==="copy") copyText(link);
+    if(a==="ctsign") openContractSign(r,{});
+    if(a==="ctpdf") run(b,async()=>{const rr=await fetch("/api/admin/contract/"+encodeURIComponent(r.id)+".pdf",{headers:{Authorization:"Bearer "+S.token}});if(!rr.ok)throw new Error("No se pudo abrir el contrato.");PNDocs.openPdf(await rr.blob(),name("Contrato"));});
+    if(a==="ctvoid"){ if(!b.dataset.armed){b.dataset.armed="1";b.textContent="¿Anular? Toca otra vez";setTimeout(()=>{b.textContent="Anular firma";delete b.dataset.armed;},3500);return;}
+      api("DELETE","admin/contract/"+encodeURIComponent(r.id)).then(async()=>{toast("Firma anulada: el huésped debe firmar de nuevo.");await loadState();const nr=S.res.find(x=>x.id===r.id);closeModal();if(nr)openResDetail(nr.id);}).catch(e=>toast(e.message)); }
     if(a==="cpdf") run(b,async()=>PNDocs.download(await confPdf(r),name("Confirmacion")));
     if(a==="cprint") run(b,async()=>PNDocs.printPdf(await confPdf(r),name("Confirmacion")));
     if(a==="cshare") run(b,async()=>{if(!(await PNDocs.sharePdf(await confPdf(r),name("Confirmacion"),waText(r)))) toast("Este navegador no permite compartir archivos.");});
@@ -1033,6 +1046,48 @@ async function printList(){
   b.disabled=false;
 }
 $("#rPrint").onclick=printList;
+
+/* ---------- contrato: firma en recepción ---------- */
+async function openContractSign(r,opts){
+  opts=opts||{}; let c;
+  try{ c=await api("GET","admin/contract/text"); }catch(e){ toast(e.message); return; }
+  const g=guestById(r.guestId)||{};
+  openModal("Contrato de hospedaje · "+resGuest(r), `
+    <div class="note">Entrega el dispositivo al huésped titular para que lea, marque las declaraciones y firme. Al firmar se genera el PDF del contrato y queda guardado en la reserva.</div>
+    <div id="rcForm" style="display:flex;flex-direction:column;gap:12px">${PNSign.formHTML(c,{name:gName(guestById(r.guestId))!=="Huésped sin ficha"?gName(guestById(r.guestId)):"",doc:g.docNumber||""})}</div>
+    <div id="rcErr" role="alert"></div>`,
+    `${opts.allowSkip?`<button class="btn" id="rcSkip">Check-in sin firma</button><span style="flex:1"></span>`:""}<button class="btn" id="rcCancel">Cancelar</button><button class="btn primary" id="rcSign">Firmar contrato</button>`, ov=>{
+      const collect=PNSign.mount(ov.querySelector("#rcForm"));
+      ov.querySelector("#rcCancel").onclick=closeModal;
+      const sk=ov.querySelector("#rcSkip"); if(sk) confirmBtn(sk,"Toca otra vez: queda sin respaldo firmado",()=>{closeModal();opts.allowSkip();});
+      ov.querySelector("#rcSign").onclick=async()=>{
+        const v=collect(), err=ov.querySelector("#rcErr"); err.innerHTML="";
+        if(v.error){err.innerHTML=`<div class="note bad">${esc(v.error)}</div>`;return;}
+        const b=ov.querySelector("#rcSign"); b.disabled=true; b.textContent="Firmando…";
+        try{ await api("POST","admin/contract/"+encodeURIComponent(r.id),v.data); toast("Contrato firmado y guardado en PDF"); await loadState(); closeModal();
+          if(opts.onDone) opts.onDone(); else openResDetail(r.id); }
+        catch(e){ err.innerHTML=`<div class="note bad">${esc(e.message)}</div>`; b.disabled=false; b.textContent="Firmar contrato"; }
+      };
+    }, true);
+}
+async function loadContractCard(){
+  const box=$("#contractCard"); if(!box) return;
+  let c; try{ c=await api("GET","admin/contract/text"); }catch(e){ box.innerHTML=`<div class="note bad">${esc(e.message)}</div>`; return; }
+  const h=S.hotel||{};
+  box.innerHTML=`<div class="toolbar"><div class="grp"><h3>Contrato y políticas</h3><span class="pill ${c.isDefault?"info":"ok"}">Versión ${esc(c.version)}${c.isDefault?" · texto original":" · personalizado"}</span></div>
+      <button class="btn sm" type="button" id="ctPrev">Vista previa</button></div>
+    <p class="muted" style="font-size:.86rem;margin:.5em 0 10px">El huésped lo lee y firma al hacer el check-in (en línea o en recepción). Si cambias el texto se crea una versión nueva; los contratos ya firmados conservan su versión. Formato: «# » título, «## » subtítulo, «- » viñeta, «> » cláusula destacada.</p>
+    <label class="f">Texto del contrato<textarea id="ctText" rows="14" style="font-family:var(--mono);font-size:.78rem;line-height:1.5">${esc(c.text)}</textarea></label>
+    <div class="grid g3" style="margin-top:10px;align-items:end">
+      <label class="f">Red Wi‑Fi<input id="ctWifi" value="${esc(h.wifiName||"")}" placeholder="Nombre de la red"></label>
+      <label class="f">Contraseña Wi‑Fi<input id="ctWifiP" value="${esc(h.wifiPass||"")}"></label>
+      <div class="muted" style="font-size:.76rem">El Wi‑Fi se le muestra al huésped solo después de firmar el contrato.</div></div>
+    <div class="grp" style="margin-top:12px"><button class="btn primary" type="button" id="ctSave">Guardar</button>${c.isDefault?"":`<button class="btn" type="button" id="ctReset">Restaurar texto original</button>`}</div>`;
+  $("#ctSave").onclick=async()=>{const t=$("#ctText").value.trim();
+    try{await save("hotel",{contractText:t===c.defaultText.trim()?"":t,wifiName:$("#ctWifi").value.trim(),wifiPass:$("#ctWifiP").value.trim()},true);toast("Contrato guardado");}catch(_){}};
+  const rs=$("#ctReset"); if(rs) confirmBtn(rs,"Toca otra vez para restaurar",async()=>{try{await save("hotel",{contractText:""},true);toast("Texto original restaurado");}catch(_){}});
+  $("#ctPrev").onclick=()=>openModal("Vista previa del contrato",`<div class="ct-box" style="max-height:none">${PNSign.toHTML($("#ctText").value)}</div>`,`<button class="btn" onclick="closeModal()">Cerrar</button>`,null,true);
+}
 
 /* ---------- notificaciones por correo ---------- */
 async function loadNotify(){try{S.notify=await api("GET","admin/notify/status");}catch(_){S.notify={error:true};}renderNotify();}
