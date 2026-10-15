@@ -261,6 +261,58 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
   .tablewrap td[colspan]{justify-content:center;text-align:center}
   .tablewrap td[colspan]::before{content:none}
 }
+
+/* ===== Plano de habitaciones ===== */
+.pl-q{display:grid;grid-template-columns:repeat(3,minmax(120px,170px)) 1fr minmax(180px,260px);gap:12px;align-items:end;padding:16px 18px}
+.pl-quick{display:flex;gap:6px;flex-wrap:wrap;align-self:end}
+.pl-sum{display:flex;gap:10px;flex-wrap:wrap}
+.pl-sum .k{background:var(--card);border:1px solid var(--card-line);box-shadow:var(--shadow-card);border-radius:16px;padding:10px 16px;display:flex;align-items:baseline;gap:8px;font-size:.86rem;color:var(--muted)}
+.pl-sum .k b{font-size:1.5rem;font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums}
+.pl-sum .k.ok b{color:var(--ok)} .pl-sum .say{flex:1 1 320px;background:var(--navy);color:#fff;border-radius:16px;padding:10px 16px;font-size:.9rem;display:flex;align-items:center;gap:10px}
+.pl-sum .say svg{flex:none;width:20px;height:20px}
+.pl-map{display:flex;flex-direction:column;gap:18px}
+.pl-floor{background:var(--card);border:1px solid var(--card-line);border-radius:var(--r);box-shadow:var(--shadow-card);padding:16px 18px 18px}
+.pl-floor h3{font-size:1rem;margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+.pl-floor h3 small{font-weight:500;color:var(--muted);font-size:.8rem}
+.pl-plan{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:10px;border:2px solid var(--navy-5);border-radius:16px;padding:10px;background:repeating-linear-gradient(0deg,transparent 0 23px,var(--soft) 23px 24px),repeating-linear-gradient(90deg,transparent 0 23px,var(--soft) 23px 24px)}
+.pl-hall{grid-column:1/-1;height:34px;border-radius:10px;background:var(--soft-2);display:flex;align-items:center;justify-content:center;gap:10px;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pl-hall::before,.pl-hall::after{content:"";flex:1;max-width:30%;border-top:2px dashed var(--navy-4);opacity:.6}
+.pl-room{all:unset;box-sizing:border-box;cursor:pointer;position:relative;border-radius:14px;padding:10px 11px 26px;min-height:128px;display:flex;flex-direction:column;gap:3px;border:2px solid transparent;transition:transform .12s,box-shadow .12s;background:var(--rbg);color:var(--rfg);overflow:hidden}
+.pl-room:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(14,42,66,.16)}
+.pl-room:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.pl-room .no{font-size:1.35rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;display:flex;justify-content:space-between;align-items:center}
+.pl-room .ty{font-size:.72rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-room .st{font-size:.78rem;font-weight:700;margin-top:4px}
+.pl-room .gu{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-room .nx{font-size:.72rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-room .cap{font-size:.7rem;font-weight:600;font-family:var(--mono);background:rgba(255,255,255,.22);border-radius:999px;padding:1px 7px}
+.pl-room .tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:auto}
+.pl-room .tag{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-radius:999px;padding:2px 7px;background:rgba(255,255,255,.9);color:#0E2A42}
+.pl-room .tag.in{background:#FFE7A3}.pl-room .tag.out{background:#FAD4CF}
+.pl-room .strip{position:absolute;left:8px;right:8px;bottom:8px;display:grid;grid-template-columns:repeat(14,1fr);gap:2px}
+.pl-room .strip i{height:7px;border-radius:2px;background:rgba(255,255,255,.55)}
+.pl-room .strip i.o{background:rgba(14,42,66,.75)} .pl-room .strip i.p{background:#E7A400} .pl-room .strip i.q{outline:1.5px solid currentColor;outline-offset:0}
+.pl-room.free{--rbg:#E3F4E8;--rfg:#0F5A2A;border-color:#7CC596}
+.pl-room.small{--rbg:#EEF3EF;--rfg:#3E5A47;border-color:#C8D8CC;border-style:dashed}
+.pl-room.occ{--rbg:var(--navy);--rfg:#fff}
+.pl-room.occ .strip i{background:rgba(255,255,255,.25)} .pl-room.occ .strip i.o{background:#fff}
+.pl-room.pend{--rbg:#FFF4D6;--rfg:#6B4B00;border-color:#E7A400;border-style:dashed}
+.pl-room.off{--rbg:repeating-linear-gradient(135deg,#ECEFF3 0 8px,#E2E6EC 8px 16px);--rfg:#5B6B7D}
+.pl-room.hit{box-shadow:0 0 0 4px var(--accent);animation:plpulse 1.2s ease-out 2}
+@keyframes plpulse{0%{box-shadow:0 0 0 0 var(--accent)}100%{box-shadow:0 0 0 10px transparent}}
+.pl-room.dim{opacity:.35}
+.pl-legend .sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px;border:2px solid transparent}
+.sw.free{background:#E3F4E8;border-color:#7CC596}.sw.small{background:#EEF3EF;border:2px dashed #C8D8CC}.sw.occ{background:var(--navy)}.sw.pend{background:#FFF4D6;border:2px dashed #E7A400}.sw.off{background:repeating-linear-gradient(135deg,#ECEFF3 0 3px,#D5DBE3 3px 6px)}
+.pl-det .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.pl-det .row span{color:var(--muted)}
+.pl-det .tl{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.pl-det .tl .it{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.86rem}
+@media (prefers-color-scheme: dark){
+  .pl-room.free{--rbg:#123A24;--rfg:#BFF0CF;border-color:#2F7A4A}.pl-room.small{--rbg:#1A2C24;--rfg:#9DB8A6;border-color:#355244}
+  .pl-room.pend{--rbg:#3A2E0B;--rfg:#FFE08A}.pl-room.off{--rbg:repeating-linear-gradient(135deg,#1A2A3B 0 8px,#15222F 8px 16px);--rfg:#8A9BAD}
+  .pl-room.occ{--rbg:#2B5A86}}
+@media (max-width:1180px){.pl-q{grid-template-columns:repeat(3,1fr)}.pl-quick,.pl-find{grid-column:1/-1}}
+@media (max-width:700px){.pl-q{grid-template-columns:1fr 1fr}.pl-q label:nth-child(3){grid-column:1/-1}.pl-plan{--cols:2 !important}.pl-hall{display:none}.pl-room{min-height:118px}}
 </style>
 </head>
 <body class="admin">
@@ -287,6 +339,7 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
   </div>
   <nav class="tabs" role="tablist" id="tabs" aria-label="Secciones">
     <button role="tab" data-t="panel" aria-selected="true">Tablero</button>
+    <button role="tab" data-t="plano">Plano</button>
     <button role="tab" data-t="cal">Disponibilidad</button>
     <button role="tab" data-t="motor">Reservar</button>
     <button role="tab" data-t="res">Reservas<span class="count" id="cRes"></span></button>
@@ -328,6 +381,31 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
       <div class="panel"><div class="w-h"><h3>Llegadas hoy</h3></div><div class="list" id="arr"></div></div>
       <div class="panel"><div class="w-h"><h3>Salidas hoy</h3></div><div class="list" id="dep"></div></div>
       <div class="panel"><div class="w-h"><h3>Huéspedes en casa</h3></div><div class="list" id="inh"></div></div>
+    </div>
+  </section>
+
+  <section class="tab" id="t-plano" hidden>
+    <div class="toolbar">
+      <div><h2>Plano de habitaciones</h2><div class="muted" style="font-size:.84rem">Para responder una llamada: elige fechas y personas, y mira qué está libre. Toca una habitación para ver el huésped o reservar.</div></div>
+    </div>
+    <form class="pl-q panel" id="plForm" autocomplete="off">
+      <label class="f">Llegada<input type="date" id="plIn" required></label>
+      <label class="f">Salida<input type="date" id="plOut" required></label>
+      <label class="f">Personas<select id="plPax"></select></label>
+      <div class="pl-quick" role="group" aria-label="Fechas rápidas">
+        <button type="button" class="btn sm" data-pq="hoy">Esta noche</button>
+        <button type="button" class="btn sm" data-pq="manana">Mañana</button>
+        <button type="button" class="btn sm" data-pq="finde">Fin de semana</button>
+        <button type="button" class="btn sm" data-pq="semana">7 noches</button>
+      </div>
+      <label class="f pl-find">Buscar huésped<input type="search" id="plFind" placeholder="Nombre, teléfono o código"></label>
+    </form>
+    <div id="plSum" class="pl-sum" aria-live="polite"></div>
+    <div id="plMap" class="pl-map"></div>
+    <div class="legend pl-legend">
+      <span><i class="sw free"></i>Libre en esas fechas</span><span><i class="sw small"></i>Libre, pero no caben</span>
+      <span><i class="sw occ"></i>Ocupada</span><span><i class="sw pend"></i>Pendiente de confirmar</span><span><i class="sw off"></i>Mantenimiento</span>
+      <span>Franja inferior: próximas 14 noches</span>
     </div>
   </section>
 

@@ -116,7 +116,7 @@ function render(){
   $("#cGu").textContent = S.guests.length || "";
   $("#cRo").textContent = S.rooms.length || "";
   if(S.hotel){ $("#hName").innerHTML = nameHTML(S.hotel.name||"Portal Norte 170").replace(/^Hotel\s+/,'<span class="hp">Hotel </span>'); $("#hAddr").textContent = (S.hotel.address||"") + (S.hotel.zone? " · "+S.hotel.zone : ""); }
-  ({panel:renderPanel,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:renderSol,hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
+  ({panel:renderPanel,plano:renderPlano,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:renderSol,hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
 }
 function liRes(r, actions){
   const ro = roomById(r.roomId);
@@ -1150,6 +1150,109 @@ hdrBtn.addEventListener("click",e=>{e.stopPropagation();setHdr(!hdrActs.classLis
 hdrActs.addEventListener("click",e=>{if(e.target.closest("a,button"))setHdr(false);});
 document.addEventListener("click",e=>{if(hdrActs.classList.contains("open")&&!e.target.closest("#hdrActs"))setHdr(false);});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&hdrActs.classList.contains("open"))setHdr(false);});
+
+/* ---------- plano de habitaciones (para responder llamadas) ---------- */
+const PL={in:null,out:null,pax:1,find:""};
+function plInit(){
+  const t=todayISO(); if(!PL.in){PL.in=t;PL.out=addDays(t,1);}
+  $("#plIn").value=PL.in; $("#plOut").value=PL.out;
+  const maxCap=Math.max(4,...S.rooms.map(r=>Number(r.capacity)||1));
+  $("#plPax").innerHTML=[...Array(maxCap)].map((_,i)=>`<option value="${i+1}" ${i+1===PL.pax?"selected":""}>${i+1} persona${i?"s":""}</option>`).join("");
+}
+const plFloor=r=>String(r.floor||String(r.number||"").trim().charAt(0)||"1");
+function plOcc(roomId,a,b){return S.res.filter(r=>r.roomId===roomId&&active(r)&&r.status!=="finalizada"&&r.checkIn<b&&a<r.checkOut).sort((x,y)=>x.checkIn<y.checkIn?-1:1);}
+function plFreeFrom(roomId,from){ // primera noche libre desde «from»
+  let d=from; for(let i=0;i<120;i++){ if(!plOcc(roomId,d,addDays(d,1)).length) return d; d=addDays(d,1);} return null; }
+function plNextIn(roomId,from){const n=S.res.filter(r=>r.roomId===roomId&&active(r)&&r.status!=="finalizada"&&r.checkIn>=from).sort((x,y)=>x.checkIn<y.checkIn?-1:1)[0];return n||null;}
+function plInfo(ro){
+  const a=PL.in,b=PL.out,cap=Number(ro.capacity)||1,occ=plOcc(ro.id,a,b);
+  const arrive=S.res.find(r=>r.roomId===ro.id&&active(r)&&r.status!=="finalizada"&&r.checkIn===a);
+  const leave=S.res.find(r=>r.roomId===ro.id&&active(r)&&r.status!=="cancelada"&&r.checkOut===a);
+  let cls,st;
+  if(ro.status==="mantenimiento"){cls="off";st="Mantenimiento";}
+  else if(occ.length){const pend=occ.every(r=>r.status==="pendiente");cls=pend?"pend":"occ";st=pend?"Reserva pendiente":(occ[0].status==="encasa"?"Ocupada · en casa":"Reservada");}
+  else if(cap<PL.pax){cls="small";st=`Libre · máx. ${cap} pers.`;}
+  else {cls="free";st="Disponible";}
+  const nx=occ.length?null:plNextIn(ro.id,a);
+  const freeFrom=occ.length?plFreeFrom(ro.id,a):null;
+  const strip=[...Array(14)].map((_,i)=>{const d=addDays(a,i),o=plOcc(ro.id,d,addDays(d,1))[0];return {d,o,q:d<b};});
+  return {cls,st,occ,arrive,leave,nx,freeFrom,strip,cap};
+}
+function plMatch(r,q){if(!q)return false;q=q.toLowerCase();const g=guestById(r.guestId)||{};
+  return [resGuest(r),r.id,g.phone,g.docNumber].filter(Boolean).some(x=>String(x).toLowerCase().replace(/\s/g,"").includes(q.replace(/\s/g,"")));}
+function renderPlano(){
+  if(!$("#plIn").value||!$("#plPax").options.length) plInit();
+  const n=diff(PL.in,PL.out), rooms=sortRooms(), info=Object.fromEntries(rooms.map(r=>[r.id,plInfo(r)]));
+  const free=rooms.filter(r=>info[r.id].cls==="free"), small=rooms.filter(r=>info[r.id].cls==="small");
+  const occN=rooms.filter(r=>["occ","pend"].includes(info[r.id].cls)).length;
+  const arrivals=rooms.filter(r=>info[r.id].arrive).length, departures=rooms.filter(r=>info[r.id].leave).length;
+  // Respuesta lista para decir por teléfono
+  const minRate=free.length?Math.min(...free.map(r=>Number(r.rate)||0)):0;
+  const types=[...new Set(free.map(r=>r.type).filter(Boolean))];
+  const say=free.length?`Sí hay: <b>${free.length} ${free.length>1?"habitaciones":"habitación"}</b> para ${PL.pax} persona${PL.pax>1?"s":""}, ${fd(PL.in,{weekday:"short"})} → ${fd(PL.out,{weekday:"short"})} (${n} noche${n>1?"s":""})${minRate?`, desde <b>${cop(minRate*n)}</b>`:""}${types.length?` · ${esc(types.join(", "))}`:""}.`
+    :`No hay habitaciones libres para ${PL.pax} persona${PL.pax>1?"s":""} en esas fechas.${(()=>{const alt=plAlternative();return alt?` Próxima opción: <b>${fd(alt.in,{weekday:"short"})} → ${fd(alt.out,{weekday:"short"})}</b> (hab. ${esc(alt.room.number)}).`:"";})()}`;
+  $("#plSum").innerHTML=`<div class="k ok"><b>${free.length}</b>libres</div><div class="k"><b>${occN}</b>ocupadas</div>${small.length?`<div class="k"><b>${small.length}</b>libres sin cupo</div>`:""}<div class="k"><b>${arrivals}</b>llegan</div><div class="k"><b>${departures}</b>salen</div>
+    <div class="say"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span>${say}</span></div>`;
+  const floors={}; rooms.forEach(r=>(floors[plFloor(r)]=floors[plFloor(r)]||[]).push(r));
+  const q=PL.find.trim();
+  $("#plMap").innerHTML=Object.keys(floors).sort((x,y)=>x.localeCompare(y,"es",{numeric:true})).map(f=>{
+    const list=floors[f], cols=Math.max(1,Math.ceil(list.length/2)), top=list.slice(0,cols), bot=list.slice(cols);
+    const freeF=list.filter(r=>info[r.id].cls==="free").length;
+    const tile=ro=>{const i=info[ro.id],o=i.occ[0],hit=q&&S.res.some(r=>r.roomId===ro.id&&active(r)&&r.checkOut>=todayISO()&&plMatch(r,q));
+      const line2=o?`<div class="gu">${esc(resGuest(o))}</div><div class="nx">${fd(o.checkIn)} → ${fd(o.checkOut)}${i.occ.length>1?` · +${i.occ.length-1} reserva${i.occ.length>2?"s":""}`:""}</div>`
+        :(i.cls==="off"?`<div class="nx">No disponible</div>`:`<div class="nx">${i.nx?`Libre hasta ${fd(i.nx.checkIn,{weekday:"short"})}`:"Sin reservas próximas"}</div>${!o&&i.cls!=="off"?`<div class="nx">${cop(Number(ro.rate)||0)} / noche</div>`:""}`);
+      return `<button type="button" class="pl-room ${i.cls} ${hit?"hit":""} ${q&&!hit?"dim":""}" data-pl="${esc(ro.id)}" aria-label="Habitación ${esc(ro.number)}: ${esc(i.st)}${o?", "+esc(resGuest(o)):""}">
+        <div class="no">${esc(ro.number)}<span class="cap">${i.cap} pers.</span></div><div class="ty">${esc(ro.type||ro.name||"")}${ro.bath?` · baño ${esc(ro.bath)}`:""}</div>
+        <div class="st">${esc(i.st)}</div>${line2}
+        <div class="tags">${i.arrive&&!(o&&o.id!==i.arrive.id)?`<span class="tag in">Llega ${PL.in===todayISO()?"hoy":fd(PL.in)}</span>`:""}${i.leave?`<span class="tag out">Sale ${PL.in===todayISO()?"hoy":fd(PL.in)}</span>`:""}${ro.status==="limpieza"?`<span class="tag">En limpieza</span>`:""}${o&&o.contract?`<span class="tag">Contrato ✓</span>`:""}</div>
+        <div class="strip" aria-hidden="true">${i.strip.map(s=>`<i class="${s.o?(s.o.status==="pendiente"?"p":"o"):""} ${s.q?"q":""}" title="${fd(s.d,{weekday:"short"})}${s.o?" · "+esc(resGuest(s.o)):" · libre"}"></i>`).join("")}</div></button>`;};
+    return `<div class="pl-floor"><h3>Piso ${esc(f)}<small>${freeF} de ${list.length} libres</small></h3>
+      <div class="pl-plan" style="--cols:${cols}">${top.map(tile).join("")}${bot.length?`<div class="pl-hall">Pasillo</div>${bot.map(tile).join("")}`:""}</div></div>`;
+  }).join("") || `<div class="empty">${S.loaded?"Aún no hay habitaciones registradas.":"Cargando habitaciones…"}</div>`;
+}
+// Si no hay cupo, busca el primer rango con las mismas noches en los próximos 60 días.
+function plAlternative(){const n=diff(PL.in,PL.out);
+  for(let k=1;k<=60;k++){const a=addDays(PL.in,k),b=addDays(a,n);
+    const r=sortRooms().find(ro=>ro.status!=="mantenimiento"&&(Number(ro.capacity)||1)>=PL.pax&&!plOcc(ro.id,a,b).length); if(r) return {in:a,out:b,room:r};}
+  return null;}
+function openPlRoom(id){
+  const ro=roomById(id); if(!ro) return; const i=plInfo(ro), n=diff(PL.in,PL.out), t=todayISO();
+  const upcoming=S.res.filter(r=>r.roomId===id&&active(r)&&r.checkOut>=t&&r.status!=="finalizada").sort((x,y)=>x.checkIn<y.checkIn?-1:1).slice(0,5);
+  const o=i.occ[0], g=o?guestById(o.guestId):null, ph=g&&g.phone?String(g.phone).replace(/[^\d+]/g,""):"";
+  const wa=ph?"https://wa.me/"+(ph.startsWith("+")?ph.slice(1):(ph.length===10?"57"+ph:ph)):"";
+  openModal("Habitación "+ro.number, `<div class="pl-det">
+    <div class="muted" style="margin-bottom:10px">${esc(ro.type||"")} · ${esc(ro.beds||"")} · hasta ${i.cap} pers. · ${cop(Number(ro.rate)||0)} / noche</div>
+    <div class="note ${i.cls==="free"?"ok":i.cls==="off"?"bad":i.cls==="small"?"warn":"info"}"><b>${esc(i.st)}</b> · ${fd(PL.in,{weekday:"long"})} → ${fd(PL.out,{weekday:"long"})} (${n} noche${n>1?"s":""})${i.freeFrom&&i.freeFrom!==PL.in?` · se libera el <b>${fd(i.freeFrom,{weekday:"short"})}</b>`:""}</div>
+    ${o?`<div class="row"><span>Huésped</span><b>${esc(resGuest(o))}</b></div>
+      <div class="row"><span>Estancia</span><b>${fd(o.checkIn)} → ${fd(o.checkOut)} · ${nights(o)} n</b></div>
+      <div class="row"><span>Personas</span><b>${(Number(o.adults)||1)+(Number(o.children)||0)}</b></div>
+      <div class="row"><span>Canal / estado</span><b>${esc(chan(o.channel).n)} · ${esc(STATUS[o.status]?.n||o.status)}</b></div>
+      <div class="row"><span>Saldo</span><b>${cop(Math.max(0,balance(o)))}</b></div>
+      ${g&&g.phone?`<div class="row"><span>Teléfono</span><b><a href="tel:${esc(ph)}">${esc(g.phone)}</a></b></div>`:""}`:""}
+    <h3 style="margin:16px 0 4px;font-size:.95rem">Próximas reservas</h3>
+    <div class="tl">${upcoming.length?upcoming.map(r=>`<div class="it"><span><b>${esc(resGuest(r))}</b><br><small class="muted">${fd(r.checkIn,{weekday:"short"})} → ${fd(r.checkOut,{weekday:"short"})} · ${esc(STATUS[r.status]?.n||"")}</small></span><button class="btn sm" data-plres="${esc(r.id)}" type="button">Ver</button></div>`).join(""):`<div class="muted">Sin reservas próximas.</div>`}</div></div>`,
+    `<div class="grp" style="flex-wrap:wrap;gap:8px;justify-content:flex-end">
+      ${i.cls==="free"||i.cls==="small"?`<button class="btn primary" data-plbook="${esc(ro.id)}" type="button">Reservar ${fd(PL.in)} → ${fd(PL.out)}</button>`:""}
+      ${i.cls!=="free"&&i.cls!=="off"&&i.freeFrom?`<button class="btn" data-plbookfrom="${esc(ro.id)}|${i.freeFrom}" type="button">Reservar desde ${fd(i.freeFrom)}</button>`:""}
+      ${wa?`<a class="btn" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp al huésped</a>`:""}
+      <button class="btn" data-plroom="${esc(ro.id)}" type="button">Ficha de la habitación</button>
+    </div>`);
+}
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-pl]"); if(t){openPlRoom(t.dataset.pl);return;}
+  const r=e.target.closest("[data-plres]"); if(r){closeModal();openResDetail(r.dataset.plres);return;}
+  const b=e.target.closest("[data-plbook]"); if(b){closeModal();openResForm({roomId:b.dataset.plbook,checkIn:PL.in,checkOut:PL.out,adults:PL.pax});return;}
+  const bf=e.target.closest("[data-plbookfrom]"); if(bf){const [id,d]=bf.dataset.plbookfrom.split("|");closeModal();openResForm({roomId:id,checkIn:d,checkOut:addDays(d,Math.max(1,diff(PL.in,PL.out))),adults:PL.pax});return;}
+  const rm=e.target.closest("[data-plroom]"); if(rm){closeModal();openRoomDetail(rm.dataset.plroom);return;}
+  const qk=e.target.closest("[data-pq]"); if(qk){const t0=todayISO();let a=t0,n=1;
+    if(qk.dataset.pq==="manana")a=addDays(t0,1); if(qk.dataset.pq==="finde"){a=addDays(t0,(5-dow(t0)+7)%7);n=2;} if(qk.dataset.pq==="semana")n=7;
+    PL.in=a;PL.out=addDays(a,n);$("#plIn").value=PL.in;$("#plOut").value=PL.out;renderPlano();}
+});
+$("#plIn").addEventListener("change",()=>{const n=Math.max(1,diff(PL.in,PL.out));PL.in=$("#plIn").value||todayISO();if(!$("#plOut").value||$("#plOut").value<=PL.in){$("#plOut").value=addDays(PL.in,n);}PL.out=$("#plOut").value;renderPlano();});
+$("#plOut").addEventListener("change",()=>{let v=$("#plOut").value;if(!v||v<=PL.in){v=addDays(PL.in,1);$("#plOut").value=v;}PL.out=v;renderPlano();});
+$("#plPax").addEventListener("change",()=>{PL.pax=+$("#plPax").value||1;renderPlano();});
+$("#plFind").addEventListener("input",()=>{PL.find=$("#plFind").value;renderPlano();});
+$("#plForm").addEventListener("submit",e=>e.preventDefault());
 
 /* ---------- arranque ---------- */
 initEngine();

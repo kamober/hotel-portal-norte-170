@@ -96,6 +96,18 @@ Paleta (variables en `public/assets/styles.css`): marino para bandas y textos, r
 
 Tipografía: Source Serif 4 (títulos, con cursiva de acento) y Plus Jakarta Sans (texto).
 
+## Plano de habitaciones (para atender llamadas)
+
+Pestaña **Plano** del panel. Muestra las habitaciones por piso, a lado y lado del pasillo, con colores según las fechas y personas que elijas:
+
+- Verde: libre. Verde punteado: libre pero no caben. Marino: ocupada (con el nombre del huésped y sus fechas). Amarillo: reserva pendiente. Rayado: mantenimiento.
+- Botones rápidos «Esta noche», «Mañana», «Fin de semana» y «7 noches», y una frase lista para decir por teléfono («Sí hay 4 habitaciones… desde $…»). Si no hay cupo, propone la siguiente fecha libre.
+- Etiquetas «Llega hoy» / «Sale hoy», y una franja con las próximas 14 noches de cada habitación.
+- Toca una habitación para ver el huésped, su teléfono y WhatsApp, las próximas reservas y reservar esas fechas en un clic.
+- «Buscar huésped» resalta la habitación de una persona por nombre, teléfono o código.
+
+La ubicación de las habitaciones es esquemática: se agrupan por el campo **Piso** de cada habitación (o el primer dígito del número).
+
 ## Google Calendar
 
 Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actualiza al guardarla y se borra al cancelarla o eliminarla. El evento va del check-in (15:00) al check-out (11:00) y lleva el nombre del huésped, su teléfono, la habitación, el canal, el estado y el saldo. Hay dos formas de conectarlo. Puedes usar las dos a la vez.
