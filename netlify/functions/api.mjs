@@ -241,7 +241,8 @@ async function changePayment(store, r, payId, status) {
   if (status === null && before.photoId) await idPhotos().delete(before.photoId).catch(() => {});
   return next;
 }
-const payView = (p) => ({ id: p.id, amount: p.amount, method: p.method, date: p.date, status: p.status, at: p.at, by: p.by, hasPhoto: !!p.photoId });
+const payView = (p) => ({ id: p.id, amount: p.amount, method: p.method, date: p.date, status: p.status, at: p.at, by: p.by, hasPhoto: !!p.photoId,
+  photo: p.photoId && p.photoId.startsWith("PAY_") ? p.photoId : undefined });
 
 async function handleRequestStatus(id, url, store) {
   if (!ID_RE.test(id)) return fail(400, "Código no válido.");
@@ -360,7 +361,7 @@ async function sendContractPdf(r, inline) {
 }
 
 async function handleGuest(req, rest, store) {
-  const [resId, sig, action] = rest;
+  const [resId, sig, action, extra] = rest;
   const r = await loadGuestRes(store, resId || "", sig || "");
   if (!r) return fail(404, "El enlace no es válido o ya venció. Escríbenos por WhatsApp.");
   const m = req.method;
@@ -387,6 +388,13 @@ async function handleGuest(req, rest, store) {
   }
   if (action === "contract.pdf" && m === "GET") return await sendContractPdf(r, false);
 
+  // El huésped puede ver solo los comprobantes de su propia reserva.
+  if (action === "payment-photo" && m === "GET" && extra) {
+    if (!ID_RE.test(extra) || !extra.startsWith("PAY_" + resId + "_") || !(r.payments || []).some((p) => p.photoId === extra)) return fail(404, "Comprobante no encontrado.");
+    const e = await idPhotos().getWithMetadata(extra, { type: "arrayBuffer" });
+    if (!e) return fail(404, "Comprobante no encontrado.");
+    return new Response(e.data, { headers: { "Content-Type": e.metadata?.contentType || "image/jpeg", "Cache-Control": "private, max-age=3600" } });
+  }
   if (action === "payment-photo" && m === "POST") {
     if (r.status === "cancelada") return fail(409, "La reserva está cancelada.");
     const type = (req.headers.get("content-type") || "").split(";")[0].trim();

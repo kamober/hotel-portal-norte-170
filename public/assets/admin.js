@@ -604,7 +604,7 @@ function openGuestForm(g, opts){
       try{const blob=await shrink(inp.files[0]);const d=await api("POST","admin/ids",undefined,blob);
         if(ph[k]) (phNew.has(ph[k])?api("DELETE","admin/ids/"+encodeURIComponent(ph[k])).catch(()=>{}):phOld.add(ph[k]));
         ph[k]=d.id;phNew.add(d.id);drawPh();}catch(err){toast(err.message);drawPh();}});
-    box.addEventListener("click",async e=>{const v=e.target.closest("[data-view]");if(v){try{window.open(await idImgUrl(ph[v.dataset.view]),"_blank");}catch(err){toast(err.message);}return;}
+    box.addEventListener("click",async e=>{const v=e.target.closest("[data-view]");if(v){try{showImage(await idImgUrl(ph[v.dataset.view]),"foto-"+v.dataset.view+".jpg",gName(g));}catch(err){toast(err.message);}return;}
       const rm=e.target.closest("[data-rmph]");if(rm){const k=rm.dataset.rmph;phNew.has(ph[k])?api("DELETE","admin/ids/"+encodeURIComponent(ph[k])).catch(()=>{}):phOld.add(ph[k]);ph[k]="";drawPh();}});
     const delB=ov.querySelector("#gDel");
     if(delB) confirmBtn(delB, stays.length?"Tiene reservas: toca otra vez para eliminar igual":"Toca otra vez para eliminar", async()=>{try{await del("guests/"+g.id);toast("Ficha eliminada");closeModal();}catch(e){toast(e.message);}});
@@ -1166,7 +1166,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&hdrActs.classList.c
 const PST={"verificado":{n:"Verificado",cls:"ok"},"por verificar":{n:"Por verificar",cls:"warn"},"rechazado":{n:"Rechazado",cls:"bad"}};
 function payRow(r,p,withRes){
   const st=PST[p.status]||{n:p.status,cls:""};
-  return `<div class="payrow">${p.photoId?`<button type="button" class="paythumb" data-payview="${esc(p.photoId)}" aria-label="Ver comprobante"><img data-idimg="${esc(p.photoId)}" alt=""></button>`:`<span class="paythumb none" title="Sin foto">—</span>`}
+  return `<div class="payrow">${p.photoId?`<button type="button" class="paythumb" data-payview="${esc(p.photoId)}" data-cap="${esc("Comprobante · "+cop(p.amount)+" · "+p.method+" · "+fd(p.date))}" aria-label="Ver comprobante" title="Ver comprobante"><img data-idimg="${esc(p.photoId)}" alt=""><i>Ver</i></button>`:`<span class="paythumb none" title="Sin foto">—</span>`}
     <div class="pinfo"><div class="grp" style="gap:8px"><b class="num">${cop(p.amount)}</b><span class="pill ${st.cls}">${st.n}</span></div>
       <small>${esc(p.method)} · ${fd(p.date)}${p.ref?" · ref. "+esc(p.ref):""} · ${p.by==="huesped"?"subido por el huésped":"recepción"}${withRes?` · <a href="#" data-open="${esc(r.id)}">${esc(r.id)}</a>`:""}</small>${p.note?`<small>${esc(p.note)}</small>`:""}</div>
     ${withRes?"":`<div class="grp" style="gap:6px">${p.status==="por verificar"?`<button class="btn sm primary" data-payst="${esc(p.id)}|verificado">Verificar</button><button class="btn sm" data-payst="${esc(p.id)}|rechazado">Rechazar</button>`:""}${p.status==="rechazado"?`<button class="btn sm" data-payst="${esc(p.id)}|verificado">Verificar</button>`:""}<button class="btn sm danger" data-paydel="${esc(p.id)}">Quitar</button></div>`}</div>`;
@@ -1180,6 +1180,9 @@ function paysHTML(r){
 function bindPays(ov,r){
   let photo="";
   const box=ov.querySelector("#dPays"); hydrateIdImgs(box);
+  // Trae los comprobantes que el huésped haya subido mientras el panel estaba abierto.
+  api("GET","admin/state").then(j=>{const fresh=(j.reservations||[]).find(x=>x.id===r.id); if(!fresh||!box.isConnected) return;
+    if(JSON.stringify(fresh.payments||[])!==JSON.stringify(r.payments||[])){ upsert("res",fresh); redraw(fresh); render(); }}).catch(()=>{});
   const redraw=rec=>{ r=rec; box.innerHTML=paysHTML(rec); hydrateIdImgs(box); };
   const after=rec=>{ const g=rec._gcal; delete rec._gcal; upsert("res",rec); gcalWarn(g); render(); redraw(rec); const k=ov.querySelector("#dPay"); if(k) k.value=Math.max(0,balance(rec)); };
   box.addEventListener("click",async e=>{
@@ -1191,14 +1194,15 @@ function bindPays(ov,r){
   const inp=ov.querySelector("#dPayPh"), prevBox=ov.querySelector("#dPayPrev");
   if(inp) inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; prevBox.textContent="Subiendo foto…";
     try{ const blob=await shrink(f); const d=await api("POST","admin/ids",undefined,blob); if(photo) api("DELETE","admin/ids/"+encodeURIComponent(photo)).catch(()=>{}); photo=d.id; prevBox.innerHTML=`✓ Foto adjunta: <b>${esc(f.name)}</b>`; ov.querySelector("#dPayPhL").classList.add("primary"); }
-    catch(err){ prevBox.textContent=err.message; } inp.value=""; };
+    catch(err){ prevBox.innerHTML=`<span style="color:var(--bad)">${esc(err.message)}</span>`; toast(err.message); } inp.value=""; };
   const go=ov.querySelector("#dPayGo"); if(go) go.onclick=async()=>{ const amount=Number(ov.querySelector("#dPay").value)||0; if(amount<=0){toast("Escribe un valor mayor que cero.");return;}
     go.disabled=true;
     try{ after(await api("POST","admin/payments/"+encodeURIComponent(r.id),{amount,method:ov.querySelector("#dPayM").value,date:ov.querySelector("#dPayD").value,ref:ov.querySelector("#dPayR").value,photoId:photo}));
       toast("Abono de "+cop(amount)+" registrado"); photo=""; prevBox.textContent=""; ov.querySelector("#dPayPhL").classList.remove("primary"); ov.querySelector("#dPayR").value=""; }
     catch(err){ toast(err.message); } go.disabled=false; };
 }
-document.addEventListener("click",async e=>{const v=e.target.closest("[data-payview]"); if(!v) return; e.preventDefault(); const w=window.open("","_blank"); try{ const u=await idImgUrl(v.dataset.payview); if(w) w.location=u; else window.open(u,"_blank"); }catch(err){ if(w) w.close(); toast(err.message); }});
+document.addEventListener("click",async e=>{const v=e.target.closest("[data-payview]"); if(!v) return; e.preventDefault();
+  try{ showImage(await idImgUrl(v.dataset.payview), "comprobante-"+v.dataset.payview+".jpg", v.dataset.cap||"Comprobante de pago"); }catch(err){ toast(err.message); }});
 const pendingPays=()=>S.res.reduce((n,r)=>n+(r.payments||[]).filter(p=>p.status==="por verificar").length,0);
 
 /* ---------- mensajes de contacto ---------- */
@@ -1240,7 +1244,7 @@ function renderWa(){
     <div class="grid g2" style="margin-top:12px">
       <div><div class="eyebrow">Te llega un WhatsApp cuando</div>
         <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>alguien envía una solicitud de reserva</li><li>alguien escribe por el formulario de contacto</li><li>un huésped sube un comprobante de pago</li></ul>
-        <div style="font-size:.84rem;margin-top:8px">${w.provider?`Servicio: <b>${w.provider==="callmebot"?"CallMeBot":"Twilio"}</b> · a ${esc((w.phones||[]).join(", "))}.`:`Falta configurar WhatsApp en Netlify (README, sección «Avisos por WhatsApp»).`}</div>
+        <div style="font-size:.84rem;margin-top:8px">${w.provider?`Servicio: <b>${({greenapi:"Green-API",meta:"WhatsApp Cloud API (Meta)",callmebot:"CallMeBot",twilio:"Twilio"})[w.provider]||w.provider}</b> · a ${esc((w.phones||[]).join(", "))}.`:`Falta configurar WhatsApp en Netlify (README, sección «Avisos por WhatsApp»).`}</div>
         ${last?`<div class="note ${last.ok?"ok":"bad"}" style="margin-top:8px">Último envío ${fdt(last.at)} (${esc(last.kind||"")}): ${last.ok?"enviado":esc(last.error||"falló")}</div>`:""}
         <label class="f chk" style="margin-top:8px"><input type="checkbox" id="waOff" ${h.waOff?"checked":""}> Pausar los avisos por WhatsApp</label>
         <div id="waNote" style="margin-top:8px"></div></div>

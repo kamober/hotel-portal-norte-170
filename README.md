@@ -112,18 +112,45 @@ La ubicación de las habitaciones es esquemática: se agrupan por el campo **Pis
 
 Te llega un WhatsApp cada vez que alguien envía una **solicitud de reserva**, escribe por el **formulario de contacto** («Escríbenos», al final del sitio) o sube un **comprobante de pago**. El mensaje trae los datos y un enlace para responderle al cliente por WhatsApp con un toque.
 
-**Opción recomendada: CallMeBot (gratis, para avisos a tu propio número)**
+**Opción recomendada: Green-API (plan Developer gratis)**
 
-1. Agrega a tus contactos el número de CallMeBot que aparece en <https://www.callmebot.com/blog/free-api-whatsapp-messages/> (el número cambia de vez en cuando; usa el que diga la página).
-2. Desde tu WhatsApp envíale el mensaje: `I allow callmebot to send me messages`.
-3. Te responde con tu **apikey** (un número).
-4. En Netlify, *Site configuration → Environment variables*, agrega:
-   - `WHATSAPP_PHONE`: tu celular, por ejemplo `3001234567`.
-   - `CALLMEBOT_APIKEY`: la apikey que te enviaron.
-   - Para avisar a dos celulares: `WHATSAPP_PHONE=3001234567,3109876543` y `CALLMEBOT_APIKEY=clave1,clave2` (cada número activa su propia clave).
-5. Haz *Trigger deploy*. En el panel, ve a **Alojamiento → Avisos por WhatsApp** y pulsa **Enviar WhatsApp de prueba**.
+Green-API envía los avisos desde un número de WhatsApp que vinculas escaneando un código QR, igual que WhatsApp Web. Ese número es el **remitente**, y los avisos llegan a tu celular (`WHATSAPP_PHONE`).
 
-**Opción empresarial: Twilio** (con número de WhatsApp Business aprobado): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (el número de Twilio) y `WHATSAPP_PHONE`.
+1. Elige el número remitente. Lo mejor es una **línea aparte**, por ejemplo una SIM prepago con WhatsApp en un celular viejo. No uses tu número principal: es un servicio no oficial y, aunque con pocos mensajes al día el riesgo es bajo, WhatsApp podría bloquear ese número.
+2. Crea una cuenta en <https://green-api.com> → *Crear instancia* → plan **Developer** (gratis: hasta 3 chats, mensajes ilimitados).
+3. En la instancia, abre el código QR. En el celular remitente, ve a WhatsApp → *Dispositivos vinculados* → *Vincular un dispositivo* y escanéalo. El estado debe quedar «authorized».
+4. Copia de la instancia: **idInstance**, **apiTokenInstance** y **apiUrl** (por ejemplo `https://7103.api.greenapi.com`).
+5. En Netlify agrega:
+   - `GREENAPI_ID`: el idInstance.
+   - `GREENAPI_TOKEN`: el apiTokenInstance.
+   - `GREENAPI_URL`: el apiUrl.
+   - `WHATSAPP_PHONE`: tu celular, donde quieres recibir los avisos, por ejemplo `3001234567`. Puedes poner hasta 3 separados por coma.
+6. Haz *Trigger deploy* y, en el panel, pulsa **Alojamiento → Avisos por WhatsApp → Enviar WhatsApp de prueba**.
+
+Mantén encendido de vez en cuando el celular remitente con WhatsApp abierto, para que la sesión vinculada no caduque.
+
+**Opción oficial: WhatsApp Cloud API de Meta** (número verificado por Meta y sin riesgo de bloqueo; cobra por mensaje)
+
+1. En <https://developers.facebook.com> crea una app de tipo *Empresa* y agrega el producto **WhatsApp**. Meta te da un número de prueba.
+2. En *WhatsApp → Configuración de la API*, agrega tu celular como destinatario y verifícalo con el código que te llega.
+3. En *Administrador de WhatsApp → Plantillas de mensajes* crea una plantilla con estos datos:
+   - Categoría: **Utilidad**.
+   - Nombre: `aviso_hotel`.
+   - Idioma: **Español**.
+   - Cuerpo: `Aviso del hotel: {{1}}`.
+
+   Espera a que la aprueben; suele tardar minutos.
+4. Crea un token permanente: *Configuración del negocio → Usuarios del sistema → Generar token*, con el permiso `whatsapp_business_messaging`.
+5. En Netlify agrega:
+   - `WHATSAPP_TOKEN`: el token.
+   - `WHATSAPP_PHONE_ID`: el «Identificador del número de teléfono».
+   - `WHATSAPP_PHONE`: tu celular.
+   - Si usaste otro nombre o idioma de plantilla: `WHATSAPP_TEMPLATE` y `WHATSAPP_TEMPLATE_LANG`.
+6. Vuelve a desplegar y prueba desde el panel.
+
+Con el número de prueba de Meta solo puedes enviar a los números que verificaste. Para usarlo en producción registra un número propio y un medio de pago en Meta. Cada aviso es una plantilla de utilidad y se cobra por mensaje; consulta la tarifa vigente para Colombia en <https://developers.facebook.com/docs/whatsapp/pricing>.
+
+**Otras opciones:** CallMeBot (`CALLMEBOT_APIKEY`) o Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`), si alguna vez las prefieres. Si hay varias configuradas, el orden de preferencia es Green-API, Meta, CallMeBot y Twilio.
 
 Si WhatsApp falla, la solicitud o el mensaje se guardan igual; el correo de aviso también sale. La tarjeta muestra el último envío y su resultado, y tiene la opción de pausar los avisos.
 

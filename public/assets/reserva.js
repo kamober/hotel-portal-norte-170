@@ -188,7 +188,7 @@ function paymentsHTML(){
   return `<section class="gcard" aria-labelledby="payTitle"><div class="bd">
     <div class="gh"><div><div class="code">Pagos</div><h2 id="payTitle" style="margin:0;font-size:1.15rem">Envía tu comprobante de pago</h2></div>${D.res.total?`<span class="pill ${bal>0?"warn":"ok"}">${bal>0?"Saldo "+cop(bal):"Pagado"}</span>`:""}</div>
     ${D.payInfo?`<div class="note" style="white-space:pre-wrap">${esc(D.payInfo)}</div>`:""}
-    ${list.length?`<div class="paylist">${list.map(p=>`<div class="payit"><div><b class="num">${cop(p.amount)}</b><small>${esc(p.method)} · ${fd(p.date)}</small></div><span class="pill ${(PST[p.status]||["",""])[1]}">${esc((PST[p.status]||[p.status])[0])}</span></div>`).join("")}</div>`:""}
+    ${list.length?`<div class="paylist">${list.map(p=>`<div class="payit">${p.photo?`<button type="button" class="paythumb" data-gpay="${esc(p.photo)}" data-cap="${esc("Comprobante · "+cop(p.amount)+" · "+fd(p.date))}" aria-label="Ver comprobante"><img src="${API}/payment-photo/${encodeURIComponent(p.photo)}" alt="" loading="lazy"></button>`:""}<div style="flex:1"><b class="num">${cop(p.amount)}</b><small>${esc(p.method)} · ${fd(p.date)}</small></div><span class="pill ${(PST[p.status]||["",""])[1]}">${esc((PST[p.status]||[p.status])[0])}</span></div>`).join("")}</div>`:""}
     ${D.canPay?`<details class="payf" ${!list.length&&bal>0?"open":""}><summary>${list.length?"Enviar otro comprobante":"Ya pagué: subir la foto del comprobante"}</summary>
       <div class="grid2" style="margin-top:10px">
         <label class="f">Valor pagado (COP)<input type="number" id="payAmt" min="1000" step="1000" inputmode="numeric" value="${bal||""}"></label>
@@ -257,6 +257,7 @@ function bindOnce(){
     if(e.target.closest("#addP")){ S.people.push(blankPerson(S.people.length)); saveDraft(); renderPeople(); const last=$("#people").lastElementChild; last && last.scrollIntoView({behavior:"smooth",block:"center"}); if(S.people.length>=12) e.target.remove(); return; }
     if(e.target.closest("#send")) submit();
     if(e.target.closest("#paySend")) paySend();
+    const gp=e.target.closest("[data-gpay]"); if(gp) showImage(`${API}/payment-photo/${encodeURIComponent(gp.dataset.gpay)}`,"comprobante.jpg",gp.dataset.cap);
   });
 }
 function onInput(e){

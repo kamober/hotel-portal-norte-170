@@ -51,13 +51,35 @@ const modalOpen=()=>!!$("#modalRoot").firstElementChild;
 function confirmBtn(btn,label,fn){btn.addEventListener("click",()=>{if(btn.dataset.armed){fn();return;}btn.dataset.armed="1";const o=btn.textContent;btn.textContent=label;setTimeout(()=>{btn.textContent=o;delete btn.dataset.armed;},3500);});}
 
 /* Reduce fotos grandes a 1800 px antes de subirlas */
+// Cualquier formato que el navegador pueda leer (HEIC del iPhone, archivos sin tipo) se convierte a JPG.
+async function decodeImg(file){
+  try{ return await createImageBitmap(file); }catch(_){}
+  const url=URL.createObjectURL(file);
+  try{ const img=new Image(); img.src=url; await img.decode(); return img; }
+  finally{ setTimeout(()=>URL.revokeObjectURL(url),1000); }
+}
 async function shrink(file){
+  const ok=/^image\/(jpeg|png|webp)$/.test(file.type);
   try{
-    if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
-    const bmp=await createImageBitmap(file); const max=1800; const k=Math.min(1,max/Math.max(bmp.width,bmp.height));
-    if(k===1 && file.size<2.5e6) return file;
-    const c=document.createElement("canvas"); c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k);
+    const bmp=await decodeImg(file); const w=bmp.width||bmp.naturalWidth, h=bmp.height||bmp.naturalHeight;
+    const max=1800; const k=Math.min(1,max/Math.max(w,h));
+    if(ok && k===1 && file.size<2.5e6) return file;
+    const c=document.createElement("canvas"); c.width=Math.round(w*k); c.height=Math.round(h*k);
     c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
-    const b=await new Promise(res=>c.toBlob(res,"image/jpeg",.85)); return b||file;
-  }catch(_){return file;}
+    const b=await new Promise(res=>c.toBlob(res,"image/jpeg",.85)); if(b) return b;
+  }catch(_){}
+  if(ok) return file;
+  throw new Error(/hei[cf]/i.test(file.type+file.name)?"Esta foto está en formato HEIC y este navegador no la puede leer. Toma una captura de pantalla del comprobante y súbela, o en el iPhone ve a Ajustes › Cámara › Formatos › «Más compatible».":"Ese archivo no es una imagen que se pueda leer. Sube una foto JPG o PNG (una captura de pantalla sirve).");
+}
+/* Visor de imágenes dentro de la página (no abre pestañas: en celulares las pestañas con fotos privadas salen en blanco) */
+function showImage(src, name, caption){
+  const old=document.getElementById("lbx"); if(old) old.remove();
+  const el=document.createElement("div"); el.id="lbx"; el.className="lbx"; el.setAttribute("role","dialog"); el.setAttribute("aria-modal","true"); el.setAttribute("aria-label",caption||"Imagen");
+  el.innerHTML=`<div class="lbx-bar"><span>${esc(caption||"")}</span><div class="lbx-act"><a class="btn sm" href="${esc(src)}" download="${esc(name||"comprobante.jpg")}">Descargar</a><button type="button" class="btn sm" data-lbx-x aria-label="Cerrar">Cerrar ✕</button></div></div>
+    <div class="lbx-stage"><img src="${esc(src)}" alt="${esc(caption||"Imagen")}"></div>`;
+  const close=()=>{el.remove();document.removeEventListener("keydown",key,true);};
+  const key=e=>{if(e.key==="Escape"){e.stopPropagation();close();}};
+  el.addEventListener("click",e=>{if(e.target.closest("[data-lbx-x]")||e.target.classList.contains("lbx-stage"))close();});
+  document.addEventListener("keydown",key,true);
+  document.body.appendChild(el); el.querySelector("[data-lbx-x]").focus();
 }
