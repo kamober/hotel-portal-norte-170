@@ -545,9 +545,15 @@ async function handleAdmin(req, parts, store) {
     if (id === "status" && m === "GET") {
       const t = feedToken();
       return json({ configured: gcal.isConfigured(), mode: gcal.authMode(), calendarId: gcal.calendarId(), feedPath: t ? `/api/calendar/${t}.ics` : null,
+        hasClient: gcal.hasClient(), connectedEmail: gcal.connectedEmail(), envToken: !!env("GOOGLE_REFRESH_TOKEN"), redirectUri: new URL(req.url).origin + "/api/oauth/google",
         last: await store.get("gcal/last", { type: "json" }), queue: await calsync.queueInfo(store) });
     }
     if (id === "test" && m === "POST") return json(await calsync.testConnection());
+    if (id === "connect" && m === "GET") {
+      if (!gcal.hasClient()) return fail(400, "Primero agrega GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en Netlify y vuelve a desplegar.");
+      return json({ url: gcal.authUrl(new URL(req.url).origin + "/api/oauth/google", sign({ role: "gcal", exp: Date.now() + 15 * 60_000 })) });
+    }
+    if (id === "connect" && m === "DELETE") { await store.delete("gcal/oauth"); gcal.setStored(null); return json({ disconnected: true }); }
     if (id === "retry" && m === "POST") return json(await calsync.processQueue(store));
     if (id === "sync" && m === "POST") {
       if (!gcal.isConfigured()) return fail(400, "Google Calendar no está configurado. Revisa las variables de entorno en Netlify.");
@@ -738,6 +744,20 @@ export default async (req) => {
   const store = data();
   try {
     const [head, ...rest] = parts;
+    await gcal.loadStored(store);
+
+    // Regreso de Google después de «Conectar con Google» en el panel.
+    if (head === "oauth" && rest[0] === "google" && req.method === "GET") {
+      const back = (q) => new Response(null, { status: 302, headers: { Location: "/admin?" + new URLSearchParams(q) + "#gcal" } });
+      const st = verify(url.searchParams.get("state") || "");
+      if (!st || st.role !== "gcal") return back({ gcal: "error", msg: "El enlace de conexión venció. Vuelve a pulsar «Conectar con Google»." });
+      if (url.searchParams.get("error")) return back({ gcal: "error", msg: url.searchParams.get("error") === "access_denied" ? "No se dio el permiso en Google." : url.searchParams.get("error") });
+      try {
+        const tok = await gcal.exchangeCode(url.searchParams.get("code") || "", url.origin + "/api/oauth/google");
+        await store.setJSON("gcal/oauth", tok); gcal.setStored(tok);
+        return back({ gcal: "ok", email: tok.email || "" });
+      } catch (e) { return back({ gcal: "error", msg: e.message }); }
+    }
 
     if (head === "public" && req.method === "GET") return await handlePublic(store);
     if (head === "requests" && req.method === "POST" && !rest.length) return await handleNewRequest(req, store);

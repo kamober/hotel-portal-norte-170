@@ -915,8 +915,11 @@ function renderGcal(){
       <div class="grp">${g.configured?`<button class="btn sm" id="gcalTest" type="button">Probar conexión</button><button class="btn sm primary" id="gcalSync" type="button">Sincronizar todas las reservas</button>`:""}</div></div>
     <div class="grid g2" style="margin-top:12px">
       <div><div class="eyebrow">Tiempo real</div>
-        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Al instante, en el calendario <b>${esc(g.calendarId)}</b>: reservas nuevas, cambios de fechas, habitación o estado, cancelaciones, check-in en línea, contrato firmado y cambios en la ficha del huésped o la habitación. Conexión: ${g.mode==="oauth"?"cuenta de Google (OAuth)":"cuenta de servicio"}.</p>${lastHtml}${qHtml}`
-          :`<p style="margin:.4em 0 0;font-size:.88rem">Falta agregar las credenciales de Google en las variables de entorno de Netlify, por eso las reservas solo llegan por el enlace iCal (Google lo revisa cada pocas horas). Los pasos están en el README, sección «Google Calendar». Calendario destino: <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b>.</p>`}
+        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Al instante, en el calendario <b>${esc(g.calendarId)}</b>: reservas nuevas, cambios de fechas, habitación o estado, cancelaciones, check-in en línea, contrato firmado y cambios en la ficha del huésped o la habitación. Conexión: ${g.mode==="oauth"?`cuenta de Google${g.connectedEmail?` <b>${esc(g.connectedEmail)}</b>`:" (OAuth)"}`:"cuenta de servicio"}.${g.connectedEmail?` <button class="btn sm" id="gcalOff" type="button" style="margin-left:6px">Desconectar</button>`:""}</p>${lastHtml}${qHtml}`
+          :g.hasClient?`<div class="note warn" style="margin-top:8px"><b>Último paso:</b> pulsa el botón, entra con <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b> y acepta los permisos.</div>
+            <button class="btn primary" id="gcalConnect" type="button" style="margin-top:10px">Conectar con Google</button>`
+          :`<p style="margin:.4em 0 0;font-size:.88rem">Aún no está conectado: por eso las reservas solo llegan por el enlace iCal (Google lo revisa cada pocas horas). Sigue la guía del README, sección «Google Calendar». Cuando Google te pida el <b>URI de redireccionamiento autorizado</b>, copia este:</p>
+            <div class="grp" style="margin-top:6px"><input id="gcalRedir" readonly value="${esc(g.redirectUri||"")}" style="flex:1 1 220px;font-family:var(--mono);font-size:.78rem"><button class="btn sm" id="gcalRedirCp" type="button">Copiar</button></div>`}
         <div id="gcalNote" style="margin-top:8px"></div></div>
       <div><div class="eyebrow">Enlace privado iCal (respaldo)</div>
         ${feed?`<p style="margin:.4em 0 6px;font-size:.88rem">Solo lectura y lento: Google lo revisa cada varias horas. ${g.configured?"Con la conexión en tiempo real activa no lo necesitas en Google Calendar (si lo tienes suscrito, verás cada reserva duplicada).":""} Úsalo en Apple Calendar u Outlook. No lo compartas: muestra nombres y teléfonos.</p>
@@ -924,6 +927,9 @@ function renderGcal(){
           ${g.configured?"":`<a class="btn sm" style="margin-top:8px" href="${esc(sub)}" target="_blank" rel="noopener">Agregar a Google Calendar</a>`}`
           :`<p style="margin:.4em 0 0;font-size:.88rem">Disponible cuando se configure TOKEN_SECRET en Netlify.</p>`}</div>
     </div>`;
+  const cn=$("#gcalConnect"); if(cn) cn.onclick=async()=>{ cn.disabled=true; cn.textContent="Abriendo Google…"; try{ const r=await api("GET","admin/gcal/connect"); location.href=r.url; }catch(e){ toast(e.message); cn.disabled=false; cn.textContent="Conectar con Google"; } };
+  const rc=$("#gcalRedirCp"); if(rc) rc.onclick=()=>copyText($("#gcalRedir").value);
+  const off=$("#gcalOff"); if(off) confirmBtn(off,"¿Seguro? Toca otra vez",async()=>{ try{ await api("DELETE","admin/gcal/connect"); toast("Google Calendar desconectado"); S.gcal=null; renderGcal(); }catch(e){ toast(e.message); } });
   const ts=$("#gcalTest"); if(ts) ts.onclick=async()=>{
     ts.disabled=true; ts.textContent="Probando…"; const n=$("#gcalNote");
     try{const r=await api("POST","admin/gcal/test");
@@ -1364,6 +1370,13 @@ $("#plOut").addEventListener("change",()=>{let v=$("#plOut").value;if(!v||v<=PL.
 $("#plPax").addEventListener("change",()=>{PL.pax=+$("#plPax").value||1;renderPlano();});
 $("#plFind").addEventListener("input",()=>{PL.find=$("#plFind").value;renderPlano();});
 $("#plForm").addEventListener("submit",e=>e.preventDefault());
+
+/* ---------- regreso de «Conectar con Google» ---------- */
+(()=>{const q=new URLSearchParams(location.search), g=q.get("gcal"); if(!g) return;
+  history.replaceState(null,"",location.pathname); S.tab="aloj"; try{localStorage.setItem("pn170tab","aloj");}catch(_){}
+  if(g==="ok"){ setTimeout(()=>toast("¡Google Calendar conectado"+(q.get("email")?" con "+q.get("email"):"")+"! Ahora pulsa «Probar conexión» y luego «Sincronizar todas las reservas»."),900); }
+  else setTimeout(()=>toast("No se pudo conectar Google: "+(q.get("msg")||"error")),900);
+})();
 
 /* ---------- arranque ---------- */
 initEngine();

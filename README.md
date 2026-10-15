@@ -195,15 +195,20 @@ Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actu
    - `GOOGLE_CALENDAR_ID` (opcional): por defecto es cbernal@gesoltec.co.
 7. Haz *Deploys → Trigger deploy*. Luego, en el panel, ve a **Alojamiento → Google Calendar** y pulsa **Sincronizar todas las reservas** para pasar las reservas que ya existen.
 
-**Opción 2: OAuth.** Úsala si Google Workspace no permite compartir el calendario con la cuenta de servicio.
+**Opción 2 (recomendada): botón «Conectar con Google»**
 
-1. En el mismo proyecto de Cloud, configura la *Pantalla de consentimiento OAuth* como interna o externa y agrega tu correo como usuario de prueba.
-2. Ve a *Credenciales → Crear ID de cliente OAuth → Aplicación web*. Como URI de redirección usa `https://developers.google.com/oauthplayground`.
-3. En <https://developers.google.com/oauthplayground>, abre el engranaje, marca *Use your own OAuth credentials* y pega el ID y el secreto.
-4. Autoriza el alcance `https://www.googleapis.com/auth/calendar.events` con cbernal@gesoltec.co. Luego pulsa *Exchange authorization code for tokens* y copia el **refresh token**.
-5. En Netlify agrega `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y `GOOGLE_REFRESH_TOKEN`. Después vuelve a desplegar y sincroniza.
+1. Entra a <https://console.cloud.google.com> con cbernal@gesoltec.co. Crea un proyecto, por ejemplo «portal-norte-170».
+2. Habilita **Google Calendar API**, y también **Gmail API** si quieres que los correos de aviso salgan desde tu Gmail.
+3. Configura la pantalla de consentimiento OAuth:
+   - Nombre: «Reservas Portal Norte 170».
+   - Público: **Interno**.
+4. Ve a *Clientes → Crear cliente*:
+   - Tipo: **Aplicación web**.
+   - En *URIs de redireccionamiento autorizados*, pega el que muestra el panel en **Alojamiento → Google Calendar**: `https://TU-SITIO.netlify.app/api/oauth/google`.
+5. Copia el **ID de cliente** y el **Secreto**. En Netlify agrega `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`, y haz *Trigger deploy*.
+6. En el panel, pulsa **Conectar con Google**, entra con cbernal@gesoltec.co y acepta. El permiso queda guardado. Después pulsa **Probar conexión** y **Sincronizar todas las reservas**.
 
-> **Importante:** con gesoltec.co (Google Workspace) elige el tipo de usuario **«Interno»** en la pantalla de consentimiento. Si queda «Externo» en modo **Prueba**, Google invalida el refresh token a los 7 días y la sincronización deja de funcionar sin aviso (el botón «Probar conexión» lo detecta).
+Si prefieres, sigue funcionando la variable `GOOGLE_REFRESH_TOKEN` obtenida con OAuth Playground, que tiene prioridad sobre la conexión del panel.
 
 **Qué se actualiza al instante** (en cuanto se guarda el cambio, sin esperar):
 
