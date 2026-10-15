@@ -313,6 +313,17 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
   .pl-room.occ{--rbg:#2B5A86}}
 @media (max-width:1180px){.pl-q{grid-template-columns:repeat(3,1fr)}.pl-quick,.pl-find{grid-column:1/-1}}
 @media (max-width:700px){.pl-q{grid-template-columns:1fr 1fr}.pl-q label:nth-child(3){grid-column:1/-1}.pl-plan{--cols:2 !important}.pl-hall{display:none}.pl-room{min-height:118px}}
+
+/* Pagos con comprobante */
+.paylist{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.payrow{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:8px 10px;background:var(--card)}
+.paythumb{all:unset;cursor:pointer;width:52px;height:52px;border-radius:10px;overflow:hidden;background:var(--soft);flex:none;display:grid;place-items:center;color:var(--muted)}
+.paythumb img{width:100%;height:100%;object-fit:cover}
+.paythumb.none{cursor:default}
+.paythumb:focus-visible{outline:2px solid var(--accent)}
+.payrow .pinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.payrow .pinfo small{color:var(--muted);font-size:.78rem}
+@media (max-width:700px){.payrow{flex-wrap:wrap}.payrow .grp{width:100%;justify-content:flex-end}}
 </style>
 </head>
 <body class="admin">
@@ -457,6 +468,11 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
       <div class="grp"><select id="sSt" style="width:auto"><option value="nueva">Nuevas</option><option value="">Todas</option></select></div>
     </div>
     <div class="list" id="solList" style="gap:10px"></div>
+    <div class="toolbar" style="margin-top:10px">
+      <div><h2 style="font-size:1.5rem">Mensajes de contacto</h2><div class="muted" style="font-size:.84rem">Escritos desde el formulario «Escríbenos» del sitio. También te llegan por WhatsApp y correo.</div></div>
+      <div class="grp"><select id="mSt" style="width:auto"><option value="nueva">Nuevos</option><option value="">Todos</option></select></div>
+    </div>
+    <div class="list" id="msgList" style="gap:10px"></div>
   </section>
 
   <section class="tab" id="t-hues" hidden>

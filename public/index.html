@@ -328,6 +328,30 @@ footer.ft{background:var(--gr-dd);color:#fff;margin-top:44px}
   .sec{padding-block:34px}
   .g-cap small{display:none}
 }
+
+/* Formulario de contacto */
+.ct{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:28px;margin-top:22px;border:1px solid var(--hair);border-radius:14px;padding:28px;background:#fff;box-shadow:0 10px 30px rgba(21,32,51,.05)}
+.ct-side h2{font-size:1.35rem;font-weight:700}
+.ct-side p{color:var(--mut);font-size:.9rem;line-height:1.55;margin:8px 0 18px}
+.ct-hours{display:flex;align-items:center;gap:12px;background:var(--gr-soft);border-radius:10px;padding:12px 14px;flex-wrap:wrap}
+.ct-hours .ico{width:22px;height:22px;color:var(--gr)}
+.ct-hours b{display:block;font-size:.84rem}.ct-hours span{font-size:.9rem}
+.ct-now{margin-left:auto;font-size:.74rem;font-weight:700;border-radius:999px;padding:4px 10px;background:#fff;color:var(--gr)}
+.ct-now.off{color:#9A5B00;background:#FFF4D6}
+.ct-links{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.ct-links a{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-size:.9rem;font-weight:500}
+.ct-links a:hover{color:var(--gr)}
+.ct-links .ico{color:var(--gr)}
+.ct-form{display:flex;flex-direction:column;gap:12px;position:relative}
+.ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ct-form input,.ct-form select,.ct-form textarea{border-radius:8px}
+.ct-cons{display:flex;gap:8px;align-items:flex-start;font-size:.8rem;color:var(--mut);line-height:1.4}
+.ct-cons input{margin-top:2px;accent-color:var(--gr);width:auto;flex:none;height:auto}
+.ct-act{display:flex;justify-content:flex-end}
+.ct-done{border-radius:10px;padding:14px 16px;font-size:.9rem;line-height:1.5;background:var(--gr-soft);color:var(--gr-dd)}
+.ct-done.late{background:#FFF4D6;color:#5C3F00}
+.ct-done b{display:block;margin-bottom:2px}
+@media (max-width:860px){.ct{grid-template-columns:1fr;padding:22px}.ct-grid{grid-template-columns:1fr}.ct-act .hbtn{width:100%}}
 </style>
 </head>
 <body class="home">
@@ -473,6 +497,27 @@ footer.ft{background:var(--gr-dd);color:#fff;margin-top:44px}
     <div class="ph"><img src="/assets/promo/hab-doble.jpg" alt="" loading="lazy"></div>
     <div><h2>Reserva directo con el hotel</h2><p id="directLead">Te confirmamos disponibilidad, llegada y forma de pago directamente con el alojamiento.</p></div>
     <div class="act"><a class="hbtn pri" id="ctaBtn" href="#habitaciones">Reservar ahora <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+  </div>
+  <div class="ct" id="escribenos">
+    <div class="ct-side">
+      <h2>Escríbenos</h2>
+      <p>¿Dudas sobre tarifas, estadías, parqueadero o cómo llegar? Déjanos tu mensaje y te respondemos por WhatsApp o llamada.</p>
+      <div class="ct-hours"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div><b>Horario de atención</b><span id="ctHours">8:00 a. m. a 6:00 p. m.</span></div><span class="ct-now" id="ctNow" hidden></span></div>
+      <div class="ct-links" id="ctLinks"></div>
+    </div>
+    <form class="ct-form" id="ctForm" novalidate>
+      <div class="ct-grid">
+        <label class="f">Nombre<input id="ctName" autocomplete="name" required maxlength="100"></label>
+        <label class="f">Teléfono / WhatsApp<input id="ctPhone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="30"></label>
+        <label class="f">Correo (opcional)<input id="ctEmail" type="email" autocomplete="email" maxlength="120"></label>
+        <label class="f">Asunto<select id="ctTopic"><option>Información general</option><option>Disponibilidad y tarifas</option><option>Estadía por varios días</option><option>Grupos o empresas</option><option>Otro</option></select></label>
+      </div>
+      <label class="f">Mensaje<textarea id="ctMsg" rows="4" maxlength="1500" required placeholder="Cuéntanos fechas, número de personas o lo que necesites."></textarea></label>
+      <input id="ctWeb" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px">
+      <label class="ct-cons"><input type="checkbox" id="ctCons"> Autorizo el tratamiento de mis datos para responder este mensaje (Ley 1581 de 2012).</label>
+      <div class="ct-act"><button class="hbtn pri" id="ctSend" type="submit">Enviar mensaje <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+      <div id="ctOut" aria-live="polite"></div>
+    </form>
   </div>
 </section>
 

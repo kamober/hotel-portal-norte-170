@@ -75,6 +75,18 @@ body.guest{padding:0;background:var(--bg)}
   .dates{grid-template-columns:1fr 1fr}.dates .n{grid-column:1/-1;grid-row:2;border:0;border-top:1px solid var(--line);padding-top:8px;display:flex;gap:6px;justify-content:center;align-items:baseline}
   .dates .n b{display:inline;font-size:1rem}
 }
+
+/* Pagos */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+.paylist{display:flex;flex-direction:column;gap:8px}
+.payit{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.payit small{display:block;color:var(--muted);font-size:.8rem}
+.payf summary{cursor:pointer;font-weight:600;color:var(--accent);padding:4px 0}
+.payshot{display:flex;align-items:center;gap:12px;border:2px dashed var(--line);border-radius:14px;padding:12px;margin-top:10px;cursor:pointer;font-size:.88rem;color:var(--muted)}
+.payshot.ok{border-style:solid;border-color:var(--ok);color:var(--fg)}
+.payshot img{width:64px;height:64px;object-fit:cover;border-radius:10px;flex:none}
+.payshot>span:first-of-type:not(#payShotT){font-size:1.6rem}
 </style>
 </head>
 <body class="guest">

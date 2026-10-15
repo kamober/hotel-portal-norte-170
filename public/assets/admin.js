@@ -45,7 +45,7 @@ async function del(path){
 async function loadState(){
   try{
     const j = await api("GET","admin/state");
-    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[]; S.links=j.links||{};
+    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[]; S.msgs=j.messages||[]; S.links=j.links||{};
     S.loaded=true; loadIcal(); setSync("on","Actualizado " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
     render();
   }catch(e){ if(S.token) setSync("off", e.message || "Sin conexión"); }
@@ -112,11 +112,11 @@ document.addEventListener("click", e=>{
 function render(){
   if($("#app").hidden) return;
   $("#cRes").textContent = S.res.filter(r=>active(r) && r.checkOut>=todayISO()).length || "";
-  $("#cSol").textContent = S.reqs.filter(x=>x.status==="nueva").length || "";
+  $("#cSol").textContent = (S.reqs.filter(x=>x.status==="nueva").length + (S.msgs||[]).filter(x=>x.status==="nueva").length) || "";
   $("#cGu").textContent = S.guests.length || "";
   $("#cRo").textContent = S.rooms.length || "";
   if(S.hotel){ $("#hName").innerHTML = nameHTML(S.hotel.name||"Portal Norte 170").replace(/^Hotel\s+/,'<span class="hp">Hotel </span>'); $("#hAddr").textContent = (S.hotel.address||"") + (S.hotel.zone? " · "+S.hotel.zone : ""); }
-  ({panel:renderPanel,plano:renderPlano,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:renderSol,hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
+  ({panel:renderPanel,plano:renderPlano,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:()=>{renderSol();renderMsgs();},hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
 }
 function liRes(r, actions){
   const ro = roomById(r.roomId);
@@ -357,6 +357,7 @@ function renderHotel(){
   $("#aloj").innerHTML=`
   <div class="panel" id="gcalCard"></div>
   <div class="panel" id="icalCard"></div>
+  <div class="panel" id="waCard"></div>
   <div class="panel" id="notifyCard"></div>
   <div class="panel" id="contractCard"></div>
   <div class="facts">
@@ -388,7 +389,7 @@ function renderHotel(){
     <div class="panel"><h3>Fuentes consultadas</h3><ul class="plain" style="margin-top:10px">${(h.sources||[]).map(s=>`<li>${link(s.url,s.title)}</li>`).join("")}</ul>
       ${h.taxNote?`<p class="muted" style="font-size:.8rem;margin:10px 0 0">${esc(h.taxNote)}</p>`:""}</div>
   </div>`;
-  renderGcal(); renderIcal(); renderNotify(); loadContractCard();
+  renderGcal(); renderIcal(); renderWa(); renderNotify(); loadContractCard();
 }
 
 /* ---------- reserva: formulario ---------- */
@@ -515,10 +516,15 @@ function openResDetail(id){
       ${r.block?"Fechas bloqueadas":"Reserva importada"} automáticamente del calendario de ${esc(chan(r.channel).n)}. Las fechas se actualizan solas desde el canal${r.status==="cancelada"&&r.autoCancelled?"; se canceló porque desapareció del canal":""}. Puedes asociar el huésped, registrar el valor y los pagos.</div>`:""}
     <div class="panel" id="dOnline"></div>
     ${r.notes?`<div class="panel"><div class="eyebrow">Notas</div><p style="margin:.3em 0 0;white-space:pre-wrap">${esc(r.notes)}</p></div>`:""}
+    <div class="panel" id="dPays">${paysHTML(r)}</div>
     <div id="dPayBox"><fieldset><legend>Registrar pago</legend><div class="grid g3" style="align-items:end">
       <label class="f">Valor (COP)<input type="number" id="dPay" min="0" step="1000" value="${Math.max(0,balance(r))}"></label>
       <label class="f">Medio<select id="dPayM">${PAY.map(x=>opt(x,x,r.payMethod||"Efectivo")).join("")}</select></label>
-      <button class="btn" id="dPayGo">Registrar abono</button></div></fieldset></div>`;
+      <label class="f">Fecha<input type="date" id="dPayD" value="${todayISO()}"></label>
+      <label class="f">Referencia<input id="dPayR" maxlength="60" placeholder="Opcional"></label>
+      <label class="btn" id="dPayPhL" style="justify-content:center">📎 Foto del comprobante<input type="file" id="dPayPh" accept="image/*" hidden></label>
+      <button class="btn primary" id="dPayGo">Registrar abono</button></div>
+      <div id="dPayPrev" class="muted" style="font-size:.8rem;margin-top:6px"></div></fieldset></div>`;
   const canCI = ["pendiente","confirmada"].includes(r.status), canCO = r.status==="encasa";
   const foot=`<button class="btn danger" id="dDel">Cancelar reserva</button><span style="flex:1"></span><button class="btn" id="dEdit">Editar</button>
     ${canCI?`<button class="btn primary" id="dCI">Hacer check-in</button>`:""}${canCO?`<button class="btn primary" id="dCO">Hacer check-out</button>`:""}`;
@@ -531,8 +537,7 @@ function openResDetail(id){
     const delB=ov.querySelector("#dDel");
     if(r.status==="cancelada"){delB.textContent="Eliminar definitivamente";confirmBtn(delB,"Toca otra vez para eliminar",async()=>{try{await del("reservations/"+r.id);toast("Reserva eliminada");closeModal();}catch(e){toast(e.message);}});}
     else confirmBtn(delB,"Toca otra vez para confirmar",async()=>{try{await save("reservations/"+r.id,{status:"cancelada"},true);toast("Reserva cancelada");closeModal();}catch(_){}});
-    ov.querySelector("#dPayGo").onclick=async()=>{const v=Number(ov.querySelector("#dPay").value)||0;if(v<=0){toast("Escribe un valor mayor que cero.");return;}
-      try{await save("reservations/"+r.id,{paid:(Number(r.paid)||0)+v,payMethod:ov.querySelector("#dPayM").value},true);toast("Abono de "+cop(v)+" registrado");closeModal();}catch(_){}};
+    bindPays(ov,r);
     if(r.status==="cancelada") ov.querySelector("#dPayBox").hidden=true;
   }, true);
 }
@@ -577,10 +582,14 @@ function openGuestForm(g, opts){
       <div class="idshots" id="gPh"></div>
       <div class="muted" style="font-size:.76rem">Privadas: solo se ven con sesión de administrador. El huésped también puede subirlas desde su enlace de check-in en línea.</div></fieldset>
     <label class="f">Notas (preferencias, observaciones)<textarea id="gNotes">${esc(g.notes||"")}</textarea></label>
-    ${stays.length?`<div class="panel"><div class="eyebrow">Historial de estancias</div><div class="list">${stays.map(r=>liRes(r,"")).join("")}</div></div>`:""}`;
+    ${stays.length?`<div class="panel"><div class="eyebrow">Historial de estancias</div><div class="list">${stays.map(r=>liRes(r,"")).join("")}</div></div>`:""}
+    ${(()=>{const pays=stays.flatMap(r=>(r.payments||[]).map(p=>({r,p}))).sort((a,b)=>String(b.p.at).localeCompare(String(a.p.at)));
+      const tot=pays.filter(x=>x.p.status==="verificado").reduce((a,x)=>a+(Number(x.p.amount)||0),0);
+      return pays.length?`<div class="panel" id="gPays"><div class="toolbar"><div class="eyebrow">Historial de pagos</div><span class="muted" style="font-size:.84rem">Verificado: <b class="num">${cop(tot)}</b></span></div><div class="paylist">${pays.map(x=>payRow(x.r,x.p,true)).join("")}</div></div>`:"";})()}`;
   const foot=`${isNew?"":`<button class="btn danger" id="gDel">Eliminar ficha</button><span style="flex:1"></span>`}<button class="btn" id="gCancel">Cerrar</button><button class="btn primary" id="gSave">${isNew?"Registrar huésped":"Guardar ficha"}</button>`;
   const ph={selfie:g.selfie||"",docFront:g.docFront||"",docBack:g.docBack||""}, phOld=new Set(), phNew=new Set();
   openModal(isNew?"Nuevo huésped":gName(g), body, foot, ov=>{
+    const gp=ov.querySelector("#gPays"); if(gp) hydrateIdImgs(gp);
     ov.querySelector("#gCancel").onclick=()=>{phNew.forEach(id=>api("DELETE","admin/ids/"+encodeURIComponent(id)).catch(()=>{}));closeModal();};
     const box=ov.querySelector("#gPh");
     const drawPh=()=>{box.innerHTML=Object.entries(ID_LABELS).map(([k,l])=>`<div class="idshot">
@@ -840,7 +849,7 @@ function openHotelForm(){
       <label class="f">Check-in desde<input type="time" id="hoCi1" value="${esc(h.checkinFrom||"15:00")}"></label>
       <label class="f">Check-in hasta<input type="time" id="hoCi2" value="${esc(h.checkinTo||"18:00")}"></label>
       <label class="f">Check-out<input type="time" id="hoCo" value="${esc(h.checkout||"11:00")}"></label>
-      <label class="f">Medios de pago<input id="hoPay" value="${esc(h.payments||"")}"></label>
+      <label class="f">Medios de pago (se muestran al huésped para pagar)<textarea id="hoPay" rows="2" placeholder="Transferencia Bancolombia ahorros 000-000000-00 · Nequi 300 000 0000">${esc(h.payments||"")}</textarea></label>
     </div>
     <label class="f">Frase de portada (sitio público)<input id="hoTag" value="${esc(h.tagline||"")}" placeholder="Tu base en el norte de Bogotá"></label>
     <label class="f">Descripción (sitio público)<textarea id="hoDesc" rows="4">${esc(h.description||"")}</textarea></label></fieldset>
@@ -959,6 +968,8 @@ function renderPanelAlerts(){
   const conf=S.res.filter(r=>r.source==="ical"&&active(r)&&r.checkOut>t&&r.conflict&&r.conflict.length);
   const errs=S.ical&&S.ical.status?Object.values(S.ical.status.feeds||{}).filter(f=>!f.ok):[];
   box.innerHTML=(conf.length?`<div class="note bad" style="margin-bottom:12px"><b>Posible sobreventa.</b> ${conf.length} reserva${conf.length>1?"s":""} de los canales se cruza${conf.length>1?"n":""} con otra en la misma habitación: ${conf.map(r=>{const ro=roomById(r.roomId);return `<a href="#" data-open="${esc(r.id)}">Hab. ${esc(ro?ro.number:"?")} · ${fd(r.checkIn)}</a>`;}).join(", ")}.</div>`:"")
+    +(pendingPays()?`<div class="note warn" style="margin-bottom:12px"><b>${pendingPays()} comprobante${pendingPays()>1?"s":""} de pago por verificar.</b> ${S.res.filter(r=>(r.payments||[]).some(p=>p.status==="por verificar")).map(r=>`<a href="#" data-open="${esc(r.id)}">${esc(resGuest(r))} · ${esc(r.id)}</a>`).join(", ")}</div>`:"")
+    +((S.msgs||[]).some(m=>m.status==="nueva")?`<div class="note" style="margin-bottom:12px"><b>${S.msgs.filter(m=>m.status==="nueva").length} mensaje(s) de contacto sin atender.</b> Míralos en Solicitudes.</div>`:"")
     +(errs.length?`<div class="note warn" style="margin-bottom:12px">${errs.length} calendario${errs.length>1?"s":""} de Booking/Airbnb no se pudo leer en la última sincronización. Revísalo en Alojamiento.</div>`:"");
 }
 function renderIcal(){
@@ -1150,6 +1161,102 @@ hdrBtn.addEventListener("click",e=>{e.stopPropagation();setHdr(!hdrActs.classLis
 hdrActs.addEventListener("click",e=>{if(e.target.closest("a,button"))setHdr(false);});
 document.addEventListener("click",e=>{if(hdrActs.classList.contains("open")&&!e.target.closest("#hdrActs"))setHdr(false);});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&hdrActs.classList.contains("open"))setHdr(false);});
+
+/* ---------- pagos con comprobante ---------- */
+const PST={"verificado":{n:"Verificado",cls:"ok"},"por verificar":{n:"Por verificar",cls:"warn"},"rechazado":{n:"Rechazado",cls:"bad"}};
+function payRow(r,p,withRes){
+  const st=PST[p.status]||{n:p.status,cls:""};
+  return `<div class="payrow">${p.photoId?`<button type="button" class="paythumb" data-payview="${esc(p.photoId)}" aria-label="Ver comprobante"><img data-idimg="${esc(p.photoId)}" alt=""></button>`:`<span class="paythumb none" title="Sin foto">—</span>`}
+    <div class="pinfo"><div class="grp" style="gap:8px"><b class="num">${cop(p.amount)}</b><span class="pill ${st.cls}">${st.n}</span></div>
+      <small>${esc(p.method)} · ${fd(p.date)}${p.ref?" · ref. "+esc(p.ref):""} · ${p.by==="huesped"?"subido por el huésped":"recepción"}${withRes?` · <a href="#" data-open="${esc(r.id)}">${esc(r.id)}</a>`:""}</small>${p.note?`<small>${esc(p.note)}</small>`:""}</div>
+    ${withRes?"":`<div class="grp" style="gap:6px">${p.status==="por verificar"?`<button class="btn sm primary" data-payst="${esc(p.id)}|verificado">Verificar</button><button class="btn sm" data-payst="${esc(p.id)}|rechazado">Rechazar</button>`:""}${p.status==="rechazado"?`<button class="btn sm" data-payst="${esc(p.id)}|verificado">Verificar</button>`:""}<button class="btn sm danger" data-paydel="${esc(p.id)}">Quitar</button></div>`}</div>`;
+}
+function paysHTML(r){
+  const list=(r.payments||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const pend=list.filter(p=>p.status==="por verificar").length;
+  return `<div class="toolbar"><div class="eyebrow">Pagos y comprobantes</div>${pend?`<span class="pill warn">${pend} por verificar</span>`:""}</div>
+    ${list.length?`<div class="paylist">${list.map(p=>payRow(r,p)).join("")}</div>`:`<div class="muted" style="font-size:.86rem;margin-top:6px">Sin pagos con comprobante. El huésped puede subir la foto desde su enlace, o regístralo abajo.</div>`}`;
+}
+function bindPays(ov,r){
+  let photo="";
+  const box=ov.querySelector("#dPays"); hydrateIdImgs(box);
+  const redraw=rec=>{ r=rec; box.innerHTML=paysHTML(rec); hydrateIdImgs(box); };
+  const after=rec=>{ const g=rec._gcal; delete rec._gcal; upsert("res",rec); gcalWarn(g); render(); redraw(rec); const k=ov.querySelector("#dPay"); if(k) k.value=Math.max(0,balance(rec)); };
+  box.addEventListener("click",async e=>{
+    const st=e.target.closest("[data-payst]"); if(st){ const [pid,status]=st.dataset.payst.split("|"); st.disabled=true;
+      try{ after(await api("PATCH",`admin/payments/${encodeURIComponent(r.id)}/${encodeURIComponent(pid)}`,{status})); toast(status==="verificado"?"Pago verificado y sumado al abonado":"Pago marcado como rechazado"); }catch(err){ toast(err.message); st.disabled=false; } return; }
+    const d=e.target.closest("[data-paydel]"); if(d){ if(d.dataset.sure!=="1"){ d.dataset.sure="1"; d.textContent="¿Quitar?"; return; }
+      try{ after(await api("DELETE",`admin/payments/${encodeURIComponent(r.id)}/${encodeURIComponent(d.dataset.paydel)}`)); toast("Pago quitado"); }catch(err){ toast(err.message); } }
+  });
+  const inp=ov.querySelector("#dPayPh"), prevBox=ov.querySelector("#dPayPrev");
+  if(inp) inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; prevBox.textContent="Subiendo foto…";
+    try{ const blob=await shrink(f); const d=await api("POST","admin/ids",undefined,blob); if(photo) api("DELETE","admin/ids/"+encodeURIComponent(photo)).catch(()=>{}); photo=d.id; prevBox.innerHTML=`✓ Foto adjunta: <b>${esc(f.name)}</b>`; ov.querySelector("#dPayPhL").classList.add("primary"); }
+    catch(err){ prevBox.textContent=err.message; } inp.value=""; };
+  const go=ov.querySelector("#dPayGo"); if(go) go.onclick=async()=>{ const amount=Number(ov.querySelector("#dPay").value)||0; if(amount<=0){toast("Escribe un valor mayor que cero.");return;}
+    go.disabled=true;
+    try{ after(await api("POST","admin/payments/"+encodeURIComponent(r.id),{amount,method:ov.querySelector("#dPayM").value,date:ov.querySelector("#dPayD").value,ref:ov.querySelector("#dPayR").value,photoId:photo}));
+      toast("Abono de "+cop(amount)+" registrado"); photo=""; prevBox.textContent=""; ov.querySelector("#dPayPhL").classList.remove("primary"); ov.querySelector("#dPayR").value=""; }
+    catch(err){ toast(err.message); } go.disabled=false; };
+}
+document.addEventListener("click",async e=>{const v=e.target.closest("[data-payview]"); if(!v) return; e.preventDefault(); const w=window.open("","_blank"); try{ const u=await idImgUrl(v.dataset.payview); if(w) w.location=u; else window.open(u,"_blank"); }catch(err){ if(w) w.close(); toast(err.message); }});
+const pendingPays=()=>S.res.reduce((n,r)=>n+(r.payments||[]).filter(p=>p.status==="por verificar").length,0);
+
+/* ---------- mensajes de contacto ---------- */
+function waLink(phone,text){ const d=String(phone||"").replace(/\D/g,""); const n=d.length===10&&d.startsWith("3")?"57"+d:d; return n?`https://wa.me/${n}${text?"?text="+encodeURIComponent(text):""}`:""; }
+function renderMsgs(){
+  const box=$("#msgList"); if(!box) return;
+  const f=$("#mSt").value, list=(S.msgs||[]).filter(x=>!f||x.status===f).sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  box.innerHTML=list.map(x=>{const wa=waLink(x.phone,`Hola ${String(x.name||"").split(" ")[0]}, te escribimos de ${S.hotel&&S.hotel.name||"Hotel Portal Norte 170"} por tu mensaje.`);
+    return `<div class="panel" style="display:flex;flex-direction:column;gap:8px">
+      <div class="toolbar"><div class="grp"><b>${esc(x.name)}</b><span class="pill ${x.status==="nueva"?"warn":"ok"}">${x.status==="nueva"?"Nuevo":"Atendido"}</span>${x.afterHours?`<span class="pill">Fuera de horario</span>`:""}${x.topic?`<span class="chip">${esc(x.topic)}</span>`:""}</div>
+        <span class="muted num" style="font-size:.76rem">${esc(x.id)} · ${esc(new Date(x.createdAt).toLocaleString("es-CO",{dateStyle:"medium",timeStyle:"short"}))}</span></div>
+      <div style="white-space:pre-wrap;font-size:.9rem">${esc(x.message)}</div>
+      <div class="muted" style="font-size:.84rem">${esc(x.phone)}${x.email?" · "+esc(x.email):""}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn sm danger" data-mdel="${esc(x.id)}">Eliminar</button>
+        ${x.email?`<a class="btn sm" href="mailto:${esc(x.email)}">Correo</a>`:""}
+        <a class="btn sm" href="tel:${esc(String(x.phone).replace(/[^\d+]/g,""))}">Llamar</a>
+        ${wa?`<a class="btn sm" href="${esc(wa)}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+        ${x.status==="nueva"?`<button class="btn sm primary" data-mdone="${esc(x.id)}">Marcar atendido</button>`:`<button class="btn sm" data-mnew="${esc(x.id)}">Marcar como nuevo</button>`}</div></div>`;}).join("")
+    || `<div class="empty">${S.loaded?(f==="nueva"?"No hay mensajes nuevos.":"Aún no hay mensajes de contacto."):"Cargando…"}</div>`;
+}
+$("#mSt").addEventListener("change",renderMsgs);
+$("#msgList").addEventListener("click",async e=>{
+  const done=e.target.closest("[data-mdone],[data-mnew]");
+  if(done){ const id=done.dataset.mdone||done.dataset.mnew; try{ const rec=await api("PATCH","admin/messages/"+encodeURIComponent(id),{status:done.dataset.mdone?"atendida":"nueva"}); S.msgs=S.msgs.map(m=>m.id===id?rec:m); render(); }catch(err){toast(err.message);} return; }
+  const d=e.target.closest("[data-mdel]"); if(d){ if(d.dataset.sure!=="1"){d.dataset.sure="1";d.textContent="¿Eliminar?";return;}
+    try{ await api("DELETE","admin/messages/"+encodeURIComponent(d.dataset.mdel)); S.msgs=S.msgs.filter(m=>m.id!==d.dataset.mdel); render(); toast("Mensaje eliminado"); }catch(err){toast(err.message);} }
+});
+
+/* ---------- WhatsApp ---------- */
+async function loadWa(){ try{ S.wa=await api("GET","admin/wa/status"); }catch(_){ S.wa={error:true}; } renderWa(); }
+function renderWa(){
+  const box=$("#waCard"); if(!box) return;
+  if(!S.wa){ box.innerHTML=`<div class="empty">Consultando WhatsApp…</div>`; loadWa(); return; }
+  const w=S.wa, h=S.hotel||{}, on=!!w.provider&&!h.waOff, last=w.last, hrs=w.hours||{from:"08:00",to:"18:00"};
+  box.innerHTML=`
+    <div class="toolbar"><div class="grp"><h3>Avisos por WhatsApp</h3>${on?'<span class="pill ok">Activos</span>':w.provider?'<span class="pill warn">En pausa</span>':'<span class="pill warn">Sin conectar</span>'}</div>
+      ${w.provider?`<button class="btn sm primary" type="button" id="waTest">Enviar WhatsApp de prueba</button>`:""}</div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><div class="eyebrow">Te llega un WhatsApp cuando</div>
+        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>alguien envía una solicitud de reserva</li><li>alguien escribe por el formulario de contacto</li><li>un huésped sube un comprobante de pago</li></ul>
+        <div style="font-size:.84rem;margin-top:8px">${w.provider?`Servicio: <b>${w.provider==="callmebot"?"CallMeBot":"Twilio"}</b> · a ${esc((w.phones||[]).join(", "))}.`:`Falta configurar WhatsApp en Netlify (README, sección «Avisos por WhatsApp»).`}</div>
+        ${last?`<div class="note ${last.ok?"ok":"bad"}" style="margin-top:8px">Último envío ${fdt(last.at)} (${esc(last.kind||"")}): ${last.ok?"enviado":esc(last.error||"falló")}</div>`:""}
+        <label class="f chk" style="margin-top:8px"><input type="checkbox" id="waOff" ${h.waOff?"checked":""}> Pausar los avisos por WhatsApp</label>
+        <div id="waNote" style="margin-top:8px"></div></div>
+      <div><div class="eyebrow">Horario de atención</div>
+        <div class="grid g2" style="margin-top:6px"><label class="f">Desde<input type="time" id="waFrom" value="${esc(hrs.from)}"></label><label class="f">Hasta<input type="time" id="waTo" value="${esc(hrs.to)}"></label></div>
+        <p style="font-size:.84rem;margin:.5em 0">Si alguien escribe o pide una reserva fuera de este horario, el sitio le responde: <i>«Nuestro horario de atención es de ${esc(w.hoursText||"8:00 a. m. a 6:00 p. m.")} (hora de Colombia)»</i>, y tu aviso lo marca como fuera de horario. Ahora: <b>${w.openNow?"dentro del horario":"fuera de horario"}</b>.</p>
+        <button class="btn sm" type="button" id="waSave">Guardar</button></div>
+    </div>`;
+  $("#waSave").onclick=async()=>{ const from=$("#waFrom").value, to=$("#waTo").value; if(!from||!to||from===to){toast("Revisa el horario.");return;}
+    try{ await save("hotel",{attentionFrom:from,attentionTo:to,waOff:$("#waOff").checked},true); toast("Guardado"); S.wa=null; renderWa(); }catch(_){} };
+  $("#waOff").onchange=()=>$("#waSave").click();
+  const t=$("#waTest"); if(t) t.onclick=async()=>{ t.disabled=true; t.textContent="Enviando…";
+    try{ await api("POST","admin/wa/test"); $("#waNote").innerHTML=`<div class="note ok">Mensaje de prueba enviado. Revisa tu WhatsApp.</div>`; }
+    catch(e){ $("#waNote").innerHTML=`<div class="note bad">${esc(e.message)}</div>`; }
+    t.disabled=false; t.textContent="Enviar WhatsApp de prueba"; S.wa=null; setTimeout(loadWa,300); };
+}
 
 /* ---------- plano de habitaciones (para responder llamadas) ---------- */
 const PL={in:null,out:null,pax:1,find:""};

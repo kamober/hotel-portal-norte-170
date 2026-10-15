@@ -108,6 +108,47 @@ Pestaña **Plano** del panel. Muestra las habitaciones por piso, a lado y lado d
 
 La ubicación de las habitaciones es esquemática: se agrupan por el campo **Piso** de cada habitación (o el primer dígito del número).
 
+## Avisos por WhatsApp
+
+Te llega un WhatsApp cada vez que alguien envía una **solicitud de reserva**, escribe por el **formulario de contacto** («Escríbenos», al final del sitio) o sube un **comprobante de pago**. El mensaje trae los datos y un enlace para responderle al cliente por WhatsApp con un toque.
+
+**Opción recomendada: CallMeBot (gratis, para avisos a tu propio número)**
+
+1. Agrega a tus contactos el número de CallMeBot que aparece en <https://www.callmebot.com/blog/free-api-whatsapp-messages/> (el número cambia de vez en cuando; usa el que diga la página).
+2. Desde tu WhatsApp envíale el mensaje: `I allow callmebot to send me messages`.
+3. Te responde con tu **apikey** (un número).
+4. En Netlify, *Site configuration → Environment variables*, agrega:
+   - `WHATSAPP_PHONE`: tu celular, por ejemplo `3001234567`.
+   - `CALLMEBOT_APIKEY`: la apikey que te enviaron.
+   - Para avisar a dos celulares: `WHATSAPP_PHONE=3001234567,3109876543` y `CALLMEBOT_APIKEY=clave1,clave2` (cada número activa su propia clave).
+5. Haz *Trigger deploy*. En el panel, ve a **Alojamiento → Avisos por WhatsApp** y pulsa **Enviar WhatsApp de prueba**.
+
+**Opción empresarial: Twilio** (con número de WhatsApp Business aprobado): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (el número de Twilio) y `WHATSAPP_PHONE`.
+
+Si WhatsApp falla, la solicitud o el mensaje se guardan igual; el correo de aviso también sale. La tarjeta muestra el último envío y su resultado, y tiene la opción de pausar los avisos.
+
+### Horario de atención
+
+Por defecto es de **8:00 a. m. a 6:00 p. m.** (hora de Colombia) y se cambia en **Alojamiento → Avisos por WhatsApp**. Si alguien envía una solicitud de reserva o un mensaje de contacto fuera de ese horario:
+
+- el sitio le responde: *«Nuestro horario de atención es de 8:00 a. m. a 6:00 p. m. (hora de Colombia). Como escribiste fuera de ese horario, te responderemos apenas abramos.»*;
+- tu WhatsApp y tu correo lo marcan como «fuera del horario de atención», y en el panel aparece con la etiqueta «Fuera de horario».
+
+El formulario «Escríbenos» muestra el horario y si en ese momento están atendiendo.
+
+### Mensajes de contacto
+
+Están en la pestaña **Solicitudes**, debajo de las solicitudes de reserva. Desde cada uno puedes llamar, escribir por WhatsApp o por correo, marcarlo como atendido o eliminarlo.
+
+## Pagos con comprobante
+
+- **El huésped** entra a su enlace de reserva y, en «Pagos», ve los medios de pago del hotel (el campo «Medios de pago» de la ficha del alojamiento) y su saldo. Ahí sube la foto del comprobante con el valor, el medio, la fecha y la referencia. El pago queda **por verificar** y te llega un WhatsApp y un correo.
+- **En el panel**, el detalle de la reserva muestra «Pagos y comprobantes» con la foto de cada pago. Al pulsar **Verificar** el valor se suma al abonado; **Rechazar** o **Quitar** lo descuentan si ya estaba sumado. El Tablero avisa cuántos comprobantes faltan por verificar.
+- **En recepción** también puedes registrar un abono con su foto: «Registrar pago» → «📎 Foto del comprobante». Ese abono queda verificado.
+- **En la ficha del huésped** aparece el **Historial de pagos** de todas sus estancias, con la foto de cada comprobante y el total verificado.
+
+Las fotos de los comprobantes son privadas, como las de los documentos: solo se ven con sesión de administrador.
+
 ## Google Calendar
 
 Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actualiza al guardarla y se borra al cancelarla o eliminarla. El evento va del check-in (15:00) al check-out (11:00) y lleva el nombre del huésped, su teléfono, la habitación, el canal, el estado y el saldo. Hay dos formas de conectarlo. Puedes usar las dos a la vez.

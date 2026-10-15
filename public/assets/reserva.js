@@ -174,10 +174,58 @@ function contractHTML(){
 }
 async function refresh(){ try{ const r=await fetch(API); if(r.ok){ D=await r.json(); } }catch(_){} }
 function render(){
-  $("#app").innerHTML = confirmationHTML() + checkinHTML() + contractHTML() + `<p class="foot-g">${esc(D.hotel.name||"")} · ${esc(D.hotel.address||"")}${D.hotel.whatsapp?" · WhatsApp "+esc(D.hotel.whatsapp):""}</p>`;
+  $("#app").innerHTML = confirmationHTML() + paymentsHTML() + checkinHTML() + contractHTML() + `<p class="foot-g">${esc(D.hotel.name||"")} · ${esc(D.hotel.address||"")}${D.hotel.whatsapp?" · WhatsApp "+esc(D.hotel.whatsapp):""}</p>`;
   bind();
 }
 function renderPeople(){ const box=$("#people"); if(!box) return; box.innerHTML=S.people.map(personHTML).join(""); const lg=box.closest("fieldset").querySelector("legend"); if(lg) lg.textContent=`2 · Huéspedes y fotos (${S.people.length})`; }
+
+/* ---------- pagos: subir comprobante ---------- */
+const PST={"verificado":["Verificado","ok"],"por verificar":["Por verificar","warn"],"rechazado":["Rechazado","bad"]};
+let payPhoto="", payBusy=false, payPrev="";
+function paymentsHTML(){
+  if(!D.canPay && !(D.payments||[]).length) return "";
+  const bal=Math.max(0,(Number(D.res.total)||0)-(Number(D.res.paid)||0)), list=D.payments||[];
+  return `<section class="gcard" aria-labelledby="payTitle"><div class="bd">
+    <div class="gh"><div><div class="code">Pagos</div><h2 id="payTitle" style="margin:0;font-size:1.15rem">Envía tu comprobante de pago</h2></div>${D.res.total?`<span class="pill ${bal>0?"warn":"ok"}">${bal>0?"Saldo "+cop(bal):"Pagado"}</span>`:""}</div>
+    ${D.payInfo?`<div class="note" style="white-space:pre-wrap">${esc(D.payInfo)}</div>`:""}
+    ${list.length?`<div class="paylist">${list.map(p=>`<div class="payit"><div><b class="num">${cop(p.amount)}</b><small>${esc(p.method)} · ${fd(p.date)}</small></div><span class="pill ${(PST[p.status]||["",""])[1]}">${esc((PST[p.status]||[p.status])[0])}</span></div>`).join("")}</div>`:""}
+    ${D.canPay?`<details class="payf" ${!list.length&&bal>0?"open":""}><summary>${list.length?"Enviar otro comprobante":"Ya pagué: subir la foto del comprobante"}</summary>
+      <div class="grid2" style="margin-top:10px">
+        <label class="f">Valor pagado (COP)<input type="number" id="payAmt" min="1000" step="1000" inputmode="numeric" value="${bal||""}"></label>
+        <label class="f">Medio de pago<select id="payMet">${(D.payMethods||[]).map(x=>`<option>${esc(x)}</option>`).join("")}</select></label>
+        <label class="f">Fecha del pago<input type="date" id="payDate" value="${esc(D.today||todayISO())}" max="${esc(D.today||todayISO())}"></label>
+        <label class="f">Referencia (opcional)<input id="payRef" maxlength="60" placeholder="N.º de transacción"></label>
+      </div>
+      <label class="payshot ${payPhoto?"ok":""}" id="payShot"><input type="file" id="payFile" accept="image/*" hidden>
+        ${payPrev?`<img src="${payPrev}" alt="Comprobante">`:`<span>📷</span>`}<span id="payShotT">${payBusy?"Subiendo foto…":payPhoto?"Foto lista · toca para cambiarla":"Toca para tomar o elegir la foto del comprobante"}</span></label>
+      <div id="payErr"></div>
+      <button class="btn primary" id="paySend" type="button" style="margin-top:10px">Enviar comprobante</button>
+      <p class="muted" style="font-size:.8rem;margin:.6em 0 0">El hotel revisará el comprobante y lo sumará a tu reserva. Te avisaremos si hay algún problema.</p>
+    </details>`:""}
+  </div></section>`;
+}
+async function payPick(input){
+  const file=input.files&&input.files[0]; if(!file) return;
+  if(payPrev) URL.revokeObjectURL(payPrev); payPrev=URL.createObjectURL(file); payPhoto=""; payBusy=true; paySync();
+  try{ const blob=await shrink(file); const r=await fetch(API+"/payment-photo",{method:"POST",headers:{"Content-Type":blob.type||"image/jpeg"},body:blob});
+    const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||"No se pudo subir la foto."); payPhoto=j.id; }
+  catch(e){ $("#payErr").innerHTML=`<div class="note bad">${esc(e.message)}</div>`; }
+  payBusy=false; paySync(); input.value="";
+}
+function paySync(){ const l=$("#payShot"); if(!l) return; l.classList.toggle("ok",!!payPhoto); const img=l.querySelector("img"); if(payPrev){ if(img) img.src=payPrev; else { const sp=l.querySelector("span"); const im=document.createElement("img"); im.src=payPrev; im.alt="Comprobante"; sp.replaceWith(im);} }
+  $("#payShotT").textContent=payBusy?"Subiendo foto…":payPhoto?"Foto lista · toca para cambiarla":"Toca para tomar o elegir la foto del comprobante"; }
+async function paySend(){
+  const err=$("#payErr"), btn=$("#paySend"); err.innerHTML="";
+  const amount=Number($("#payAmt").value)||0;
+  if(amount<=0){ err.innerHTML=`<div class="note bad">Escribe el valor que pagaste.</div>`; return; }
+  if(payBusy){ err.innerHTML=`<div class="note warn">Espera a que termine de subir la foto.</div>`; return; }
+  if(!payPhoto){ err.innerHTML=`<div class="note bad">Adjunta la foto del comprobante.</div>`; return; }
+  btn.disabled=true; btn.textContent="Enviando…";
+  try{ const r=await fetch(API+"/payment",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount,method:$("#payMet").value,date:$("#payDate").value,ref:$("#payRef").value,photoId:payPhoto})});
+    const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||"No se pudo enviar el comprobante.");
+    payPhoto=""; if(payPrev) URL.revokeObjectURL(payPrev); payPrev=""; await refresh(); render(); toast("¡Comprobante enviado! El hotel lo verificará.");
+  }catch(e){ err.innerHTML=`<div class="note bad">${esc(e.message)}</div>`; btn.disabled=false; btn.textContent="Enviar comprobante"; }
+}
 
 /* ---------- eventos ---------- */
 function bind(){
@@ -208,11 +256,12 @@ function bindOnce(){
     const rm = e.target.closest("[data-rm]"); if(rm){ const i=+rm.dataset.rm; S.people.splice(i,1); [...prev.keys()].forEach(k=>{ if(+k.split(":")[0]>=i) prev.delete(k); }); saveDraft(); renderPeople(); return; }
     if(e.target.closest("#addP")){ S.people.push(blankPerson(S.people.length)); saveDraft(); renderPeople(); const last=$("#people").lastElementChild; last && last.scrollIntoView({behavior:"smooth",block:"center"}); if(S.people.length>=12) e.target.remove(); return; }
     if(e.target.closest("#send")) submit();
+    if(e.target.closest("#paySend")) paySend();
   });
 }
 function onInput(e){
   const t = e.target;
-  if(t.type==="file") { if(e.type==="change") upload(t); return; }
+  if(t.type==="file") { if(t.id==="payFile"){ if(e.type==="change") payPick(t); return; } if(e.type==="change") upload(t); return; }
   if(t.id==="consent"){ S.consent=t.checked; return; }
   if(t.dataset.t){ S.trip[t.dataset.t]=t.value; saveDraft(); return; }
   if(t.dataset.i!=null && t.dataset.k){ const p=S.people[+t.dataset.i]; p[t.dataset.k]=t.value;

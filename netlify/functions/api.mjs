@@ -9,6 +9,7 @@ import * as ical from "../../lib/ical.mjs";
 import * as notifier from "../../lib/notify.mjs";
 import * as contract from "../../lib/contract.mjs";
 import * as calsync from "../../lib/calsync.mjs";
+import * as wa from "../../lib/whatsapp.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -17,7 +18,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TOKEN_TTL_MS = 7 * 24 * 3600 * 1000;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const KINDS = { rooms: "rooms/", guests: "guests/", reservations: "res/", requests: "req/" };
+const KINDS = { rooms: "rooms/", guests: "guests/", reservations: "res/", requests: "req/", messages: "msg/" };
 
 const data = () => getStore({ name: "portal-norte", consistency: "strong" });
 const photos = () => getStore({ name: "portal-norte-photos" });
@@ -98,7 +99,7 @@ const bearer = (req) => (req.headers.get("authorization") || "").replace(/^Beare
 
 /* ---------- vistas públicas ---------- */
 const PUBLIC_ROOM_FIELDS = ["id", "number", "name", "type", "beds", "capacity", "rate", "bath", "size", "floor", "description", "features", "photos", "status"];
-const PUBLIC_HOTEL_FIELDS = ["name", "address", "zone", "phone", "whatsapp", "email", "checkinFrom", "checkinTo", "checkout", "description", "amenities", "policies", "nearby", "payments", "heroPhoto", "tagline"];
+const PUBLIC_HOTEL_FIELDS = ["name", "address", "zone", "phone", "whatsapp", "email", "checkinFrom", "checkinTo", "checkout", "description", "amenities", "policies", "nearby", "payments", "heroPhoto", "tagline", "attentionFrom", "attentionTo"];
 const pick = (o, fields) => Object.fromEntries(fields.filter((f) => o[f] !== undefined).map((f) => [f, o[f]]));
 
 function availability(reservations, today) {
@@ -154,15 +155,93 @@ async function handleNewRequest(req, store) {
   };
   await store.setJSON("req/" + id, item);
   const hotel = await store.get("hotel", { type: "json" });
-  await notifier.notify(store, hotel, {
+  const open = wa.isOpen(hotel), hours = wa.hoursText(hotel), base = notifier.baseUrl(req);
+  const waText = [`🏨 *Nueva solicitud de reserva* ${id}`, `👤 ${first} ${item.last}`.trim(), `📞 ${phone}${item.email ? " · " + item.email : ""}`,
+    `🛏 Hab. ${room.number} · ${room.name || room.type || ""}`, `📅 ${checkIn} → ${checkOut} (${nights} noche${nights === 1 ? "" : "s"})`,
+    `👥 ${adults} adulto(s)${children ? `, ${children} niño(s)` : ""} · ≈ $${item.estimate.toLocaleString("es-CO")}`,
+    item.notes ? `📝 ${item.notes}` : null, open ? null : `⏰ Llegó fuera del horario de atención (${hours}). Al huésped se le informó el horario.`,
+    `Responder: https://wa.me/${waNum(phone)}`, `Panel: ${base}/admin`].filter(Boolean).join("\n");
+  await Promise.all([wa.send(store, hotel, waText, { kind: "solicitud" }), notifier.notify(store, hotel, {
     subject: `Nueva solicitud ${id}`, title: "Nueva solicitud de reserva", tone: "ok",
     intro: `${first} ${item.last} pidió la habitación ${room.number} desde el sitio web.`,
     rows: [["Código", id], ["Habitación", `${room.number} · ${room.name || room.type || ""}`], ["Llegada", checkIn], ["Salida", `${checkOut} (${nights} noche${nights === 1 ? "" : "s"})`],
-      ["Personas", `${adults} adulto(s)${children ? `, ${children} niño(s)` : ""}`], ["Teléfono", phone], ["Correo", item.email], ["Valor estimado", "$" + item.estimate.toLocaleString("es-CO")], ["Notas", item.notes]],
-    button: { url: notifier.baseUrl(req) + "/admin", label: "Revisar en el panel" },
-  });
-  return json({ id, estimate: item.estimate }, 201);
+      ["Personas", `${adults} adulto(s)${children ? `, ${children} niño(s)` : ""}`], ["Teléfono", phone], ["Correo", item.email], ["Valor estimado", "$" + item.estimate.toLocaleString("es-CO")], ["Notas", item.notes],
+      ...(open ? [] : [["Horario", `Llegó fuera del horario de atención (${hours})`]])],
+    button: { url: base + "/admin", label: "Revisar en el panel" },
+  })]);
+  return json({ id, estimate: item.estimate, afterHours: !open, hours }, 201);
 }
+
+// Número para wa.me (Colombia por defecto).
+function waNum(phone) { const d = digits(phone); return d.length === 10 && d.startsWith("3") ? "57" + d : d; }
+
+/* ---------- formulario de contacto ---------- */
+async function handleContact(req, store) {
+  const b = await readBody(req, 10_000);
+  if (b.website) return json({ id: "MSG-" + randomUUID().slice(0, 6).toUpperCase() }); // trampa para bots
+  const name = str(b.name, 100), phone = str(b.phone, 30), email = str(b.email, 120), message = str(b.message, 1500);
+  if (name.length < 2 || digits(phone).length < 7) return fail(400, "Escribe tu nombre y un teléfono válido.");
+  if (message.length < 3) return fail(400, "Escribe tu mensaje.");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(400, "El correo no es válido.");
+  if (b.consent !== true) return fail(400, "Se requiere la autorización de tratamiento de datos.");
+  // Límite simple: máx. 5 mensajes por teléfono al día.
+  const today = todayBogota(), mine = (await listJSON(store, "msg/")).filter((m) => digits(m.phone).slice(-7) === digits(phone).slice(-7) && (m.createdAt || "").slice(0, 10) >= addDaysISO(today, -1));
+  if (mine.length >= 5) return fail(429, "Ya recibimos tus mensajes. Te responderemos pronto.");
+  const hotel = await store.get("hotel", { type: "json" });
+  const open = wa.isOpen(hotel), hours = wa.hoursText(hotel), base = notifier.baseUrl(req);
+  const id = "MSG-" + Date.now().toString(36).toUpperCase().slice(-5) + randomUUID().slice(0, 3).toUpperCase();
+  const item = { id, name, phone, email, message, topic: str(b.topic, 40), consent: true, status: "nueva", afterHours: !open, createdAt: new Date().toISOString() };
+  await store.setJSON("msg/" + id, item);
+  const waText = [`💬 *Nuevo mensaje de contacto* ${id}`, `👤 ${name}`, `📞 ${phone}${email ? " · " + email : ""}`, item.topic ? `🏷 ${item.topic}` : null, `📝 ${message}`,
+    open ? null : `⏰ Llegó fuera del horario de atención (${hours}). Al cliente se le informó el horario.`,
+    `Responder: https://wa.me/${waNum(phone)}`, `Panel: ${base}/admin`].filter(Boolean).join("\n");
+  await Promise.all([wa.send(store, hotel, waText, { kind: "contacto" }), notifier.notify(store, hotel, {
+    subject: `Mensaje de contacto ${id}`, title: "Nuevo mensaje de contacto", tone: "info",
+    intro: `${name} escribió desde el sitio web.`,
+    rows: [["Código", id], ["Teléfono", phone], ["Correo", email], ["Asunto", item.topic], ["Mensaje", message], ...(open ? [] : [["Horario", `Llegó fuera del horario de atención (${hours})`]])],
+    button: { url: base + "/admin", label: "Ver en el panel" },
+  })]);
+  return json({ id, afterHours: !open, hours }, 201);
+}
+const addDaysISO = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+
+/* ---------- pagos y comprobantes ---------- */
+const PAY_METHODS = ["Efectivo", "Transferencia", "Nequi / Daviplata", "Tarjeta", "Cobrado por el canal", "Otro"];
+const PAY_ST = ["verificado", "por verificar", "rechazado"];
+const MAX_PAYMENTS = 30;
+const verifiedSum = (list) => (list || []).filter((p) => p.status === "verificado").reduce((a, p) => a + (Number(p.amount) || 0), 0);
+// Guarda un pago y ajusta el abonado. «paid» sigue siendo editable en el panel; los pagos verificados lo suman o restan.
+async function addPayment(store, r, b, by) {
+  const amount = Math.round(Number(b.amount));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 100_000_000) throw Object.assign(new Error("Escribe un valor mayor que cero."), { status: 400 });
+  if ((r.payments || []).length >= MAX_PAYMENTS) throw Object.assign(new Error("Esta reserva ya tiene demasiados pagos registrados."), { status: 409 });
+  const photoId = str(b.photoId, 80);
+  if (photoId && !(ID_RE.test(photoId) && (photoId.startsWith("PAY_" + r.id + "_") || (by === "recepcion" && photoId.startsWith("ADM_"))))) throw Object.assign(new Error("Foto del comprobante no válida."), { status: 400 });
+  if (photoId && !(await idPhotos().getMetadata(photoId))) throw Object.assign(new Error("La foto del comprobante no se encontró. Súbela de nuevo."), { status: 400 });
+  if (by === "huesped" && !photoId) throw Object.assign(new Error("Adjunta la foto del comprobante."), { status: 400 });
+  const status = by === "huesped" ? "por verificar" : (PAY_ST.includes(b.status) ? b.status : "verificado");
+  const p = { id: "P" + Date.now().toString(36).toUpperCase() + randomUUID().slice(0, 3).toUpperCase(), amount, method: PAY_METHODS.includes(b.method) ? b.method : "Otro",
+    date: DATE_RE.test(b.date || "") ? b.date : todayBogota(), ref: str(b.ref, 60), note: str(b.note, 300), photoId, by, status, at: new Date().toISOString() };
+  const cur = (await store.get("res/" + r.id, { type: "json" })) || r;
+  const next = { ...cur, payments: [...(cur.payments || []), p], updatedAt: p.at };
+  if (status === "verificado") { next.paid = (Number(cur.paid) || 0) + amount; next.payMethod = p.method; }
+  await store.setJSON("res/" + r.id, next);
+  return { next, p };
+}
+async function changePayment(store, r, payId, status) {
+  const cur = (await store.get("res/" + r.id, { type: "json" })) || r;
+  const list = cur.payments || [], i = list.findIndex((p) => p.id === payId);
+  if (i < 0) throw Object.assign(new Error("Pago no encontrado."), { status: 404 });
+  const before = list[i];
+  const nextList = status === null ? list.filter((_, k) => k !== i) : list.map((p, k) => (k === i ? { ...p, status, reviewedAt: new Date().toISOString() } : p));
+  const delta = verifiedSum(nextList) - verifiedSum(list);
+  const next = { ...cur, payments: nextList, paid: Math.max(0, (Number(cur.paid) || 0) + delta), updatedAt: new Date().toISOString() };
+  if (status === "verificado") next.payMethod = before.method;
+  await store.setJSON("res/" + r.id, next);
+  if (status === null && before.photoId) await idPhotos().delete(before.photoId).catch(() => {});
+  return next;
+}
+const payView = (p) => ({ id: p.id, amount: p.amount, method: p.method, date: p.date, status: p.status, at: p.at, by: p.by, hasPhoto: !!p.photoId });
 
 async function handleRequestStatus(id, url, store) {
   if (!ID_RE.test(id)) return fail(400, "Código no válido.");
@@ -297,6 +376,8 @@ async function handleGuest(req, rest, store) {
       contract: contractView(r, hotel),
       wifi: r.contract && hotel && hotel.wifiName ? { name: hotel.wifiName, pass: hotel.wifiPass || "" } : null,
       canCheckin: canCheckin(r), docTypes: DOC_TYPES, today: todayBogota(),
+      payments: (r.payments || []).map(payView), payMethods: ["Transferencia", "Nequi / Daviplata", "Tarjeta", "Efectivo", "Otro"], canPay: r.status !== "cancelada",
+      payInfo: str(hotel?.payments, 600),
     });
   }
 
@@ -305,6 +386,35 @@ async function handleGuest(req, rest, store) {
     return await signContract(req, store, r, await readBody(req, 600_000), "enlace");
   }
   if (action === "contract.pdf" && m === "GET") return await sendContractPdf(r, false);
+
+  if (action === "payment-photo" && m === "POST") {
+    if (r.status === "cancelada") return fail(409, "La reserva está cancelada.");
+    const type = (req.headers.get("content-type") || "").split(";")[0].trim();
+    if (!PHOTO_TYPES.includes(type)) return fail(415, "Formato no admitido. Usa una foto JPG, PNG o WebP.");
+    const buf = await req.arrayBuffer();
+    if (!buf.byteLength) return fail(400, "La foto está vacía.");
+    if (buf.byteLength > MAX_ID_PHOTO_BYTES) return fail(413, "La foto supera 4 MB.");
+    const st = idPhotos(), { blobs } = await st.list({ prefix: "PAY_" + resId + "_" });
+    if (blobs.length >= 20) return fail(429, "Se alcanzó el máximo de comprobantes para esta reserva. Escríbenos por WhatsApp.");
+    const pid = "PAY_" + resId + "_" + randomUUID().replace(/-/g, "").slice(0, 16);
+    await st.set(pid, buf, { metadata: { contentType: type, resId, kind: "comprobante", at: new Date().toISOString() } });
+    return json({ id: pid }, 201);
+  }
+  if (action === "payment" && m === "POST") {
+    if (r.status === "cancelada") return fail(409, "La reserva está cancelada.");
+    const b = await readBody(req, 5_000);
+    const { next, p } = await addPayment(store, r, b, "huesped");
+    const [hotel, room] = await Promise.all([store.get("hotel", { type: "json" }), store.get("rooms/" + r.roomId, { type: "json" })]);
+    const name = (r.guestName || "").trim() || "El huésped", base = notifier.baseUrl(req);
+    await Promise.all([
+      wa.send(store, hotel, [`💳 *Comprobante de pago* · reserva ${r.id}`, `👤 ${name} · Hab. ${room ? room.number : r.roomId}`, `💵 $${p.amount.toLocaleString("es-CO")} · ${p.method}${p.ref ? " · ref. " + p.ref : ""}`, `Por verificar en el panel: ${base}/admin`].join("\n"), { kind: "pago" }),
+      notifier.notify(store, hotel, { subject: `Comprobante de pago ${r.id}`, title: "Comprobante de pago recibido", tone: "info",
+        intro: `${name} subió un comprobante de pago desde su enlace. Revísalo y márcalo como verificado para sumarlo al abonado.`,
+        rows: [["Reserva", r.id], ["Valor", "$" + p.amount.toLocaleString("es-CO")], ["Medio", p.method], ["Referencia", p.ref], ["Fecha del pago", p.date], ["Nota", p.note]],
+        button: { url: base + "/admin", label: "Verificar en el panel" } }),
+    ]);
+    return json({ ok: true, payment: payView(p), payments: next.payments.map(payView) }, 201);
+  }
 
   if (action === "photo" && m === "POST") {
     if (!canCheckin(r)) return fail(409, "Esta reserva ya no admite registro en línea.");
@@ -390,12 +500,12 @@ async function handleAdmin(req, parts, store) {
 
   if (kind === "state" && m === "GET") {
     await ensureSeed(store);
-    const [hotel, rooms, guests, reservations, requests] = await Promise.all([
-      store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/"), listJSON(store, "req/"),
+    const [hotel, rooms, guests, reservations, requests, messages] = await Promise.all([
+      store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/"), listJSON(store, "req/"), listJSON(store, "msg/"),
     ]);
     const links = {};
     if (secret()) for (const r of reservations) links[r.id] = guestPath(r.id);
-    return json({ hotel, rooms, guests, reservations, requests, links, today: todayBogota() });
+    return json({ hotel, rooms, guests, reservations, requests, messages, links, today: todayBogota() });
   }
 
   if (kind === "hotel" && m === "PUT") {
@@ -443,6 +553,30 @@ async function handleAdmin(req, parts, store) {
       return json({ total: res.length, ok, failed: errors.length, errors: errors.slice(0, 3) });
     }
     return fail(404, "Ruta no encontrada.");
+  }
+
+  if (kind === "wa") {
+    const hotel = await store.get("hotel", { type: "json" });
+    if (id === "status" && m === "GET") return json({ provider: wa.provider(), phones: wa.masked(), off: !!(hotel && hotel.waOff), last: await store.get("wa/last", { type: "json" }), hours: wa.hoursOf(hotel), hoursText: wa.hoursText(hotel), openNow: wa.isOpen(hotel) });
+    if (id === "test" && m === "POST") {
+      if (!wa.provider()) return fail(400, "WhatsApp no está configurado. Revisa el README, sección «Avisos por WhatsApp».");
+      const out = await wa.send(store, hotel, `✅ Prueba del sistema de reservas ${hotel?.name || "Portal Norte 170"}.\nDesde ahora recibirás aquí las solicitudes de reserva, los mensajes de contacto y los comprobantes de pago.`, { force: true, kind: "prueba" });
+      return out.ok ? json(out) : fail(502, out.error || "No se pudo enviar.");
+    }
+    return fail(404, "Ruta no encontrada.");
+  }
+
+  if (kind === "payments") {
+    const [, payId] = parts.slice(1);
+    if (!ID_RE.test(id || "")) return fail(404, "Ruta no encontrada.");
+    const r = await store.get("res/" + id, { type: "json" });
+    if (!r) return fail(404, "Reserva no encontrada.");
+    let next;
+    if (m === "POST" && !payId) next = (await addPayment(store, r, await readBody(req, 5_000), "recepcion")).next;
+    else if (m === "PATCH" && payId) { const b = await readBody(req, 2_000); if (!PAY_ST.includes(b.status)) return fail(400, "Estado no válido."); next = await changePayment(store, r, payId, b.status); }
+    else if (m === "DELETE" && payId) next = await changePayment(store, r, payId, null);
+    else return fail(405, "Método no permitido.");
+    return json({ ...next, _gcal: await syncToCalendar(store, next) });
   }
 
   if (kind === "contract") {
@@ -532,6 +666,15 @@ async function handleAdmin(req, parts, store) {
     return json({ deleted: true, _gcal: g });
   }
 
+  if (kind === "messages" && m === "PATCH") {
+    const cur = await store.get(key, { type: "json" });
+    if (!cur) return fail(404, "Mensaje no encontrado.");
+    const b = await readBody(req, 2_000);
+    const rec = { ...cur, status: ["nueva", "atendida"].includes(b.status) ? b.status : cur.status, updatedAt: new Date().toISOString() };
+    await store.setJSON(key, rec);
+    return json(rec);
+  }
+
   if (kind === "requests" && m === "PATCH") {
     const cur = await store.get(key, { type: "json" });
     if (!cur) return fail(404, "Solicitud no encontrada.");
@@ -545,7 +688,7 @@ async function handleAdmin(req, parts, store) {
     return json(rec);
   }
 
-  if (m === "PUT" && kind !== "requests") {
+  if (m === "PUT" && kind !== "requests" && kind !== "messages") {
     const b = await readBody(req);
     if (kind === "reservations") {
       if (!DATE_RE.test(b.checkIn || "") || !DATE_RE.test(b.checkOut || "") || b.checkOut <= b.checkIn) return fail(400, "La salida debe ser posterior a la entrada.");
@@ -566,6 +709,8 @@ async function handleAdmin(req, parts, store) {
       if (prev && prev.contract) rec.contract = prev.contract; else delete rec.contract;
       if (prev && prev.contractHistory) rec.contractHistory = prev.contractHistory; else delete rec.contractHistory;
       if (prev && prev.checkin && !rec.checkin) rec.checkin = prev.checkin;
+      // Los pagos con comprobante solo se escriben por sus rutas propias.
+      if (prev && prev.payments) rec.payments = prev.payments; else delete rec.payments;
     }
     await store.setJSON(key, rec);
     if (kind === "reservations") return json({ ...rec, _gcal: await syncToCalendar(store, rec) });
@@ -588,6 +733,7 @@ export default async (req) => {
 
     if (head === "public" && req.method === "GET") return await handlePublic(store);
     if (head === "requests" && req.method === "POST" && !rest.length) return await handleNewRequest(req, store);
+    if (head === "contact" && req.method === "POST" && !rest.length) return await handleContact(req, store);
     if (head === "requests" && req.method === "GET" && rest.length === 1) return await handleRequestStatus(rest[0], url, store);
     if (head === "photos" && req.method === "GET" && rest.length === 1) return await handlePhoto(rest[0]);
     if (head === "calendar" && req.method === "GET" && rest.length === 1) {

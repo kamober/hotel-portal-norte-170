@@ -108,7 +108,7 @@ $("#search").addEventListener("submit",e=>{
 $("#cats").addEventListener("click",e=>{const b=e.target.closest("button[data-type]");if(!b)return;G.type=b.dataset.type;renderCats();renderRooms();});
 
 /* ---------- render ---------- */
-function render(){ renderHero(); renderPerks(); renderCats(); renderRooms(); renderNear(); renderWhy(); renderRule(); renderDirect(); renderFooter(); renderMine(); }
+function render(){ renderHero(); renderPerks(); renderCats(); renderRooms(); renderNear(); renderWhy(); renderRule(); renderDirect(); renderFooter(); renderContact(); renderMine(); }
 
 function coverPhoto(){return G.hotel.heroPhoto || sortRooms().flatMap(r=>r.photos||[])[0];}
 function renderHero(){
@@ -210,6 +210,41 @@ function renderDirect(){
   if($("#stats")) $("#stats").innerHTML=[[G.rooms.length||"—","Habitaciones"],[h.checkinFrom||"15:00","Llegada"],[h.checkout||"11:00","Salida"],[minRate?k:"—","Desde / noche"]]
     .map(([v,l])=>`<div><b>${esc(v)}</b><small>${esc(l)}</small></div>`).join("");
 }
+/* ---------- horario de atención y contacto ---------- */
+const HM=/^([01]\d|2[0-3]):[0-5]\d$/;
+function hours(){const h=G.hotel||{};return {from:HM.test(h.attentionFrom||"")?h.attentionFrom:"08:00",to:HM.test(h.attentionTo||"")?h.attentionTo:"18:00"};}
+function hm12(hm){let [h,m]=hm.split(":").map(Number);const s=h<12?"a. m.":"p. m.";h=h%12||12;return `${h}:${String(m).padStart(2,"0")} ${s}`;}
+function hoursText(){const x=hours();return `${hm12(x.from)} a ${hm12(x.to)}`;}
+function openNow(){const x=hours(),t=new Intl.DateTimeFormat("en-GB",{timeZone:"America/Bogota",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date());return x.from<=x.to?(t>=x.from&&t<x.to):(t>=x.from||t<x.to);}
+function lateNote(txt){return `<div class="note warn" style="margin-top:10px"><b>Estás escribiendo fuera de nuestro horario de atención.</b> Nuestro horario de atención es de ${esc(txt||hoursText())} (hora de Colombia). Te responderemos apenas abramos.</div>`;}
+function renderContact(){
+  if(!$("#ctForm")) return;
+  const h=G.hotel, wa=waNum(), o=openNow();
+  $("#ctHours").textContent=hoursText()+" · todos los días";
+  const now=$("#ctNow"); now.hidden=false; now.textContent=o?"Atendiendo ahora":"Fuera de horario"; now.classList.toggle("off",!o);
+  $("#ctLinks").innerHTML=[h.whatsapp&&`<a href="https://wa.me/${wa}" target="_blank" rel="noopener">${ico("chat")}WhatsApp ${esc(h.whatsapp)}</a>`,
+    h.phone&&`<a href="tel:${esc(String(h.phone).replace(/[^\d+]/g,""))}">${ico("phone")}${esc(h.phone)}</a>`,
+    h.email&&`<a href="mailto:${esc(h.email)}">${ico("mail")}${esc(h.email)}</a>`].filter(Boolean).join("");
+}
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="ctForm") return; e.preventDefault();
+  const v=id=>$("#"+id).value.trim(), out=$("#ctOut"), btn=$("#ctSend");
+  if(v("ctName").length<2||v("ctPhone").replace(/\D/g,"").length<7){toast("Escribe tu nombre y un teléfono válido.");return;}
+  if(v("ctMsg").length<3){toast("Escribe tu mensaje.");return;}
+  if(!$("#ctCons").checked){toast("Necesitamos tu autorización de datos para responderte.");return;}
+  btn.disabled=true; const lbl=btn.innerHTML; btn.textContent="Enviando…";
+  try{
+    const r=await fetch("/api/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:v("ctName"),phone:v("ctPhone"),email:v("ctEmail"),topic:v("ctTopic"),message:v("ctMsg"),consent:true,website:v("ctWeb")})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||"No pudimos enviar tu mensaje.");
+    $("#ctForm").querySelectorAll("input:not([type=checkbox]),textarea").forEach(x=>x.value="");
+    out.innerHTML=j.afterHours
+      ?`<div class="ct-done late"><b>¡Gracias! Recibimos tu mensaje (${esc(j.id)}).</b>Nuestro horario de atención es de ${esc(j.hours||hoursText())} (hora de Colombia). Como escribiste fuera de ese horario, te responderemos apenas abramos.</div>`
+      :`<div class="ct-done"><b>¡Gracias! Recibimos tu mensaje (${esc(j.id)}).</b>Te responderemos muy pronto por WhatsApp o llamada.</div>`;
+  }catch(err){ out.innerHTML=`<div class="note bad">${esc(err.message)}${waNum()?` Escríbenos por <a href="https://wa.me/${waNum()}" target="_blank" rel="noopener">WhatsApp</a>.`:""}</div>`; }
+  btn.disabled=false; btn.innerHTML=lbl;
+});
+
 function renderFooter(){
   const h=G.hotel;
   const wa=waNum(), maps="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent((h.address||"Calle 174A # 47-24")+", Bogotá");
@@ -275,23 +310,23 @@ function openRequest(roomId){
       const btn=ov.querySelector("#qSend"); btn.disabled=true; btn.textContent="Enviando…";
       const payload={roomId,checkIn:q.in,checkOut:q.out,adults:q.ad,children:q.ch,first:v("#qFirst"),last:v("#qLast"),docType:v("#qDocT"),docNumber:v("#qDoc"),
         nationality:v("#qNat"),phone:v("#qPhone"),email:v("#qEmail"),eta:v("#qEta"),notes:v("#qNotes"),consent:true,website:v("#qWeb")};
-      let id=null, errText="";
+      let id=null, errText="", late=null;
       try{
         const res=await fetch("/api/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
         const j=await res.json().catch(()=>({}));
-        if(res.ok) id=j.id; else errText=j.error||"No pudimos registrar la solicitud.";
+        if(res.ok){ id=j.id; if(j.afterHours) late=j.hours||hoursText(); } else errText=j.error||"No pudimos registrar la solicitud.";
       }catch(_){errText="No hay conexión con el servidor.";}
       if(!id && /disponible/.test(errText)){toast(errText);btn.disabled=false;btn.textContent="Enviar solicitud";load();return;}
       if(id){G.mine.push({id,p:payload.phone.replace(/\D/g,""),room:r.name||r.type,checkIn:q.in,checkOut:q.out,status:"nueva"});storeMine();renderMine();}
-      showResult(r,q,payload,id,errText);
+      showResult(r,q,payload,id,errText,late);
     };
   }, true);
 }
-function showResult(r,q,p,id,errText){
+function showResult(r,q,p,id,errText,late){
   const msg=`Hola, quiero reservar en ${hName()}.\n• Habitación: ${r.name||r.type} (${r.number})\n• Llegada: ${fd(q.in,{weekday:"long",year:"numeric"})}${p.eta?" hacia las "+p.eta:""}\n• Salida: ${fd(q.out,{weekday:"long",year:"numeric"})}\n• Personas: ${q.ad} adulto(s)${q.ch?", "+q.ch+" niño(s)":""}\n• Nombre: ${p.first} ${p.last}\n• Documento: ${p.docType} ${p.docNumber}\n• Teléfono: ${p.phone}${p.notes?"\n• Comentarios: "+p.notes:""}${id?"\nCódigo de solicitud: "+id:""}`;
   const wa=waNum();
   openModal(id?"Solicitud enviada":"Envía tu solicitud",
-    `${id?`<div class="note ok">Recibimos tu solicitud <b class="num">${esc(id)}</b>. Te confirmaremos por teléfono o WhatsApp; puedes ver su estado en «Mis solicitudes» desde este navegador.</div>`
+    `${id?`<div class="note ok">Recibimos tu solicitud <b class="num">${esc(id)}</b>. Te confirmaremos por teléfono o WhatsApp; puedes ver su estado en «Mis solicitudes» desde este navegador.</div>${late?lateNote(late):""}`
       :`<div class="note warn">${esc(errText||"No pudimos registrar la solicitud en línea.")} Envíala por WhatsApp o copia el mensaje.</div>`}
     <label class="f">Mensaje para el alojamiento<textarea id="rqMsg" rows="10" readonly>${esc(msg)}</textarea></label>
     ${wa?"":`<div class="muted" style="font-size:.82rem">${G.hotel.phone?"Llama o escribe al "+esc(G.hotel.phone)+" para confirmar.":"Pronto publicaremos nuestro WhatsApp."}</div>`}`,
