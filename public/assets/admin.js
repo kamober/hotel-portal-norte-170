@@ -522,7 +522,7 @@ function openResDetail(id){
       <label class="f">Medio<select id="dPayM">${PAY.map(x=>opt(x,x,r.payMethod||"Efectivo")).join("")}</select></label>
       <label class="f">Fecha<input type="date" id="dPayD" value="${todayISO()}"></label>
       <label class="f">Referencia<input id="dPayR" maxlength="60" placeholder="Opcional"></label>
-      <label class="btn" id="dPayPhL" style="justify-content:center">📎 Foto del comprobante<input type="file" id="dPayPh" accept="image/*" hidden></label>
+      <div class="f" id="dPayPhL"><span>Foto del comprobante</span>${pickBtns('data-payph="1"',"environment")}</div>
       <button class="btn primary" id="dPayGo">Registrar abono</button></div>
       <div id="dPayPrev" class="muted" style="font-size:.8rem;margin-top:6px"></div></fieldset></div>`;
   const canCI = ["pendiente","confirmada"].includes(r.status), canCO = r.status==="encasa";
@@ -595,12 +595,12 @@ function openGuestForm(g, opts){
     const drawPh=()=>{box.innerHTML=Object.entries(ID_LABELS).map(([k,l])=>`<div class="idshot">
         <div class="im ${k==="selfie"?"tall":"docim"}">${ph[k]?`<img data-idimg="${esc(ph[k])}" alt="${esc(l)}">`:`<span>Sin foto</span>`}</div>
         <b>${esc(l)}</b>
-        <div class="grp"><label class="btn sm">${ph[k]?"Cambiar":"Tomar o subir"}<input type="file" accept="image/*" ${k==="selfie"?'capture="user"':""} data-up="${k}" hidden></label>
+        <div class="grp">${pickBtns(`data-up="${k}"`, k==="selfie"?"user":"environment", {cam:k==="selfie"?"Tomar selfie":"Tomar foto",up:ph[k]?"Cambiar imagen":"Subir imagen"})}
           ${ph[k]?`<button class="btn sm" type="button" data-view="${k}">Ver</button><button class="btn sm" type="button" data-rmph="${k}">Quitar</button>`:""}</div></div>`).join("");
       hydrateIdImgs(box);};
     drawPh();
     box.addEventListener("change",async e=>{const inp=e.target.closest("[data-up]");if(!inp||!inp.files[0])return;const k=inp.dataset.up;
-      const lbl=inp.parentElement; lbl.firstChild.textContent="Subiendo…";
+      inp.closest(".pick").querySelectorAll("label").forEach(l=>l.firstChild.textContent="Subiendo…");
       try{const blob=await shrink(inp.files[0]);const d=await api("POST","admin/ids",undefined,blob);
         if(ph[k]) (phNew.has(ph[k])?api("DELETE","admin/ids/"+encodeURIComponent(ph[k])).catch(()=>{}):phOld.add(ph[k]));
         ph[k]=d.id;phNew.add(d.id);drawPh();}catch(err){toast(err.message);drawPh();}});
@@ -1215,10 +1215,10 @@ function bindPays(ov,r){
     const d=e.target.closest("[data-paydel]"); if(d){ if(d.dataset.sure!=="1"){ d.dataset.sure="1"; d.textContent="¿Quitar?"; return; }
       try{ after(await api("DELETE",`admin/payments/${encodeURIComponent(r.id)}/${encodeURIComponent(d.dataset.paydel)}`)); toast("Pago quitado"); }catch(err){ toast(err.message); } }
   });
-  const inp=ov.querySelector("#dPayPh"), prevBox=ov.querySelector("#dPayPrev");
-  if(inp) inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; prevBox.textContent="Subiendo foto…";
+  const prevBox=ov.querySelector("#dPayPrev");
+  ov.querySelectorAll("[data-payph]").forEach(inp=>inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; prevBox.textContent="Subiendo foto…";
     try{ const blob=await shrink(f); const d=await api("POST","admin/ids",undefined,blob); if(photo) api("DELETE","admin/ids/"+encodeURIComponent(photo)).catch(()=>{}); photo=d.id; prevBox.innerHTML=`✓ Foto adjunta: <b>${esc(f.name)}</b>`; ov.querySelector("#dPayPhL").classList.add("primary"); }
-    catch(err){ prevBox.innerHTML=`<span style="color:var(--bad)">${esc(err.message)}</span>`; toast(err.message); } inp.value=""; };
+    catch(err){ prevBox.innerHTML=`<span style="color:var(--bad)">${esc(err.message)}</span>`; toast(err.message); } inp.value=""; });
   const go=ov.querySelector("#dPayGo"); if(go) go.onclick=async()=>{ const amount=Number(ov.querySelector("#dPay").value)||0; if(amount<=0){toast("Escribe un valor mayor que cero.");return;}
     go.disabled=true;
     try{ after(await api("POST","admin/payments/"+encodeURIComponent(r.id),{amount,method:ov.querySelector("#dPayM").value,date:ov.querySelector("#dPayD").value,ref:ov.querySelector("#dPayR").value,photoId:photo}));

@@ -80,9 +80,9 @@ function tileInner(i,k){
     ${busy.has(key)?`<span class="st">Subiendo…</span>`:has?`<span class="st">✓ ${esc(label)} lista</span>`:""}`;
 }
 function shotHTML(i,k,cls){
-  const p=S.people[i], cap = k==="selfie" ? 'capture="user"' : "";
-  return `<label class="shot ${cls||""} ${p[k]?"ok":""}" data-shot="${i}:${k}"><span class="tin">${tileInner(i,k)}</span>
-    <input type="file" accept="image/*" ${cap} data-i="${i}" data-k="${k}" aria-label="${esc(SHOT_LABEL[k])} de ${esc(p.first||"huésped "+(i+1))}"></label>`;
+  const p=S.people[i];
+  return `<div class="shotw"><div class="shot ${cls||""} ${p[k]?"ok":""}" data-shot="${i}:${k}"><span class="tin">${tileInner(i,k)}</span></div>
+    ${pickBtns(`data-i="${i}" data-k="${k}" aria-label="${esc(SHOT_LABEL[k])} de ${esc(p.first||"huésped "+(i+1))}"`, k==="selfie"?"user":"environment", {cls:"btn sm",cam:k==="selfie"?"Tomar selfie":"Tomar foto"})}</div>`;
 }
 // Actualiza solo la casilla de una foto, sin reemplazar su campo de archivo.
 function updateTile(i,k,errMsg){
@@ -206,8 +206,9 @@ function paymentsHTML(){
         <label class="f">Fecha del pago<input type="date" id="payDate" value="${esc(D.today||todayISO())}" max="${esc(D.today||todayISO())}"></label>
         <label class="f">Referencia (opcional)<input id="payRef" maxlength="60" placeholder="N.º de transacción"></label>
       </div>
-      <label class="payshot ${payPhoto?"ok":""}" id="payShot"><input type="file" id="payFile" accept="image/*" hidden>
-        ${payPrev?`<img src="${payPrev}" alt="Comprobante">`:`<span>📷</span>`}<span id="payShotT">${payBusy?"Subiendo foto…":payPhoto?"Foto lista · toca para cambiarla":"Toca para tomar o elegir la foto del comprobante"}</span></label>
+      <div class="payshot ${payPhoto?"ok":""}" id="payShot">
+        ${payPrev?`<img src="${payPrev}" alt="Comprobante">`:`<span>🧾</span>`}<div class="payshot-r"><span id="payShotT">${payBusy?"Subiendo foto…":payPhoto?"Foto lista · puedes cambiarla":"Foto del comprobante"}</span>
+        ${pickBtns('data-pay="1"',"environment")}</div></div>
       <div id="payErr"></div>
       <button class="btn primary" id="paySend" type="button" style="margin-top:10px">Enviar comprobante</button>
       <p class="muted" style="font-size:.8rem;margin:.6em 0 0">El hotel revisará el comprobante y lo sumará a tu reserva. Te avisaremos si hay algún problema.</p>
@@ -222,8 +223,8 @@ async function payPick(input){
   catch(e){ $("#payErr").innerHTML=`<div class="note bad">${esc(e.message)}</div>`; }
   payBusy=false; paySync(); input.value="";
 }
-function paySync(){ const l=$("#payShot"); if(!l) return; l.classList.toggle("ok",!!payPhoto); const img=l.querySelector("img"); if(payPrev){ if(img) img.src=payPrev; else { const sp=l.querySelector("span"); const im=document.createElement("img"); im.src=payPrev; im.alt="Comprobante"; sp.replaceWith(im);} }
-  $("#payShotT").textContent=payBusy?"Subiendo foto…":payPhoto?"Foto lista · toca para cambiarla":"Toca para tomar o elegir la foto del comprobante"; }
+function paySync(){ const l=$("#payShot"); if(!l) return; l.classList.toggle("ok",!!payPhoto); const img=l.querySelector(":scope > img"); if(payPrev){ if(img) img.src=payPrev; else { const sp=l.querySelector(":scope > span"); const im=document.createElement("img"); im.src=payPrev; im.alt="Comprobante"; sp.replaceWith(im);} }
+  $("#payShotT").textContent=payBusy?"Subiendo foto…":payPhoto?"Foto lista · puedes cambiarla":"Foto del comprobante"; }
 async function paySend(){
   const err=$("#payErr"), btn=$("#paySend"); err.innerHTML="";
   const amount=Number($("#payAmt").value)||0;
@@ -276,7 +277,7 @@ function bindOnce(){
 }
 function onInput(e){
   const t = e.target;
-  if(t.type==="file") { if(t.id==="payFile"){ if(e.type==="change") payPick(t); return; } if(e.type==="change") upload(t); return; }
+  if(t.type==="file") { if(t.dataset.pay){ if(e.type==="change") payPick(t); return; } if(e.type==="change") upload(t); return; }
   if(t.id==="consent"){ S.consent=t.checked; return; }
   if(t.dataset.t){ S.trip[t.dataset.t]=t.value; saveDraft(); return; }
   if(t.dataset.i!=null && t.dataset.k){ const p=S.people[+t.dataset.i]; p[t.dataset.k]=t.value;

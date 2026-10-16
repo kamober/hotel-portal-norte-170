@@ -161,7 +161,7 @@ legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(
 .idshot .im img{width:100%;height:100%;object-fit:cover}
 .idshot .im.docim img{object-fit:contain}
 .idshot b{font-size:.8rem}
-@media (max-width:600px){.idshots{grid-template-columns:1fr 1fr}.idshot:last-child{grid-column:1/-1}}
+@media (max-width:600px){.idshots{grid-template-columns:1fr}.idshot{display:grid;grid-template-columns:120px 1fr;gap:4px 10px;align-items:center}.idshot .im{grid-row:span 2}.idshot .grp{flex-direction:column;align-items:stretch}.idshot .pick{flex-direction:column}}
 
 /* Contrato y firma */
 .ct-box{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--surface);font-size:.86rem;line-height:1.55}
@@ -192,3 +192,10 @@ legend{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(
 .lbx-act{display:flex;gap:8px}
 .lbx-stage{flex:1;min-height:0;display:grid;place-items:center;padding:8px 12px 18px;overflow:auto}
 .lbx-stage img{max-width:100%;max-height:calc(100vh - 90px);max-height:calc(100dvh - 90px);object-fit:contain;border-radius:8px;background:#fff;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+
+/* Botones de foto: cámara + galería */
+.pick{display:flex;gap:6px;flex-wrap:wrap}
+.pick label{cursor:pointer;justify-content:center;white-space:nowrap}
+.pick input[type=file]{display:none}
+/* En computador (mouse) la cámara no aplica: se deja solo «Subir imagen» */
+@media (hover:hover) and (pointer:fine){.pick .pick-cam{display:none}}

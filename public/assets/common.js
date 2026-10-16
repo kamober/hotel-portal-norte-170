@@ -71,6 +71,15 @@ async function shrink(file){
   if(ok) return file;
   throw new Error(/hei[cf]/i.test(file.type+file.name)?"Esta foto está en formato HEIC y este navegador no la puede leer. Toma una captura de pantalla del comprobante y súbela, o en el iPhone ve a Ajustes › Cámara › Formatos › «Más compatible».":"Ese archivo no es una imagen que se pueda leer. Sube una foto JPG o PNG (una captura de pantalla sirve).");
 }
+/* Dos botones para cada foto: cámara (abre la cámara del celular o tablet) y galería/archivos.
+   attrs: atributos de datos del <input>; facing: "user" (selfie) o "environment" (documentos, comprobantes). */
+function pickBtns(attrs, facing, opts){
+  const o=opts||{}, cls=o.cls||"btn sm";
+  return `<span class="pick">`
+    +`<label class="${cls} pick-cam">📷 ${esc(o.cam||"Tomar foto")}<input type="file" accept="image/*" capture="${facing==="user"?"user":"environment"}" ${attrs} hidden></label>`
+    +`<label class="${cls} pick-up">🖼️ ${esc(o.up||"Subir imagen")}<input type="file" accept="image/*" ${attrs} hidden></label></span>`;
+}
+
 /* Visor de imágenes dentro de la página (no abre pestañas: en celulares las pestañas con fotos privadas salen en blanco) */
 function showImage(src, name, caption){
   const old=document.getElementById("lbx"); if(old) old.remove();
