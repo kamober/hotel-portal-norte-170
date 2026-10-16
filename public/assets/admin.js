@@ -617,6 +617,7 @@ function openGuestForm(g, opts){
         consent:ov.querySelector("#gCons").checked,notes:ov.querySelector("#gNotes").value,createdAt:g.createdAt||new Date().toISOString(),
         selfie:ph.selfie,docFront:ph.docFront,docBack:ph.docBack};
       try{await save("guests/"+id,rec,true); phOld.forEach(pid=>api("DELETE","admin/ids/"+encodeURIComponent(pid)).catch(()=>{}));toast(isNew?"Huésped registrado":"Ficha guardada");closeModal();
+        if(opts&&opts.onSaved) await opts.onSaved(id);
         if(opts&&opts.afterSave&&tra(rec).ok) opts.afterSave();}catch(_){}
     };
   }, true);
@@ -1048,14 +1049,30 @@ function fillOnline(box,r){
       <div><span class="eyebrow">Confirmación</span><div class="grp"><button class="btn sm" type="button" data-on="cpdf">Descargar PDF</button><button class="btn sm" type="button" data-on="cprint">Imprimir</button>${canShareFiles?`<button class="btn sm" type="button" data-on="cshare">Compartir PDF</button>`:""}</div></div>
       <div><span class="eyebrow">Ficha y registro hotelero</span><div class="grp"><button class="btn sm" type="button" data-on="spdf">Descargar PDF</button><button class="btn sm" type="button" data-on="sprint">Imprimir</button></div></div>
     </div>
-    ${ppl.length?`<div class="ppl">${ppl.map((p,i)=>`<button type="button" class="pp" data-gid="${esc(p.id)}">
-      <span class="av">${p.selfie?`<img data-idimg="${esc(p.selfie)}" alt="">`:esc((p.first||"?")[0])}</span>
-      <span><b>${esc(gName(p))}</b><small>${i===0?"Titular":"Acompañante"} · ${esc(p.docType||"")} ${esc(p.docNumber||"sin documento")}${p.docFront?" · 🪪":""}${tra(p).ok?"":" · <em>TRA incompleta</em>"}</small></span></button>`).join("")}</div>`:""}`;
+    ${(()=>{const pax=Math.max(1,(Number(r.adults)||1)+(Number(r.children)||0)), slots=Math.max(pax,ppl.length+(r.guestId?0:1)), missing=Math.max(0,pax-ppl.length);
+      return `<div class="ppl-h"><div><span class="eyebrow">Huéspedes de la reserva</span> <b>${ppl.length} de ${pax} registrado${pax===1?"":"s"}</b></div>
+        ${missing?`<span class="pill warn">Faltan ${missing}</span>`:`<span class="pill ok">Completo</span>`}</div>
+      <div class="ppl">${ppl.map((p,i)=>`<div class="pp-w"><button type="button" class="pp" data-gid="${esc(p.id)}">
+        <span class="av">${p.selfie?`<img data-idimg="${esc(p.selfie)}" alt="">`:esc((p.first||"?")[0])}</span>
+        <span><b>${esc(gName(p))}</b><small>${p.id===r.guestId?"Titular":"Acompañante"} · ${esc(p.docType||"")} ${esc(p.docNumber||"sin documento")}${p.docFront?" · 🪪":""}${p.selfie?" · 🤳":""}${tra(p).ok?"":" · <em>TRA incompleta</em>"}</small></span></button>
+        ${p.id!==r.guestId?`<button type="button" class="btn sm pp-x" data-unlink="${esc(p.id)}" title="Quitar de esta reserva" aria-label="Quitar de esta reserva">✕</button>`:""}</div>`).join("")}
+        ${[...Array(Math.max(0,slots-ppl.length))].map((_,k)=>`<button type="button" class="pp pp-empty" data-addp="${!r.guestId&&k===0?"titular":"comp"}"><span class="av">+</span><span><b>${!r.guestId&&k===0?"Registrar titular":"Registrar acompañante"}</b><small>Datos, selfie y documento</small></span></button>`).join("")}
+        ${missing?"":`<button type="button" class="pp pp-empty pp-more" data-addp="comp"><span class="av">+</span><span><b>Otra persona</b><small>Si llegan más de las reservadas</small></span></button>`}
+      </div>
+      <div class="muted" style="font-size:.76rem;margin-top:4px">El huésped también puede registrarlos desde su enlace (paso 2 del check-in en línea). Toca una persona para ver o completar su ficha y sus fotos.</div>`;})()}`;
   hydrateIdImgs(box);
   box.querySelectorAll(".pp small em").forEach(e=>{e.outerHTML=`<span style="color:var(--warn)">TRA incompleta</span>`;});
   const run=async(btn,fn)=>{const t=btn.textContent;btn.disabled=true;btn.textContent="Generando…";try{await fn();}catch(e){toast(e.message||"No se pudo generar el PDF.");}btn.disabled=false;btn.textContent=t;};
   box.onclick=e=>{
     const pp=e.target.closest("[data-gid]"); if(pp){openGuestForm(guestById(pp.dataset.gid));return;}
+    const ad=e.target.closest("[data-addp]"); if(ad){ const asTit=ad.dataset.addp==="titular";
+      openGuestForm({},{onSaved:async gid=>{ const cur=S.res.find(x=>x.id===r.id)||r;
+        const patch=asTit?{guestId:gid}:{companions:[...new Set([...(cur.companions||[]),gid])]};
+        const pax=(Number(cur.adults)||1)+(Number(cur.children)||0), count=resPeople({...cur,...patch}).length+(asTit?0:0);
+        if(count>pax) patch.adults=(Number(cur.adults)||1)+(count-pax);
+        await save("reservations/"+r.id,patch,true); toast(asTit?"Titular asociado a la reserva":"Acompañante agregado a la reserva"); setTimeout(()=>openResDetail(r.id),50); }}); return; }
+    const ul=e.target.closest("[data-unlink]"); if(ul){ if(ul.dataset.sure!=="1"){ul.dataset.sure="1";ul.textContent="¿Quitar?";return;}
+      const cur=S.res.find(x=>x.id===r.id)||r; save("reservations/"+r.id,{companions:(cur.companions||[]).filter(x=>x!==ul.dataset.unlink)},true).then(()=>{toast("Quitado de la reserva (la ficha se conserva)");closeModal();openResDetail(r.id);}).catch(()=>{}); return; }
     const b=e.target.closest("[data-on]"); if(!b) return; const a=b.dataset.on, name=n=>`${n}-${r.id}.pdf`;
     if(a==="copy") copyText(link);
     if(a==="ctsign") openContractSign(r,{});
@@ -1138,17 +1155,18 @@ function renderNotify(){
       ${n.provider?`<button class="btn sm primary" type="button" id="nTest">Enviar correo de prueba</button>`:""}</div>
     <div class="grid g2" style="margin-top:12px">
       <div><label class="f">Enviar los avisos a<input id="nTo" type="text" inputmode="email" value="${esc(h.notifyEmail||(n.to||[]).join(", ")||n.defaultTo||"")}" placeholder="correo@dominio.com, otro@dominio.com"></label>
-        <label class="f chk" style="margin-top:8px"><input type="checkbox" id="nOff" ${h.notifyOff?"checked":""}> Pausar los avisos por correo</label>
+        <label class="f chk" style="margin-top:8px"><input type="checkbox" id="nRes" ${h.notifyResOff?"":"checked"}> Avisarme también cada movimiento de reservas (nuevas, cambios, cancelaciones, check-in/out y pagos)</label>
+        <label class="f chk" style="margin-top:4px"><input type="checkbox" id="nOff" ${h.notifyOff?"checked":""}> Pausar todos los avisos por correo</label>
         <button class="btn sm" type="button" id="nSave" style="margin-top:8px">Guardar</button></div>
       <div><div class="eyebrow">Te llega un correo cuando</div>
-        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>alguien pide una reserva en el sitio web</li><li>un huésped completa el check-in en línea</li><li>entra o se cancela una reserva de Booking o Airbnb</li><li>hay una posible sobreventa o un calendario falla</li></ul>
+        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>alguien pide una reserva o escribe por el sitio web</li><li>se crea, modifica, cancela o elimina una reserva en el panel</li><li>se hace check-in o check-out, o se registra o verifica un pago</li><li>un huésped completa el check-in en línea, firma el contrato o sube un comprobante</li><li>entra o se cancela una reserva de Booking o Airbnb</li><li>hay una posible sobreventa o un calendario falla</li></ul>
         <div style="font-size:.84rem;margin-top:8px">${prov?`Servicio: <b>${esc(prov)}</b>.`:`Falta configurar el servicio de correo en Netlify (README, sección «Notificaciones por correo»).`}</div>
         ${last?`<div class="note ${last.ok?"ok":"bad"}" style="margin-top:8px">Último envío ${fdt(last.at)} · «${esc(last.subject)}»: ${last.ok?"entregado al servicio":esc(last.error||"falló")}</div>`:""}
         <div id="nNote" style="margin-top:8px"></div></div>
     </div>`;
   $("#nSave").onclick=async()=>{const v=$("#nTo").value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
     if(!v.length||v.some(x=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))){toast("Revisa los correos: sepáralos con coma.");return;}
-    try{await save("hotel",{notifyEmail:v.join(", "),notifyOff:$("#nOff").checked},true);toast("Notificaciones guardadas");S.notify=null;renderNotify();}catch(_){}};
+    try{await save("hotel",{notifyEmail:v.join(", "),notifyOff:$("#nOff").checked,notifyResOff:!$("#nRes").checked},true);toast("Notificaciones guardadas");S.notify=null;renderNotify();}catch(_){}};
   const t=$("#nTest"); if(t) t.onclick=async()=>{t.disabled=true;t.textContent="Enviando…";
     try{await api("POST","admin/notify/test");$("#nNote").innerHTML=`<div class="note ok">Correo de prueba enviado a ${esc((n.to||[]).join(", "))}. Revisa también la carpeta de spam.</div>`;}
     catch(e){$("#nNote").innerHTML=`<div class="note bad">${esc(e.message)}</div>`;}

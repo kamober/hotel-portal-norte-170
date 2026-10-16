@@ -27,7 +27,8 @@ async function load(){
   document.title = `Reserva ${D.res.id} · ${D.hotel.name || "Hotel Portal Norte 170"}`;
   const n = Math.min(12, Math.max(1, (Number(D.res.adults)||1) + (Number(D.res.children)||0)));
   const draft = loadDraft();
-  if(draft && Array.isArray(draft.people) && draft.people.length){ S.people = draft.people.map((p,i)=>Object.assign(blankPerson(i),p,{_titular:i===0})); Object.assign(S.trip, draft.trip||{}); }
+  if(draft && Array.isArray(draft.people) && draft.people.length){ S.people = draft.people.map((p,i)=>Object.assign(blankPerson(i),p,{_titular:i===0})); Object.assign(S.trip, draft.trip||{});
+    while(S.people.length<n) S.people.push(blankPerson(S.people.length)); }
   else { S.people = Array.from({length:n},(_,i)=>blankPerson(i)); Object.assign(S.people[0], {first:D.titular.first||"", last:D.titular.last||"", phone:D.titular.phone||"", email:D.titular.email||""}); S.trip.eta = D.res.eta || ""; }
   render();
 }
@@ -115,6 +116,14 @@ function personHTML(p,i){
     </div>
   </div>`;
 }
+const resPax=()=>Math.max(1,(Number(D.res.adults)||1)+(Number(D.res.children)||0));
+function paxHTML(){
+  const n=S.people.length, want=resPax();
+  return `<div class="pax"><div><b>¿Cuántas personas se alojan?</b><small>Incluye niños y bebés: cada persona necesita su ficha y sus fotos.</small></div>
+    <div class="pax-ctl"><button type="button" class="btn" data-pax="-1" ${n<=1?"disabled":""} aria-label="Una persona menos">−</button><b aria-live="polite">${n}</b><button type="button" class="btn" data-pax="1" ${n>=12?"disabled":""} aria-label="Una persona más">+</button></div></div>
+    ${n<want?`<div class="note warn">Tu reserva es para <b>${want} personas</b>. Agrega ${want-n===1?"al acompañante que falta":`a los ${want-n} acompañantes que faltan`} con el botón <b>+</b>.</div>`
+      :n>1?`<div class="muted" style="font-size:.82rem">Abajo hay una ficha para cada persona: <b>titular</b> y ${n-1} acompañante${n-1===1?"":"s"}. Llena sus datos y sube su selfie y documento.</div>`:""}`;
+}
 function checkinHTML(){
   const {res} = D;
   if(D.checkin && !showForm){
@@ -139,6 +148,7 @@ function checkinHTML(){
       <label class="f">Contacto de emergencia<input data-t="emergency" value="${esc(S.trip.emergency)}" placeholder="Nombre y teléfono"></label>
     </div></fieldset>
     <fieldset><legend>2 · Huéspedes y fotos (${S.people.length})</legend>
+      <div id="paxBox">${paxHTML()}</div>
       <div id="people" style="display:flex;flex-direction:column;gap:12px">${S.people.map(personHTML).join("")}</div>
       ${S.people.length<12?`<button class="btn" type="button" id="addP" style="align-self:flex-start">+ Agregar acompañante</button>`:""}
     </fieldset>
@@ -177,7 +187,7 @@ function render(){
   $("#app").innerHTML = confirmationHTML() + paymentsHTML() + checkinHTML() + contractHTML() + `<p class="foot-g">${esc(D.hotel.name||"")} · ${esc(D.hotel.address||"")}${D.hotel.whatsapp?" · WhatsApp "+esc(D.hotel.whatsapp):""}</p>`;
   bind();
 }
-function renderPeople(){ const box=$("#people"); if(!box) return; box.innerHTML=S.people.map(personHTML).join(""); const lg=box.closest("fieldset").querySelector("legend"); if(lg) lg.textContent=`2 · Huéspedes y fotos (${S.people.length})`; }
+function renderPeople(){ const box=$("#people"); if(!box) return; box.innerHTML=S.people.map(personHTML).join(""); const pb=$("#paxBox"); if(pb) pb.innerHTML=paxHTML(); const lg=box.closest("fieldset").querySelector("legend"); if(lg) lg.textContent=`2 · Huéspedes y fotos (${S.people.length})`; }
 
 /* ---------- pagos: subir comprobante ---------- */
 const PST={"verificado":["Verificado","ok"],"por verificar":["Por verificar","warn"],"rechazado":["Rechazado","bad"]};
@@ -254,6 +264,10 @@ function bindOnce(){
   app.addEventListener("input", onInput); app.addEventListener("change", onInput);
   app.addEventListener("click", e => {
     const rm = e.target.closest("[data-rm]"); if(rm){ const i=+rm.dataset.rm; S.people.splice(i,1); [...prev.keys()].forEach(k=>{ if(+k.split(":")[0]>=i) prev.delete(k); }); saveDraft(); renderPeople(); return; }
+    const px=e.target.closest("[data-pax]");
+    if(px){ if(+px.dataset.pax>0){ if(S.people.length<12) S.people.push(blankPerson(S.people.length)); }
+      else if(S.people.length>1){ const i=S.people.length-1; S.people.pop(); [...prev.keys()].forEach(k=>{ if(+k.split(":")[0]>=i) prev.delete(k); }); }
+      saveDraft(); renderPeople(); if(+px.dataset.pax>0){ const last=$("#people").lastElementChild; last&&last.scrollIntoView({behavior:"smooth",block:"start"}); } return; }
     if(e.target.closest("#addP")){ S.people.push(blankPerson(S.people.length)); saveDraft(); renderPeople(); const last=$("#people").lastElementChild; last && last.scrollIntoView({behavior:"smooth",block:"center"}); if(S.people.length>=12) e.target.remove(); return; }
     if(e.target.closest("#send")) submit();
     if(e.target.closest("#paySend")) paySend();

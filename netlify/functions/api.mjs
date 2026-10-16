@@ -205,6 +205,48 @@ async function handleContact(req, store) {
 }
 const addDaysISO = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 
+/* ---------- aviso por correo de cada movimiento de reservas ---------- */
+// Se ejecuta sin frenar la respuesta del panel cuando Netlify ofrece waitUntil.
+let reqCtx = null;
+const later = (p) => { const q = Promise.resolve(p).catch((e) => console.error("aviso", e)); if (reqCtx && typeof reqCtx.waitUntil === "function") { reqCtx.waitUntil(q); return null; } return q; };
+const STATUS_N = { pendiente: "Pendiente", confirmada: "Confirmada", encasa: "En casa (check-in)", finalizada: "Finalizada (check-out)", cancelada: "Cancelada" };
+const CH_N = { directo: "Directo / WhatsApp", booking: "Booking.com", airbnb: "Airbnb", expedia: "Expedia", hotels: "Hoteles.com", web: "Sitio web", otro: "Otro" };
+const pesos = (n) => "$" + Math.round(Number(n) || 0).toLocaleString("es-CO");
+async function notifyResChange(store, req, prev, rec, { deleted = false, extra = null } = {}) {
+  const hotel = await store.get("hotel", { type: "json" });
+  if (hotel && hotel.notifyResOff) return;
+  const r = rec || prev; if (!r) return;
+  const [room, guest] = await Promise.all([r.roomId ? store.get("rooms/" + r.roomId, { type: "json" }) : null, r.guestId ? store.get("guests/" + r.guestId, { type: "json" }) : null]);
+  const name = guest ? `${guest.first || ""} ${guest.last || ""}`.trim() : r.guestName || "Huésped sin ficha";
+  const roomTxt = (ro) => (ro ? `${ro.number} · ${ro.name || ro.type || ""}` : "—");
+  let kind, tone = "info"; const changes = [];
+  if (deleted) { kind = "eliminada"; tone = "bad"; }
+  else if (!prev) kind = "nueva";
+  else {
+    const f = [["status", "Estado", (v) => STATUS_N[v] || v], ["checkIn", "Llegada"], ["checkOut", "Salida"], ["adults", "Adultos"], ["children", "Niños"],
+      ["total", "Total", pesos], ["paid", "Abonado", pesos], ["channel", "Canal", (v) => CH_N[v] || v], ["eta", "Hora de llegada"], ["notes", "Notas"]];
+    for (const [k, label, fmt = (v) => v] of f) if (String(prev[k] ?? "") !== String(rec[k] ?? "")) changes.push([label, `${fmt(prev[k]) || "—"} → ${fmt(rec[k]) || "—"}`]);
+    if (prev.roomId !== rec.roomId) { const pr = await store.get("rooms/" + prev.roomId, { type: "json" }); changes.push(["Habitación", `${roomTxt(pr)} → ${roomTxt(room)}`]); }
+    if ((prev.guestId || "") !== (rec.guestId || "") || (prev.guestName || "") !== (rec.guestName || "")) changes.push(["Titular", name]);
+    const pc = (prev.companions || []).length, nc = (rec.companions || []).length; if (pc !== nc) changes.push(["Acompañantes registrados", `${pc} → ${nc}`]);
+    if (!changes.length && !extra) return; // guardado sin cambios reales
+    kind = prev.status !== rec.status ? ({ cancelada: "cancelada", encasa: "check-in", finalizada: "check-out" }[rec.status] || "modificada") : "modificada";
+    if (kind === "cancelada") tone = "bad"; if (kind === "check-in" || kind === "check-out") tone = "ok";
+  }
+  if (kind === "nueva") tone = "ok";
+  const titles = { nueva: "Reserva nueva", modificada: "Reserva modificada", cancelada: "Reserva cancelada", "check-in": "Check-in registrado", "check-out": "Check-out registrado", eliminada: "Reserva eliminada", pago: "Pago registrado" };
+  const k = extra?.kind || kind;
+  const nights = Math.max(0, diffDays(r.checkIn, r.checkOut));
+  await notifier.notify(store, hotel, {
+    subject: `${titles[k]} ${r.id} · Hab. ${room ? room.number : "?"}`, title: titles[k], tone: extra?.tone || tone,
+    intro: `${name} · ${r.checkIn} → ${r.checkOut} (${nights} noche${nights === 1 ? "" : "s"}).${extra?.intro ? " " + extra.intro : ""}`,
+    rows: [["Reserva", r.id], ["Habitación", roomTxt(room)], ["Huésped", name], ["Personas", `${r.adults || 1} adulto(s)${r.children ? `, ${r.children} niño(s)` : ""}`], ["Canal", CH_N[r.channel] || r.channel || "—"],
+      ["Estado", STATUS_N[r.status] || r.status], ["Total / saldo", `${pesos(r.total)} · saldo ${pesos((Number(r.total) || 0) - (Number(r.paid) || 0))}`],
+      ...(changes.length ? [["— Cambios —", ""], ...changes] : []), ...(extra?.rows || [])],
+    button: { url: notifier.baseUrl(req) + "/admin", label: "Ver en el panel" },
+  });
+}
+
 /* ---------- pagos y comprobantes ---------- */
 const PAY_METHODS = ["Efectivo", "Transferencia", "Nequi / Daviplata", "Tarjeta", "Cobrado por el canal", "Otro"];
 const PAY_ST = ["verificado", "por verificar", "rechazado"];
@@ -590,7 +632,11 @@ async function handleAdmin(req, parts, store) {
     else if (m === "PATCH" && payId) { const b = await readBody(req, 2_000); if (!PAY_ST.includes(b.status)) return fail(400, "Estado no válido."); next = await changePayment(store, r, payId, b.status); }
     else if (m === "DELETE" && payId) next = await changePayment(store, r, payId, null);
     else return fail(405, "Método no permitido.");
-    return json({ ...next, _gcal: await syncToCalendar(store, next) });
+    const g = await syncToCalendar(store, next);
+    if (m === "POST" || (m === "PATCH")) { const last = m === "POST" ? next.payments.at(-1) : next.payments.find((p) => p.id === payId);
+      if (last && (m === "POST" || last.status === "verificado")) { const w = later(notifyResChange(store, req, r, next, { extra: { kind: "pago", tone: "ok",
+        intro: `${m === "POST" ? "Se registró" : "Se verificó"} un pago de ${pesos(last.amount)} (${last.method}).`, rows: [["Pago", `${pesos(last.amount)} · ${last.method} · ${last.date}${last.photoId ? " · con comprobante" : ""}`]] } })); if (w) await w; } }
+    return json({ ...next, _gcal: g });
   }
 
   if (kind === "contract") {
@@ -677,6 +723,7 @@ async function handleAdmin(req, parts, store) {
     }
     await store.delete(key);
     const g = before ? await syncToCalendar(store, before, true) : undefined;
+    if (before) { const w = later(notifyResChange(store, req, before, null, { deleted: true })); if (w) await w; }
     return json({ deleted: true, _gcal: g });
   }
 
@@ -719,7 +766,7 @@ async function handleAdmin(req, parts, store) {
     const rec = cleanRecord(b, id);
     if (kind === "reservations") {
       // La firma del contrato solo la escribe el módulo de firma: nunca se toma del panel (evita perderla o alterarla con una copia vieja).
-      const prev = await store.get(key, { type: "json" });
+      var prevRes = await store.get(key, { type: "json" }); const prev = prevRes;
       if (prev && prev.contract) rec.contract = prev.contract; else delete rec.contract;
       if (prev && prev.contractHistory) rec.contractHistory = prev.contractHistory; else delete rec.contractHistory;
       if (prev && prev.checkin && !rec.checkin) rec.checkin = prev.checkin;
@@ -727,7 +774,7 @@ async function handleAdmin(req, parts, store) {
       if (prev && prev.payments) rec.payments = prev.payments; else delete rec.payments;
     }
     await store.setJSON(key, rec);
-    if (kind === "reservations") return json({ ...rec, _gcal: await syncToCalendar(store, rec) });
+    if (kind === "reservations") { const g = await syncToCalendar(store, rec); const w = later(notifyResChange(store, req, prevRes, rec)); if (w) await w; return json({ ...rec, _gcal: g }); }
     // Cambios en el huésped (nombre, teléfono) o en la habitación (número, nombre) se reflejan en sus eventos.
     if (kind === "guests") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.guestId === id || (r.companions || []).includes(id)) });
     if (kind === "rooms") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.roomId === id) });
@@ -738,7 +785,8 @@ async function handleAdmin(req, parts, store) {
 }
 
 /* ---------- router ---------- */
-export default async (req) => {
+export default async (req, context) => {
+  reqCtx = context || null;
   const url = new URL(req.url);
   const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   const store = data();
