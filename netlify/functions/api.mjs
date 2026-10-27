@@ -99,7 +99,7 @@ const bearer = (req) => (req.headers.get("authorization") || "").replace(/^Beare
 
 /* ---------- vistas públicas ---------- */
 const PUBLIC_ROOM_FIELDS = ["id", "number", "name", "type", "beds", "capacity", "rate", "bath", "size", "floor", "description", "features", "photos", "status"];
-const PUBLIC_HOTEL_FIELDS = ["name", "address", "zone", "phone", "whatsapp", "email", "checkinFrom", "checkinTo", "checkout", "description", "amenities", "policies", "nearby", "payments", "heroPhoto", "tagline", "attentionFrom", "attentionTo"];
+const PUBLIC_HOTEL_FIELDS = ["name", "address", "zone", "phone", "whatsapp", "email", "checkinFrom", "checkinTo", "checkout", "description", "amenities", "policies", "nearby", "payments", "heroPhoto", "tagline", "attentionFrom", "attentionTo", "fromPrice"];
 const pick = (o, fields) => Object.fromEntries(fields.filter((f) => o[f] !== undefined).map((f) => [f, o[f]]));
 
 function availability(reservations, today) {

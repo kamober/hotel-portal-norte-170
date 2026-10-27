@@ -72,29 +72,33 @@ Crea un archivo `.env` (no se sube a Git) con `ADMIN_PASSWORD` y `TOKEN_SECRET` 
 
 ## Identidad visual
 
-Logo definitivo: hongo-casa con puerta de madera y pasto. Archivos en `public/assets/`:
+Logo 2026: hongo-casa 3D (sombrero rojo, puerta de madera) con «HOTEL Portal Norte 170 · Coliving · Bogotá» en marino. Diseño web inspirado en un portal de viajes moderno: menú sobre la portada, franja de beneficios, buscador en tarjeta, tarjetas de habitaciones, bloque «Sobre el hotel», servicios sobre fondo oscuro, llamado final y pie azul marino con tira de fotos.
 
-| Archivo | Uso |
+| Archivo (`public/assets/`) | Uso |
 |---|---|
-| `logo-web.png` | Logo completo con fondo transparente (pie de página, ingreso al panel) |
-| `logo-mark.png` | Solo el hongo, transparente (barra superior, banda de contacto, tarjetas sin foto, encabezado del panel) |
-| `favicon-32.png`, `favicon-64.png` | Pestaña del navegador |
-| `apple-touch-icon.png`, `icon-512.png` | Ícono del celular y foto de perfil (fondo crema) |
-| `og-image.png` | Imagen al compartir el enlace |
+| `logo-web-white.png` | Logo horizontal para fondos oscuros (menú del sitio, pie, página del huésped) |
+| `logo-web.png` | Logo horizontal para fondos claros |
+| `logo-full.png`, `logo-full-white.png` | Logo completo vertical (claro y para fondos oscuros, como el ingreso al panel) |
+| `logo-mark.png`, `logo-badge.png` | Solo el hongo (encabezado del panel, marca de agua, PDF) |
+| `favicon-32.png`, `favicon-64.png`, `apple-touch-icon.png`, `icon-512.png` | Íconos del navegador y del celular |
+| `og-image.jpg` | Imagen al compartir el enlace (portada de Bogotá + logo) |
+| `promo/hero-bogota.jpg`, `promo/hero-bogota-m.jpg` | Ilustración de la portada (versión liviana para celular). La portada es un carrusel: la ilustración (8 s, encuadrada para mostrar el bus de TransMilenio) y luego las fotos del hotel (5,5 s cada una) |
 
-Paleta (variables en `public/assets/styles.css`): marino para bandas y textos, rojo del logo para acciones, crema para fondos.
+El precio «Desde … / noche» de la portada se cambia en **Alojamiento → Editar ficha → Precio «desde»** (por defecto $90.000). El logo va sin círculo: el hongo es transparente.
+
+Las fotos promocionales llevan el sello del hotel (hongo + «PORTAL NORTE 170» en marino y «HOTEL · COLIVING · BOGOTÁ» en rojo). Las fotos que subas en el panel reciben ese mismo sello.
+
+Paleta (variables en `public/assets/styles.css` y en `index.html`):
 
 | Color | Hex | Uso |
 |---|---|---|
-| Marino | `#0E2A42` / `#091C2E` | Encabezados, bandas oscuras, pie, panel de administración |
-| Rojo acción | `#C62D24` | Botones y enlaces (del sombrero del logo) |
-| Rojo hongo | `#E2362B` | Pestaña activa y acentos |
-| Crema / arena | `#FBEFD9` / `#F4EDE2` | Fondos de marca y secciones claras |
-| Fondo | `#FAF7F2` | Fondo general |
-| Madera | `#9D582C` | Acentos cálidos |
-| Pasto | `#3E7A1F` | Disponibilidad y estados positivos |
+| Azul marino | `#0A1F44` / `#06142E` | Portada, servicios, pie, encabezados de PDF y correos, textos |
+| Azul | `#1E74F0` / `#155BC4` | Botones en píldora, enlaces, pestaña activa |
+| Celeste | `#5CC4FF` | Degradado del título y detalles sobre fondo oscuro |
+| Rojo hongo | `#E3261C` | Acentos: «170», ubicación, líneas de PDF, sello de fotos |
+| Fondo claro | `#F4F7FC` | Secciones claras |
 
-Tipografía: Source Serif 4 (títulos, con cursiva de acento) y Plus Jakarta Sans (texto).
+Tipografía: Poppins (títulos), Inter (texto) y Playfair Display (títulos destacados del sitio).
 
 ## Plano de habitaciones (para atender llamadas)
 

@@ -6,18 +6,21 @@
 <title>Tu reserva · Hotel Portal Norte 170</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#0E2A42">
+<meta name="theme-color" content="#0A1F44">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 /* Página del huésped: confirmación + check-in en línea. Pensada primero para celular. */
 body.guest{padding:0;background:var(--bg)}
-.gbar{background:var(--navy);color:#fff;border-bottom:4px solid var(--accent)}
-.gbar .in{max-width:760px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.gbar{background:linear-gradient(90deg,#06142E,#0F2B5B);color:#fff;border-bottom:3px solid var(--brand-red)}
+.gbar .in{max-width:760px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.gbar .lg{height:54px;width:auto;display:block}
+.gbar .tag{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--blue);color:#fff;padding:7px 12px;border-radius:999px}
+
 .gbar .mk{width:46px;height:46px;border-radius:50%;background:var(--cream);display:grid;place-items:center;flex:none}
 .gbar .mk img{width:34px;height:34px}
 .gbar b{font-family:var(--display);font-size:1.15rem;font-weight:600;display:block;line-height:1.1}
@@ -106,7 +109,7 @@ body.guest{padding:0;background:var(--bg)}
 </style>
 </head>
 <body class="guest">
-<header class="gbar"><div class="in"><span class="mk"><img src="/assets/logo-mark.png" alt=""></span><div><b id="hName">Hotel Portal Norte 170</b><small>HOTEL · COLIVING · BOGOTÁ</small></div></div></header>
+<header class="gbar"><div class="in"><img class="lg" src="/assets/logo-web-white.png" alt="Hotel Portal Norte 170 · Coliving · Bogotá" width="498" height="120"><span class="tag">Tu reserva</span><b id="hName" hidden>Hotel Portal Norte 170</b></div></header>
 <main class="gwrap" id="app"><div class="big-state">Cargando tu reserva…</div></main>
 <div id="modalRoot"></div>
 <script src="/assets/common.js"></script>

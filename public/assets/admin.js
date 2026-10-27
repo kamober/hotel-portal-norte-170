@@ -149,7 +149,7 @@ function renderPanel(){
   const segs=22, filled=Math.round(tonight/nRooms*segs);
   let gs="";
   for(let i=0;i<segs;i++){const a=Math.PI*(1-(i+.5)/segs), cx=160+Math.cos(a)*118, cy=160-Math.sin(a)*118, deg=90-(a*180/Math.PI);
-    const k=filled>1?i/(filled-1):1, col=i<filled?`rgb(${Math.round(63+(14-63)*k)},${Math.round(107+(42-107)*k)},${Math.round(147+(66-147)*k)})`:"var(--soft-2)";
+    const k=filled>1?i/(filled-1):1, col=i<filled?`rgb(${Math.round(92+(21-92)*k)},${Math.round(170+(91-170)*k)},${Math.round(255+(196-255)*k)})`:"var(--soft-2)";
     gs+=`<rect x="${(cx-5.5).toFixed(1)}" y="${(cy-20).toFixed(1)}" width="11" height="40" rx="5.5" fill="${col}" transform="rotate(${deg.toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})"/>`;}
   $("#kpis").innerHTML = `
     <div class="stack">
@@ -773,11 +773,11 @@ function drawWatermark(c,W,H,logo){
   c.font=`600 ${1.7*u}px ${F}`; const w2=c.measureText(t2).width;
   const boxH=lw+pad*1.1, boxW=pad+lw+pad*.9+Math.max(w1,w2)+pad*1.6;
   const x=W-boxW-3*u, y=H-boxH-3*u;
-  c.globalAlpha=.78; c.fillStyle="#FFFFFF"; roundRectPath(c,x,y,boxW,boxH,boxH/2); c.fill();
+  c.globalAlpha=.94; c.fillStyle="#FFFFFF"; roundRectPath(c,x,y,boxW,boxH,boxH/2); c.fill();
   c.globalAlpha=.95; if(logo) c.drawImage(logo,x+pad,y+(boxH-lw)/2,lw,lw);
   const tx=x+pad+lw+pad*.9;
-  c.fillStyle="#0E2A42"; c.font=`700 ${3*u}px ${F}`; c.textBaseline="alphabetic"; c.fillText(t1,tx,y+boxH/2+.2*u);
-  c.fillStyle="#5E6B78"; c.font=`600 ${1.7*u}px ${F}`; c.fillText(t2,tx,y+boxH/2+2.9*u);
+  c.fillStyle="#0A1F44"; c.font=`700 ${3*u}px ${F}`; c.textBaseline="alphabetic"; c.fillText(t1,tx,y+boxH/2+.2*u);
+  c.fillStyle="#E3261C"; c.font=`600 ${1.7*u}px ${F}`; c.fillText(t2,tx,y+boxH/2+2.9*u);
   c.restore();
 }
 /* Abre el editor sobre cualquier modal abierto; devuelve el JPG final (encuadrado y con marca) o null si se cancela */
@@ -850,6 +850,7 @@ function openHotelForm(){
       <label class="f">Check-in desde<input type="time" id="hoCi1" value="${esc(h.checkinFrom||"15:00")}"></label>
       <label class="f">Check-in hasta<input type="time" id="hoCi2" value="${esc(h.checkinTo||"18:00")}"></label>
       <label class="f">Check-out<input type="time" id="hoCo" value="${esc(h.checkout||"11:00")}"></label>
+      <label class="f">Precio «desde» en la portada del sitio (COP)<input type="number" id="hoFrom" min="0" step="1000" value="${esc(h.fromPrice||90000)}"></label>
       <label class="f">Medios de pago (se muestran al huésped para pagar)<textarea id="hoPay" rows="2" placeholder="Transferencia Bancolombia ahorros 000-000000-00 · Nequi 300 000 0000">${esc(h.payments||"")}</textarea></label>
     </div>
     <label class="f">Frase de portada (sitio público)<input id="hoTag" value="${esc(h.tagline||"")}" placeholder="Tu base en el norte de Bogotá"></label>
@@ -887,7 +888,7 @@ function openHotelForm(){
       const v=s=>ov.querySelector(s).value.trim(), L=s=>ov.querySelector(s).value.split("\n").map(x=>x.trim()).filter(Boolean);
       const channels={};ov.querySelectorAll("[data-chl]").forEach(i=>channels[i.dataset.chl]=i.value.trim());
       const rec=Object.assign({},h,{name:v("#hoName"),otaName:v("#hoOta"),address:v("#hoAddr"),zone:v("#hoZone"),phone:v("#hoPhone"),whatsapp:v("#hoWa"),email:v("#hoMail"),
-        frontDesk:v("#hoDesk"),checkinFrom:v("#hoCi1"),checkinTo:v("#hoCi2"),checkout:v("#hoCo"),payments:v("#hoPay"),description:ov.querySelector("#hoDesc").value.trim(),
+        frontDesk:v("#hoDesk"),checkinFrom:v("#hoCi1"),checkinTo:v("#hoCi2"),checkout:v("#hoCo"),fromPrice:Number(v("#hoFrom"))||90000,payments:v("#hoPay"),description:ov.querySelector("#hoDesc").value.trim(),
         tagline:v("#hoTag"),heroPhoto,
         amenities:L("#hoAm"),policies:L("#hoPol"),nearby:L("#hoNear"),channels});
       try{await save("hotel/info",rec);toast("Ficha guardada");closeModal();}catch(_){}

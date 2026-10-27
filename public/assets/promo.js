@@ -4,28 +4,33 @@ const IMG = n => `/assets/promo/${n}.jpg`;
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ---------- portada: fotos que rotan ---------- */
+// Portada: ilustración de Bogotá primero (versión liviana en celulares) y luego fotos del hotel.
+// pos = encuadre de cada foto; en la ilustración se privilegia el bus de TransMilenio (abajo a la izquierda).
+const small = matchMedia("(max-width:700px)").matches;
 const HERO = [
-  {src:IMG("hero-fachada"), cap:"Fachada en Villa del Prado · a una cuadra del Portal Norte"},
-  {src:IMG("hero-pasillo"), cap:"Pasillos amplios, luminosos y con acceso controlado"},
-  {src:IMG("hero-cocina"), cap:"Cocina compartida equipada y comedor"},
-  {src:IMG("hero-pasillo2"), cap:"Habitaciones privadas con escritorio y Wi‑Fi"},
+  {src:IMG(small?"hero-bogota-m":"hero-bogota"), cap:"Bogotá · TransMilenio a una cuadra", pos:small?"18% 100%":"center 100%"},
+  {src:IMG("hero-fachada"), cap:"Fachada en Villa del Prado · a una cuadra del Portal Norte", pos:"center 55%"},
+  {src:IMG("hero-pasillo"), cap:"Pasillos amplios, luminosos y con acceso controlado", pos:"center 50%"},
+  {src:IMG("hero-cocina"), cap:"Cocina compartida equipada y comedor", pos:"center 55%"},
+  {src:IMG("hero-pasillo2"), cap:"Habitaciones privadas con escritorio y Wi‑Fi", pos:"center 50%"},
 ];
 const hero = {i:0, t:null, slides:HERO.slice()};
 function heroRender(){
   const bg=document.getElementById("heroBg"); if(!bg) return;
-  bg.innerHTML = hero.slides.map((s,i)=>`<img class="slide${i===hero.i?" on":""}" src="${s.src}" alt="" ${i?'loading="lazy"':'fetchpriority="high"'} decoding="async">`).join("");
+  bg.innerHTML = hero.slides.map((s,i)=>`<img class="slide${i===hero.i?" on":""}" src="${s.src}" alt="" ${s.pos?`style="object-position:${s.pos}"`:""} ${i?'loading="lazy"':'fetchpriority="high"'} decoding="async">`).join("");
   const dots=document.getElementById("heroDots");
   if(dots) dots.innerHTML = hero.slides.map((s,i)=>`<button type="button" aria-label="Foto ${i+1}: ${s.cap}" aria-current="${i===hero.i}"><i></i></button>`).join("");
   heroCap();
 }
-function heroCap(){const c=document.getElementById("heroSlideCap"); if(c) c.textContent=hero.slides[hero.i].cap;}
+function heroCap(){const c=document.getElementById("heroSlideCap"); if(c) c.textContent=hero.slides[hero.i].cap; const h=document.getElementById("inicio"); if(h) h.classList.toggle("is-photo",hero.i>0);}
 function heroGo(i){
   const n=hero.slides.length; hero.i=(i+n)%n;
   document.querySelectorAll("#heroBg .slide").forEach((el,k)=>el.classList.toggle("on",k===hero.i));
   document.querySelectorAll("#heroDots button").forEach((el,k)=>el.setAttribute("aria-current",String(k===hero.i)));
   heroCap(); heroPlay();
 }
-function heroPlay(){clearTimeout(hero.t); if(!reduce && hero.slides.length>1) hero.t=setTimeout(()=>heroGo(hero.i+1),6500);}
+// La ilustración principal se queda más tiempo; las fotos del hotel rotan cada 5,5 s.
+function heroPlay(){clearTimeout(hero.t); if(!reduce && hero.slides.length>1) hero.t=setTimeout(()=>heroGo(hero.i+1),hero.i===0?8000:5500);}
 document.addEventListener("click",e=>{const b=e.target.closest("#heroDots button");if(b){heroGo([...b.parentElement.children].indexOf(b));}});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)clearTimeout(hero.t);else heroPlay();});
 
@@ -113,6 +118,7 @@ addEventListener("DOMContentLoaded",()=>{heroRender();heroPlay();galRender();});
 
 window.PNPromo = {
   // La foto de portada elegida en el panel entra primero en la rotación.
-  heroFirst(src){ if(!src || hero.slides.some(s=>s.src===src)) return; hero.slides.unshift({src,cap:"Hotel Portal Norte 170"}); hero.i=0; heroRender(); heroPlay(); },
+  // La foto de portada del panel se agrega después de la ilustración principal.
+  heroFirst(src){ if(!src || hero.slides.some(s=>s.src===src)) return; hero.slides.push({src,cap:"Hotel Portal Norte 170"}); heroRender(); heroPlay(); },
 };
 })();

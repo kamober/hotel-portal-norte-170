@@ -1,7 +1,7 @@
 /* Hotel Portal Norte 170 — documentos PDF (confirmación, ficha de reserva con registro hotelero, listado)
    y utilidades para descargar, imprimir y compartir por WhatsApp. Requiere pdf.js. */
 (function(root){
-const NAVY="#0E2A42", RED="#C62D24", CREAM="#FBEFD9", SAND="#F4EDE2", INK="#1F2A37", MUTED="#6B7280", LINE="#E2D9CC";
+const NAVY="#0A1F44", TEAL="#0A1F44", RED="#E3261C", CREAM="#FFFFFF", SAND="#EEF3FA", INK="#1F2A37", MUTED="#6B7280", LINE="#E2D9CC";
 const ST={pendiente:"Pendiente de confirmación",confirmada:"Confirmada",encasa:"En casa",finalizada:"Finalizada",cancelada:"Cancelada"};
 const CH={directo:"Directo / WhatsApp",booking:"Booking.com",airbnb:"Airbnb",expedia:"Expedia",hotels:"Hoteles.com",web:"Sitio web",otro:"Otro"};
 const money=v=>"$ "+Math.round(Number(v)||0).toLocaleString("es-CO");
@@ -14,14 +14,14 @@ const nowTxt=()=>{try{return new Intl.DateTimeFormat("es-CO",{timeZone:"America/
 /* ---------- piezas comunes ---------- */
 function header(d,o){
   const W=d.W,h=o.h||104;
-  d.rect(0,0,W,h,{fill:NAVY}); d.rect(0,h,W,4,{fill:RED});
+  d.rect(0,0,W,h,{fill:TEAL}); d.rect(0,h,W,4,{fill:RED});
   if(o.logo) d.image(o.logo,40,(h-62)/2,62,62);
   const x=o.logo?114:40;
   d.text(o.hotel||"Hotel Portal Norte 170",x,h/2-20,{font:"TB",size:19,color:"#FFFFFF"});
-  d.text("HOTEL · COLIVING · BOGOTÁ",x,h/2+4,{font:"B",size:7.5,color:"#E7C9A9"});
-  if(o.kicker) d.text(o.kicker,W-40,h/2-22,{font:"B",size:8,color:"#E7C9A9",align:"right"});
+  d.text("HOTEL · COLIVING · BOGOTÁ",x,h/2+4,{font:"B",size:7.5,color:"#7FD3FF"});
+  if(o.kicker) d.text(o.kicker,W-40,h/2-22,{font:"B",size:8,color:"#7FD3FF",align:"right"});
   if(o.code) d.text(o.code,W-40,h/2-8,{font:"TB",size:18,color:"#FFFFFF",align:"right"});
-  if(o.sub) d.text(o.sub,W-40,h/2+16,{font:"R",size:8.5,color:"#D6DEE6",align:"right"});
+  if(o.sub) d.text(o.sub,W-40,h/2+16,{font:"R",size:8.5,color:"#C9D6EA",align:"right"});
   return h+4;
 }
 function footer(d,hotel,pageNo,total){
@@ -176,8 +176,8 @@ async function logoBadge(){
   if(LOGO) return LOGO;
   try{ const bmp=await createImageBitmap(await (await fetch("/assets/logo-mark.png")).blob());
     const c=document.createElement("canvas");c.width=c.height=240;const x=c.getContext("2d");
-    x.fillStyle=NAVY;x.fillRect(0,0,240,240);x.fillStyle=CREAM;x.beginPath();x.arc(120,120,116,0,Math.PI*2);x.fill();
-    const k=170/Math.max(bmp.width,bmp.height);x.drawImage(bmp,120-bmp.width*k/2,120-bmp.height*k/2,bmp.width*k,bmp.height*k);
+    x.fillStyle=TEAL;x.fillRect(0,0,240,240);
+    const k=228/Math.max(bmp.width,bmp.height);x.drawImage(bmp,120-bmp.width*k/2,120-bmp.height*k/2,bmp.width*k,bmp.height*k);
     const b=await new Promise(r=>c.toBlob(r,"image/jpeg",0.9)); LOGO={bytes:new Uint8Array(await b.arrayBuffer())};
   }catch(_){LOGO=null;}
   return LOGO;

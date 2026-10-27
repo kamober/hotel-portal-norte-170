@@ -10,7 +10,7 @@
 <title>Administración · Portal Norte 170</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,500;0,8..60,600;1,8..60,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/assets/styles.css">
 <style>
 /* ===== Panel de administración — estilo tablero (tarjetas claras, píldoras, medidores) en marino y rojo del logo ===== */
@@ -19,7 +19,7 @@ body.admin{
   --navy-2:#1C4266; --navy-3:#3F6B93; --navy-4:#8DA6BF; --navy-5:#D3DDE8;
   --fg:#0E2A42; --muted:#66768A; --line:#E3E8EE; --sunk:#F1F4F8; --surface:#FFFFFF;
   --r:20px; --shadow-card:0 1px 2px rgba(14,42,66,.04),0 10px 30px rgba(14,42,66,.06);
-  background:radial-gradient(1200px 600px at 85% -10%,#DCE4EE 0,transparent 60%),radial-gradient(900px 500px at -10% 110%,#F3E3E1 0,transparent 55%),var(--page);
+  background:radial-gradient(1200px 600px at 85% -10%,#DCE6EE 0,transparent 60%),radial-gradient(900px 500px at -10% 110%,#E1EAFB 0,transparent 55%),var(--page);
   font-family:var(--body); padding:28px 20px 48px; min-height:100vh}
 @media (prefers-color-scheme: dark){body.admin{
   --page:#06111C; --frame:#0B1826; --card:#102236; --card-line:rgba(255,255,255,.06); --soft:#152B42; --soft-2:#1B3550;
@@ -34,16 +34,16 @@ body.admin h1,body.admin h2,body.admin h3{font-family:var(--body);letter-spacing
 /* Encabezado */
 header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--frame) 88%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);margin:-22px -28px 0;padding:18px 28px 14px;border-radius:32px 32px 0 0;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px}
 .brand-id{display:flex;align-items:center;gap:12px;min-width:0}
-.brand-id .mark{width:46px;height:46px;flex:none;background:var(--cream);border-radius:50%;padding:4px;box-shadow:inset 0 0 0 1px rgba(14,42,66,.06)}
+.brand-id .mark{width:54px;height:54px;flex:none;background:transparent;object-fit:contain}
 .brand-id h1{font-size:1.32rem;font-weight:700;line-height:1.05;white-space:nowrap}
-.brand-id h1 span{color:var(--accent)}
+.brand-id h1 span{color:var(--brand-red)}
 .brand-id h1 span.hp{color:inherit}
 .brand-id .addr{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
 nav.tabs{display:flex;gap:4px;justify-self:center;overflow-x:auto;scrollbar-width:none;background:transparent;padding:2px;max-width:100%}
 nav.tabs::-webkit-scrollbar{display:none}
 nav.tabs button{all:unset;cursor:pointer;padding:9px 15px;border-radius:999px;font-weight:500;font-size:.88rem;color:var(--fg);white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:background .15s,color .15s}
 nav.tabs button:hover{background:var(--soft)}
-nav.tabs button[aria-selected="true"]{background:var(--navy);color:#fff;box-shadow:0 6px 16px rgba(14,42,66,.25)}
+nav.tabs button[aria-selected="true"]{background:var(--tq);color:#fff;box-shadow:0 6px 16px rgba(30,116,240,.32)}
 nav.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 nav.tabs .count{font-family:var(--mono);font-size:.68rem;background:var(--soft-2);color:var(--fg);padding:1px 7px;border-radius:999px}
 nav.tabs button[aria-selected="true"] .count{background:rgba(255,255,255,.18);color:#fff}
@@ -79,7 +79,7 @@ body.admin .panel{background:var(--card);border:1px solid var(--card-line);borde
 body.admin .panel h3{font-family:var(--body);font-size:1.08rem;font-weight:600}
 body.admin .btn{border-radius:999px;padding:9px 16px;background:var(--card);border-color:var(--card-line);box-shadow:var(--shadow-card)}
 body.admin .btn.sm{padding:5px 12px}
-body.admin .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(198,45,36,.25)}
+body.admin .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 8px 18px rgba(30,116,240,.3)}
 body.admin .btn.primary:hover{background:var(--accent-hover)}
 body.admin .btn.navy{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:0 8px 18px rgba(14,42,66,.22)}
 body.admin .btn.danger{background:var(--card)}
@@ -108,14 +108,14 @@ body.admin .empty{color:var(--muted)}
 .w-h h3{font-size:1.05rem!important}
 .w-h .more{all:unset;cursor:pointer;color:var(--navy-3);font-weight:700;letter-spacing:2px;padding:0 4px;border-radius:6px}
 .big{font-size:2.35rem;font-weight:600;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
-.kpi-dark{background:linear-gradient(135deg,#0E2A42 0%,#1C4266 100%)!important;color:#fff;border:0!important;position:relative;overflow:hidden}
-.kpi-dark::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(226,54,43,.35),transparent 70%)}
+.kpi-dark{background:linear-gradient(135deg,#06142E 0%,#0F2B5B 55%,#1E4FA0 100%)!important;color:#fff;border:0!important;position:relative;overflow:hidden}
+.kpi-dark::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(227,38,28,.4),transparent 70%)}
 .kpi-dark .w-h .more{color:rgba(255,255,255,.75)}
 .kpi-dark small{color:rgba(255,255,255,.72)}
 .kpi-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
 .kpi-row small{font-size:.76rem;color:var(--muted)}
 .progress{height:46px;border-radius:12px;background:var(--soft);overflow:hidden;margin-top:14px}
-.progress i{display:block;height:100%;border-radius:12px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 10px,transparent 10px 20px),linear-gradient(90deg,#0E2A42,#3F6B93);transition:width .5s}
+.progress i{display:block;height:100%;border-radius:12px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.14) 0 10px,transparent 10px 20px),linear-gradient(90deg,#155BC4,#3E9BFF);transition:width .5s}
 .p-foot{display:flex;justify-content:space-between;gap:10px;margin-top:10px;font-size:.8rem;color:var(--muted)}
 .p-foot b{color:var(--fg)}
 .gauge{position:relative;display:flex;justify-content:center;margin-top:6px}
@@ -132,7 +132,7 @@ body.admin .empty{color:var(--muted)}
 .bars .b{display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0;cursor:default}
 .bars .b em{font-style:normal}
 .bars .b .col{width:100%;max-width:46px;border-radius:12px;background:repeating-linear-gradient(135deg,rgba(14,42,66,.07) 0 8px,transparent 8px 16px),#DCE5EF;min-height:8px;transition:height .5s}
-.bars .b.hi .col{background:repeating-linear-gradient(135deg,rgba(255,255,255,.12) 0 8px,transparent 8px 16px),linear-gradient(180deg,#1C4266,#0E2A42)}
+.bars .b.hi .col{background:repeating-linear-gradient(135deg,rgba(255,255,255,.12) 0 8px,transparent 8px 16px),linear-gradient(180deg,#3E9BFF,#155BC4)}
 .bars .b.we .col{background:repeating-linear-gradient(135deg,rgba(14,42,66,.09) 0 8px,transparent 8px 16px),#CBD8E6}
 .bars .b small{font-size:.76rem;color:var(--muted);text-transform:capitalize}
 .bars .b .chip{font-size:.66rem;padding:2px 7px}
@@ -197,9 +197,9 @@ body.admin .li{border-radius:14px}
 body.admin .modal,body.admin .md{border-radius:24px}
 
 /* Acceso */
-body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transparent 60%),var(--navy);padding:0 16px}
+body.is-login{background:linear-gradient(rgba(6,20,46,.62),rgba(6,20,46,.62)),url(/assets/promo/hero-bogota.jpg) center/cover fixed,var(--navy);padding:0 16px}
 .login{max-width:400px;margin:8vh auto 0;display:flex;flex-direction:column;gap:16px}
-.login .login-logo{width:190px;height:auto;align-self:center;background:var(--cream);border-radius:28px;padding:12px}
+.login .login-logo{width:240px;height:auto;align-self:center;filter:drop-shadow(0 10px 24px rgba(0,0,0,.35))}
 .login .eyebrow{text-align:center;color:rgba(255,255,255,.75)}
 .login .panel{border:0;box-shadow:0 30px 60px rgba(0,0,0,.35);padding:24px;border-radius:24px}
 .login > a{color:rgba(255,255,255,.8)!important;text-align:center}
@@ -334,12 +334,13 @@ body.is-login{background:radial-gradient(900px 500px at 80% 0%,#1C4266 0,transpa
 .pp-empty{border-style:dashed !important;background:transparent !important}
 .pp-empty .av{background:var(--soft-2) !important;color:var(--navy) !important;font-weight:700}
 .pp-more{opacity:.75}
+.kpi-dark small,.kpi-dark .muted,.kpi-dark .sub{color:rgba(255,255,255,.88)!important}
 </style>
 </head>
 <body class="admin">
 
 <div class="login" id="login" hidden>
-  <img class="login-logo" src="/assets/logo-web.png" alt="Hotel Portal Norte 170 · Coliving Bogotá" width="200" height="258">
+  <img class="login-logo" src="/assets/logo-full-white.png" alt="Hotel Portal Norte 170 · Coliving Bogotá" width="240" height="240">
   <div class="eyebrow">Administración del sistema de reservas</div>
   <form class="panel" id="loginForm" style="display:flex;flex-direction:column;gap:12px">
     <label class="f">Contraseña<input type="password" id="pw" autocomplete="current-password" required></label>
