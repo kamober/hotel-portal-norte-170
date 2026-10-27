@@ -32,7 +32,7 @@ async function save(path, data, merge){
       const body = merge ? Object.assign({}, cur, data) : Object.assign({}, data);
       delete body.id;
       rec = await api("PUT", `admin/${kind}/${encodeURIComponent(id)}`, body);
-      const g = rec._gcal; delete rec._gcal; upsert(arr, rec); gcalWarn(g);
+      const g = rec._gcal; delete rec._gcal; if(rec._link){ S.links=S.links||{}; S.links[rec.id]=rec._link; } delete rec._link; upsert(arr, rec); gcalWarn(g);
     }
   }catch(e){ toast(e.message || "No se pudo guardar."); throw e; }
   render(); return rec;
@@ -1037,7 +1037,7 @@ function fillOnline(box,r){
     ${link?`<div class="grp" style="margin-top:10px"><input readonly value="${esc(link)}" style="flex:1 1 240px;font-family:var(--mono);font-size:.74rem" aria-label="Enlace del huésped"><button class="btn sm" type="button" data-on="copy">Copiar enlace</button>
       <a class="btn sm primary" target="_blank" rel="noopener" href="${esc(PNDocs.waUrl(g&&g.phone,waText(r)))}">Enviar por WhatsApp</a></div>
       <div class="muted" style="font-size:.76rem;margin-top:4px">${g&&g.phone?"Se abre WhatsApp con el mensaje listo para "+esc(g.phone)+".":"La reserva no tiene teléfono: WhatsApp te pedirá elegir el contacto."} El huésped ve su confirmación, descarga el PDF y hace el check-in con selfie y documento.</div>`
-      :`<div class="note warn" style="margin-top:10px">Configura TOKEN_SECRET en Netlify para generar enlaces de huésped.</div>`}
+      :`<div class="note" style="margin-top:10px" id="linkWait">Generando el enlace del huésped…</div>`}
     <div class="ct-status ${r.contract?"ok":""}">
       <div><span class="eyebrow">Contrato y políticas</span>
         ${r.contract?`<b>Firmado por ${esc(r.contract.signerName)}</b><small>${fdt(r.contract.signedAt)} · ${r.contract.via==="recepcion"?"en recepción":"en línea"} · código ${esc(r.contract.hash)}</small>`
@@ -1061,6 +1061,9 @@ function fillOnline(box,r){
       </div>
       <div class="muted" style="font-size:.76rem;margin-top:4px">El huésped también puede registrarlos desde su enlace (paso 2 del check-in en línea). Toca una persona para ver o completar su ficha y sus fotos.</div>`;})()}`;
   hydrateIdImgs(box);
+  // Si el enlace aún no llegó (reserva recién creada), se pide al servidor y se vuelve a dibujar.
+  if(!link){ api("GET","admin/link/"+encodeURIComponent(r.id)).then(j=>{ if(j.link){ S.links=S.links||{}; S.links[r.id]=j.link; if(box.isConnected) fillOnline(box,r); } })
+    .catch(e=>{ const w=box.querySelector("#linkWait"); if(w){ w.className="note warn"; w.textContent=e.message||"No se pudo generar el enlace del huésped."; } }); }
   box.querySelectorAll(".pp small em").forEach(e=>{e.outerHTML=`<span style="color:var(--warn)">TRA incompleta</span>`;});
   const run=async(btn,fn)=>{const t=btn.textContent;btn.disabled=true;btn.textContent="Generando…";try{await fn();}catch(e){toast(e.message||"No se pudo generar el PDF.");}btn.disabled=false;btn.textContent=t;};
   box.onclick=e=>{

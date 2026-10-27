@@ -558,6 +558,11 @@ async function handleAdmin(req, parts, store) {
     return json({ hotel, rooms, guests, reservations, requests, messages, links, today: todayBogota() });
   }
 
+  if (kind === "link" && m === "GET" && id && ID_RE.test(id)) {
+    if (!secret()) return fail(500, "Falta la variable TOKEN_SECRET en Netlify.");
+    return json({ link: guestPath(id) });
+  }
+
   if (kind === "hotel" && m === "PUT") {
     const b = await readBody(req);
     const prev = (await store.get("hotel", { type: "json" })) || {};
@@ -774,7 +779,7 @@ async function handleAdmin(req, parts, store) {
       if (prev && prev.payments) rec.payments = prev.payments; else delete rec.payments;
     }
     await store.setJSON(key, rec);
-    if (kind === "reservations") { const g = await syncToCalendar(store, rec); const w = later(notifyResChange(store, req, prevRes, rec)); if (w) await w; return json({ ...rec, _gcal: g }); }
+    if (kind === "reservations") { const g = await syncToCalendar(store, rec); const w = later(notifyResChange(store, req, prevRes, rec)); if (w) await w; return json({ ...rec, _gcal: g, _link: guestPath(rec.id) }); }
     // Cambios en el huésped (nombre, teléfono) o en la habitación (número, nombre) se reflejan en sus eventos.
     if (kind === "guests") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.guestId === id || (r.companions || []).includes(id)) });
     if (kind === "rooms") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.roomId === id) });
