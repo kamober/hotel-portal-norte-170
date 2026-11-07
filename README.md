@@ -180,6 +180,18 @@ Están en la pestaña **Solicitudes**, debajo de las solicitudes de reserva. Des
 
 Las fotos de los comprobantes son privadas, como las de los documentos: solo se ven con sesión de administrador.
 
+## Finanzas y contabilidad
+
+Pestaña **Finanzas** del panel (y un resumen del mes en el **Tablero**).
+
+- **Registrar gasto:** valor, fecha, categoría (servicios, aseo, alimentos, lavandería, arriendo, comisiones de canales… o cualquier categoría nueva que escribas), concepto, proveedor, forma de pago, nota y **foto del recibo** (cámara o galería). Las fotos de recibos son privadas. Marca «Gasto fijo mensual» en arriendo, servicios o internet y, cada mes, usa **Copiar gastos fijos del mes anterior**.
+- **Indicadores** del mes o del año: ventas, egresos, utilidad y margen, lo cobrado y lo que falta por cobrar, ocupación, tarifa promedio por noche (ADR), RevPAR y punto de equilibrio (noches necesarias para cubrir los gastos).
+- **Veredicto de rentabilidad** en lenguaje claro para los socios.
+- **Gráficas:** ventas y egresos por mes, utilidad mensual, ventas por habitación, egresos por categoría y ventas por canal.
+- **Estado de resultados** mes a mes, **Exportar (Excel)** en CSV e **Imprimir informe** (o guardarlo en PDF desde la ventana de impresión).
+
+Cómo se calcula: las **ventas** se reparten por noche en el mes en que se ocupa la habitación (una reserva del 30 de octubre al 2 de noviembre suma 2 noches a octubre y 1 a noviembre); las reservas canceladas no cuentan. Lo **cobrado** usa la fecha de cada pago verificado; los abonos sin fecha cuentan en el mes de llegada. Los **egresos** usan la fecha del gasto.
+
 ## Google Calendar
 
 Cada reserva se refleja en el calendario **cbernal@gesoltec.co**: se crea o actualiza al guardarla y se borra al cancelarla o eliminarla. El evento va del check-in (15:00) al check-out (11:00) y lleva el nombre del huésped, su teléfono, la habitación, el canal, el estado y el saldo. Hay dos formas de conectarlo. Puedes usar las dos a la vez.

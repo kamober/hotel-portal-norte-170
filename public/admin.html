@@ -335,6 +335,65 @@ body.is-login{background:linear-gradient(rgba(6,20,46,.62),rgba(6,20,46,.62)),ur
 .pp-empty .av{background:var(--soft-2) !important;color:var(--navy) !important;font-weight:700}
 .pp-more{opacity:.75}
 .kpi-dark small,.kpi-dark .muted,.kpi-dark .sub{color:rgba(255,255,255,.88)!important}
+
+/* ===== Finanzas ===== */
+body.admin{--s-in:#1E74F0;--s-out:#E3261C}
+@media (prefers-color-scheme: dark){body.admin{--s-in:#3D8BF5;--s-out:#EF4A3E}}
+.fin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.fin-k{background:var(--card);border:1px solid var(--card-line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow-card)}
+.fin-k small{display:block;font-size:.74rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.fin-k b{display:block;font-size:1.55rem;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums;line-height:1.1}
+.fin-k em{font-style:normal;font-size:.78rem;color:var(--muted);display:block;margin-top:4px}
+.fin-k.hi{background:linear-gradient(135deg,#06142E,#0F2B5B 60%,#1E4FA0);color:#fff;border:0}
+.fin-k.hi small,.fin-k.hi em{color:rgba(255,255,255,.78)}
+.fin-k .up{color:#15803D}.fin-k .dn{color:var(--bad)}
+.fin-k.hi .up{color:#86EFAC}.fin-k.hi .dn{color:#FCA5A5}
+.fin-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+.fin-grid2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.fin-card{background:var(--card);border:1px solid var(--card-line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow-card);min-width:0}
+.fin-card h3{font-size:1rem;font-weight:600;margin:0}
+.fin-card .sub{font-size:.78rem;color:var(--muted);margin:2px 0 10px}
+.fin-leg{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-bottom:6px}
+.fin-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.fin-svg{width:100%;height:auto;display:block;overflow:visible}
+.fin-svg text{font-size:10px;fill:var(--muted);font-family:var(--body)}
+.fin-svg .grid{stroke:var(--line);stroke-width:1}
+.fin-svg .base{stroke:var(--muted);stroke-width:1;opacity:.6}
+.fin-svg .hit{fill:transparent;cursor:crosshair}
+.fin-svg .hit:hover{fill:rgba(30,116,240,.06)}
+.hb{display:flex;flex-direction:column;gap:8px}
+.hb .r{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:10px;align-items:center;font-size:.8rem}
+.hb .r span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .t{height:12px;background:var(--soft);border-radius:4px;overflow:hidden}
+.hb .t i{display:block;height:100%;border-radius:0 4px 4px 0}
+.hb .v{font-variant-numeric:tabular-nums;font-weight:600;font-size:.78rem;text-align:right;white-space:nowrap}
+.hb .v small{color:var(--muted);font-weight:500;margin-left:4px}
+.fin-verdict{border-radius:18px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;border:1px solid}
+.fin-verdict.ok{background:#ECFDF3;border-color:#B7EBC6}.fin-verdict.bad{background:#FEF1F0;border-color:#F6C9C4}.fin-verdict.mid{background:#FFF8E6;border-color:#F3DFA6}
+@media (prefers-color-scheme: dark){.fin-verdict.ok{background:#0F2A1C;border-color:#1F5135}.fin-verdict.bad{background:#2E1514;border-color:#5A2622}.fin-verdict.mid{background:#2D2410;border-color:#5A4718}}
+.fin-verdict .ic{font-size:1.6rem;line-height:1}
+.fin-verdict h3{margin:0 0 4px;font-size:1.05rem}
+.fin-verdict ul{margin:6px 0 0;padding-left:18px;font-size:.86rem;line-height:1.6}
+.fin-table td.n,.fin-table th.n{text-align:right;font-variant-numeric:tabular-nums}
+.fin-table tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+.fin-table td.neg{color:var(--bad)}
+.fin-table td.pos{color:#15803D}
+.xthumb{all:unset;cursor:pointer;width:44px;height:44px;border-radius:8px;overflow:hidden;background:var(--soft);display:grid;place-items:center;color:var(--muted);font-size:.7rem}
+.xthumb img{width:100%;height:100%;object-fit:cover}
+.fin-tip{position:fixed;z-index:3000;pointer-events:none;background:#0A1F44;color:#fff;border-radius:10px;padding:8px 10px;font-size:.78rem;line-height:1.5;box-shadow:0 10px 24px rgba(0,0,0,.25);max-width:240px}
+.fin-tip b{display:block;margin-bottom:2px}
+.fin-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.fin-mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:center;background:var(--card);border:1px solid var(--card-line);border-radius:18px;padding:12px 16px;box-shadow:var(--shadow-card);margin-bottom:14px}
+.fin-mini div small{display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.fin-mini div b{font-size:1.1rem;font-variant-numeric:tabular-nums}
+@media (max-width:1100px){.fin-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.fin-grid,.fin-grid2{grid-template-columns:1fr}.fin-mini{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.fin-kpis{grid-template-columns:1fr 1fr}.fin-k b{font-size:1.2rem}.fin-tools .grp{width:100%}.fin-tools .grp .btn{flex:1}}
+@media print{
+  body.print-fin{background:#fff!important;padding:0!important}
+  body.print-fin header.top, body.print-fin #tabs, body.print-fin section.tab:not(#t-fin), body.print-fin .fin-tools .grp, body.print-fin .fin-noprint{display:none!important}
+  body.print-fin #app.wrap{box-shadow:none!important;border:0!important;padding:0!important;background:#fff!important}
+  body.print-fin .fin-card,body.print-fin .fin-k{break-inside:avoid;box-shadow:none!important}
+}
 </style>
 </head>
 <body class="admin">
@@ -362,6 +421,7 @@ body.is-login{background:linear-gradient(rgba(6,20,46,.62),rgba(6,20,46,.62)),ur
   <nav class="tabs" role="tablist" id="tabs" aria-label="Secciones">
     <button role="tab" data-t="panel" aria-selected="true">Tablero</button>
     <button role="tab" data-t="plano">Plano</button>
+    <button role="tab" data-t="fin">Finanzas</button>
     <button role="tab" data-t="cal">Disponibilidad</button>
     <button role="tab" data-t="motor">Reservar</button>
     <button role="tab" data-t="res">Reservas<span class="count" id="cRes"></span></button>
@@ -397,6 +457,7 @@ body.is-login{background:linear-gradient(rgba(6,20,46,.62),rgba(6,20,46,.62)),ur
       </div>
     </div>
     <div id="panelAlerts"></div>
+    <div id="finMini"></div>
     <div class="dash" id="kpis"></div>
     <div class="dash2" id="dash2"></div>
     <div class="cols">
@@ -404,6 +465,20 @@ body.is-login{background:linear-gradient(rgba(6,20,46,.62),rgba(6,20,46,.62)),ur
       <div class="panel"><div class="w-h"><h3>Salidas hoy</h3></div><div class="list" id="dep"></div></div>
       <div class="panel"><div class="w-h"><h3>Huéspedes en casa</h3></div><div class="list" id="inh"></div></div>
     </div>
+  </section>
+
+  <section class="tab" id="t-fin" hidden>
+    <div class="toolbar fin-tools">
+      <div><h2>Finanzas y contabilidad</h2><div class="muted" style="font-size:.84rem">Ventas, ingresos cobrados, gastos con su recibo y rentabilidad del hotel. Las ventas se reparten por noche en el mes en que se ocupa la habitación.</div></div>
+      <div class="grp">
+        <select id="finY" aria-label="Año" style="width:auto"></select>
+        <select id="finM" aria-label="Mes" style="width:auto"></select>
+        <button class="btn" type="button" id="finCsv">Exportar (Excel)</button>
+        <button class="btn" type="button" id="finPrint">Imprimir informe</button>
+        <button class="btn primary" type="button" id="finAdd">+ Registrar gasto</button>
+      </div>
+    </div>
+    <div id="finBody"></div>
   </section>
 
   <section class="tab" id="t-plano" hidden>

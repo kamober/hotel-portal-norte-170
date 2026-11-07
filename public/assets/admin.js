@@ -1,7 +1,7 @@
 /* Hotel Portal Norte 170 — panel de administración */
 (() => {
 const TOKEN_KEY = "pn170_admin_token";
-const S = {hotel:null, rooms:[], guests:[], res:[], reqs:[], loaded:false, token:null,
+const S = {hotel:null, rooms:[], guests:[], res:[], reqs:[], exps:[], msgs:[], loaded:false, token:null,
   tab:"panel", calStart:null, eng:null};
 
 /* ---------- API ---------- */
@@ -19,7 +19,7 @@ async function api(method, path, body, raw){
   if(!r.ok) throw Object.assign(new Error(j.error || ("Error " + r.status)), {status:r.status});
   return j;
 }
-const ARR = {reservations:"res", guests:"guests", rooms:"rooms", requests:"reqs"};
+const ARR = {reservations:"res", guests:"guests", rooms:"rooms", requests:"reqs", expenses:"exps"};
 function upsert(arr, rec){const i=S[arr].findIndex(x=>x.id===rec.id); if(i>=0) S[arr][i]=rec; else S[arr].push(rec);}
 async function save(path, data, merge){
   const [kind, id] = path.split("/");
@@ -45,7 +45,7 @@ async function del(path){
 async function loadState(){
   try{
     const j = await api("GET","admin/state");
-    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[]; S.msgs=j.messages||[]; S.links=j.links||{};
+    S.hotel=j.hotel; S.rooms=j.rooms||[]; S.guests=j.guests||[]; S.res=(j.reservations||[]).filter(r=>r.checkIn&&r.checkOut); S.reqs=j.requests||[]; S.msgs=j.messages||[]; S.exps=j.expenses||[]; S.links=j.links||{};
     S.loaded=true; loadIcal(); setSync("on","Actualizado " + new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}));
     render();
   }catch(e){ if(S.token) setSync("off", e.message || "Sin conexión"); }
@@ -116,7 +116,7 @@ function render(){
   $("#cGu").textContent = S.guests.length || "";
   $("#cRo").textContent = S.rooms.length || "";
   if(S.hotel){ $("#hName").innerHTML = nameHTML(S.hotel.name||"Portal Norte 170").replace(/^Hotel\s+/,'<span class="hp">Hotel </span>'); $("#hAddr").textContent = (S.hotel.address||"") + (S.hotel.zone? " · "+S.hotel.zone : ""); }
-  ({panel:renderPanel,plano:renderPlano,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:()=>{renderSol();renderMsgs();},hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
+  ({panel:()=>{renderPanel();renderFinMini();},fin:renderFin,plano:renderPlano,cal:renderCal,motor:renderEngineOptions,res:renderRes,sol:()=>{renderSol();renderMsgs();},hues:renderGuests,hab:renderRooms,aloj:renderHotel}[S.tab]||(()=>{}))();
 }
 function liRes(r, actions){
   const ro = roomById(r.roomId);
@@ -1304,6 +1304,228 @@ function renderWa(){
     catch(e){ $("#waNote").innerHTML=`<div class="note bad">${esc(e.message)}</div>`; }
     t.disabled=false; t.textContent="Enviar WhatsApp de prueba"; S.wa=null; setTimeout(loadWa,300); };
 }
+
+/* ---------- finanzas y contabilidad ---------- */
+const MES=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MESL=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const XCATS=["Servicios públicos (agua, luz, gas)","Internet, TV y telefonía","Arriendo / administración","Aseo e insumos de limpieza","Lavandería","Alimentos y cafetería","Mantenimiento y reparaciones","Dotación (sábanas, toallas, menaje)","Nómina y honorarios","Comisiones de canales (Booking, Airbnb)","Impuestos, seguros y trámites","Publicidad y software","Otros"];
+const XPAY=["Efectivo","Transferencia","Nequi / Daviplata","Tarjeta","Débito automático","Otro"];
+const FIN={y:null,m:null};
+const ymOf=d=>String(d||"").slice(0,7);
+const daysIn=(y,m)=>new Date(Date.UTC(y,m,0)).getUTCDate();
+const mk=(y,m)=>`${y}-${String(m).padStart(2,"0")}`;
+const copS=n=>{const a=Math.abs(n), s=n<0?"−":""; return a>=1e6?`${s}$${(a/1e6).toLocaleString("es-CO",{maximumFractionDigits:1})} M`:a>=1e3?`${s}$${Math.round(a/1e3)} mil`:`${s}$${Math.round(a)}`;};
+const pct=x=>isFinite(x)?(x*100).toLocaleString("es-CO",{maximumFractionDigits:0})+" %":"—";
+function finData(){
+  const add=(o,k,v)=>{o[k]=(o[k]||0)+v;}, sub=(o,m)=>o[m]=o[m]||{};
+  const D={sales:{},nights:{},room:{},chan:{},cash:{},exp:{},cat:{},due:{}};
+  for(const r of S.res){ if(r.status==="cancelada"||!r.checkIn||!r.checkOut) continue;
+    const n=Math.max(1,diff(r.checkIn,r.checkOut)), tot=Number(r.total)||(Number(r.rate)||0)*n, per=tot/n;
+    for(let i=0;i<n;i++){ const m=ymOf(addDays(r.checkIn,i)); add(D.sales,m,per); add(D.nights,m,1); add(sub(D.room,m),r.roomId||"?",per); add(sub(D.chan,m),r.channel||"otro",per); }
+    // Caja: pagos verificados en su fecha; el resto del abonado se asigna al mes de llegada.
+    let s=0; for(const p of (r.payments||[]).filter(p=>p.status==="verificado")){ add(D.cash,ymOf(p.date||r.checkIn),Number(p.amount)||0); s+=Number(p.amount)||0; }
+    const rest=(Number(r.paid)||0)-s; if(rest>0) add(D.cash,ymOf(r.checkIn),rest);
+    const bal=tot-(Number(r.paid)||0); if(bal>0) add(D.due,ymOf(r.checkIn),bal);
+  }
+  for(const x of (S.exps||[])){ const m=ymOf(x.date), v=Number(x.amount)||0; add(D.exp,m,v); add(sub(D.cat,m),x.category||"Otros",v); }
+  return D;
+}
+function finPeriod(){
+  const t=todayISO(); if(!FIN.y){ FIN.y=+t.slice(0,4); FIN.m=+t.slice(5,7); }
+  const months=FIN.m?[mk(FIN.y,FIN.m)]:[...Array(12)].map((_,i)=>mk(FIN.y,i+1));
+  return {months,label:FIN.m?`${MESL[FIN.m-1]} ${FIN.y}`:`Año ${FIN.y}`};
+}
+function finSum(D,months){
+  const s=k=>months.reduce((a,m)=>a+(D[k][m]||0),0), merge=k=>{const o={};months.forEach(m=>Object.entries(D[k][m]||{}).forEach(([a,v])=>o[a]=(o[a]||0)+v));return o;};
+  const cap=months.reduce((a,m)=>a+daysIn(+m.slice(0,4),+m.slice(5,7))*Math.max(1,S.rooms.length),0);
+  const ventas=s("sales"), egresos=s("exp"), noches=s("nights");
+  return {ventas,egresos,noches,cobrado:s("cash"),porCobrar:s("due"),util:ventas-egresos,margen:ventas?(ventas-egresos)/ventas:NaN,
+    cap,ocup:cap?noches/cap:0,adr:noches?ventas/noches:0,revpar:cap?ventas/cap:0,room:merge("room"),chan:merge("chan"),cat:merge("cat")};
+}
+function finSelectors(){
+  const ys=new Set([+todayISO().slice(0,4)]); S.res.forEach(r=>r.checkIn&&ys.add(+r.checkIn.slice(0,4))); (S.exps||[]).forEach(x=>x.date&&ys.add(+x.date.slice(0,4)));
+  $("#finY").innerHTML=[...ys].sort().map(y=>`<option ${y===FIN.y?"selected":""}>${y}</option>`).join("");
+  $("#finM").innerHTML=`<option value="0" ${!FIN.m?"selected":""}>Todo el año</option>`+MESL.map((n,i)=>`<option value="${i+1}" ${FIN.m===i+1?"selected":""}>${n}</option>`).join("");
+}
+// Barras agrupadas ventas vs egresos por mes (un solo eje, mismas unidades).
+function svgMonthly(D,y){
+  const narrow=innerWidth<700, W=narrow?380:720,H=narrow?230:250,L=narrow?46:56,R=6,T=12,B=26, cw=(W-L-R)/12;
+  const rows=[...Array(12)].map((_,i)=>{const m=mk(y,i+1);return {m,i,v:D.sales[m]||0,e:D.exp[m]||0};});
+  const max=Math.max(1,...rows.map(r=>Math.max(r.v,r.e)))*1.1, Y=v=>T+(H-T-B)*(1-v/max), ticks=[0,max/3,2*max/3,max];
+  const bar=(x,w,v,c)=>{if(v<=0)return""; const y0=H-B,y1=Y(v),r=Math.min(4,(y0-y1)/2); return `<path d="M${x},${y0}V${y1+r}Q${x},${y1} ${x+r},${y1}H${x+w-r}Q${x+w},${y1} ${x+w},${y1+r}V${y0}Z" fill="${c}"/>`;};
+  let g=ticks.map(t=>`<line class="grid" x1="${L}" x2="${W-R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L-6}" y="${Y(t)+3}" text-anchor="end">${copS(t)}</text>`).join("");
+  rows.forEach(r=>{const x=L+r.i*cw, bw=Math.min(18,(cw-(narrow?4:10))/2);
+    g+=bar(x+cw/2-bw-1,bw,r.v,"var(--s-in)")+bar(x+cw/2+1,bw,r.e,"var(--s-out)");
+    g+=`<text x="${x+cw/2}" y="${H-8}" text-anchor="middle">${narrow?MES[r.i].slice(0,1):MES[r.i]}</text>`;
+    g+=`<rect class="hit" x="${x}" y="${T}" width="${cw}" height="${H-T-B}" data-tip="${esc(`<b>${MESL[r.i]} ${y}</b><i style='background:var(--s-in)'></i>Ventas ${cop(r.v)}<br><i style='background:var(--s-out)'></i>Egresos ${cop(r.e)}<br>Utilidad <b style='display:inline'>${cop(r.v-r.e)}</b>`)}"/>`;});
+  g+=`<line class="base" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/>`;
+  return `<svg class="fin-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ventas y egresos por mes de ${y}">${g}</svg>`;
+}
+// Utilidad mensual: barras divergentes alrededor de cero.
+function svgProfit(D,y){
+  const W=440,H=250,L=50,R=4,T=10,B=22, cw=(W-L-R)/12;
+  const v=[...Array(12)].map((_,i)=>{const m=mk(y,i+1);return (D.sales[m]||0)-(D.exp[m]||0);});
+  const mx=Math.max(1,...v.map(Math.abs))*1.1, mid=T+(H-T-B)/2, sc=(H-T-B)/2/mx;
+  let g=`<line class="grid" x1="${L}" x2="${W-R}" y1="${T}" y2="${T}"/><line class="grid" x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}"/>
+    <text x="${L-6}" y="${T+3}" text-anchor="end">${copS(mx)}</text><text x="${L-6}" y="${mid+3}" text-anchor="end">$0</text><text x="${L-6}" y="${H-B+3}" text-anchor="end">${copS(-mx)}</text>`;
+  v.forEach((u,i)=>{const h=Math.abs(u)*sc, c=u>=0?"var(--s-in)":"var(--s-out)";
+    const bw=Math.min(18,cw-8), bx=L+i*cw+cw/2-bw/2, r=Math.min(3,h/2);
+    if(h>0.5) g+=u>=0?`<path d="M${bx},${mid}V${mid-h+r}Q${bx},${mid-h} ${bx+r},${mid-h}H${bx+bw-r}Q${bx+bw},${mid-h} ${bx+bw},${mid-h+r}V${mid}Z" fill="${c}"/>`:`<path d="M${bx},${mid}V${mid+h-r}Q${bx},${mid+h} ${bx+r},${mid+h}H${bx+bw-r}Q${bx+bw},${mid+h} ${bx+bw},${mid+h-r}V${mid}Z" fill="${c}"/>`;
+    g+=`<text x="${L+i*cw+cw/2}" y="${H-6}" text-anchor="middle">${MES[i].slice(0,1)}</text><rect class="hit" x="${L+i*cw}" y="${T}" width="${cw}" height="${H-T-B}" data-tip="${esc(`<b>${MESL[i]} ${y}</b>Utilidad ${cop(u)}`)}"/>`;});
+  g+=`<line class="base" x1="${L}" x2="${W-R}" y1="${mid}" y2="${mid}"/>`;
+  return `<svg class="fin-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Utilidad mensual de ${y}">${g}</svg>`;
+}
+function hbars(items,color,total){
+  if(!items.length) return `<div class="muted" style="font-size:.84rem">Sin datos en este periodo.</div>`;
+  const mx=Math.max(...items.map(x=>x[1]),1);
+  return `<div class="hb">${items.map(([l,v])=>`<div class="r" data-tip="${esc(`<b>${esc(l)}</b>${cop(v)}${total?` · ${pct(v/total)}`:""}`)}"><span title="${esc(l)}">${esc(l)}</span><div class="t"><i style="width:${Math.max(2,v/mx*100)}%;background:${color}"></i></div><span class="v">${copS(v)}${total?`<small>${pct(v/total)}</small>`:""}</span></div>`).join("")}</div>`;
+}
+function finVerdict(P,D,y){
+  const ms=[...Array(12)].map((_,i)=>mk(y,i+1)).filter(m=>(D.sales[m]||0)||(D.exp[m]||0)), pos=ms.filter(m=>(D.sales[m]||0)>(D.exp[m]||0)).length;
+  const be=P.adr?Math.ceil(P.egresos/P.adr):0, topCat=Object.entries(P.cat).sort((a,b)=>b[1]-a[1])[0];
+  const roomN=id=>{const r=roomById(id);return r?`Hab. ${r.number}`:id;}, topRoom=Object.entries(P.room).sort((a,b)=>b[1]-a[1])[0];
+  let cls,ic,h;
+  if(!P.ventas&&!P.egresos){cls="mid";ic="📊";h="Aún no hay movimientos en este periodo";}
+  else if(P.util>0&&P.margen>=.15){cls="ok";ic="✅";h=`Rentable: utilidad de ${cop(P.util)} (margen ${pct(P.margen)})`;}
+  else if(P.util>0){cls="mid";ic="⚠️";h=`Rentable por poco: utilidad de ${cop(P.util)} (margen ${pct(P.margen)})`;}
+  else {cls="bad";ic="⛔";h=`No rentable en este periodo: pérdida de ${cop(-P.util)}`;}
+  const li=[];
+  if(P.noches) li.push(`Se vendieron <b>${P.noches}</b> noches de ${P.cap} posibles (ocupación <b>${pct(P.ocup)}</b>), a una tarifa promedio de <b>${cop(P.adr)}</b>.`);
+  if(be&&P.adr) li.push(be<=P.noches?`El punto de equilibrio fue de <b>${be} noches</b>: se superó por ${P.noches-be} noches.`:`Para cubrir los gastos hacían falta <b>${be} noches</b> a la tarifa promedio; faltaron ${be-P.noches}.`);
+  if(topCat) li.push(`El gasto más grande es <b>${esc(topCat[0])}</b>: ${cop(topCat[1])} (${pct(topCat[1]/(P.egresos||1))} de los egresos).`);
+  if(topRoom) li.push(`La habitación que más vende es <b>${esc(roomN(topRoom[0]))}</b> con ${cop(topRoom[1])}.`);
+  if(P.porCobrar>0) li.push(`Hay <b>${cop(P.porCobrar)}</b> por cobrar de reservas de este periodo.`);
+  if(ms.length>1) li.push(`En ${y}, <b>${pos} de ${ms.length}</b> meses con movimiento dieron utilidad.`);
+  if(!(S.exps||[]).length) li.push(`Todavía no hay gastos registrados: la utilidad está sobrestimada hasta que cargues los egresos.`);
+  return `<div class="fin-verdict ${cls}"><span class="ic" aria-hidden="true">${ic}</span><div><h3>${h}</h3><ul>${li.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>`;
+}
+function renderFin(){
+  const box=$("#finBody"); if(!box) return;
+  const {months,label}=finPeriod(); finSelectors();
+  const D=finData(), P=finSum(D,months), y=FIN.y;
+  const prev=FIN.m?(FIN.m>1?[mk(y,FIN.m-1)]:[mk(y-1,12)]):[...Array(12)].map((_,i)=>mk(y-1,i+1)), PP=finSum(D,prev);
+  const delta=(a,b)=>!b?"":`<span class="${a>=b?"up":"dn"}">${a>=b?"▲":"▼"} ${pct(Math.abs(a-b)/Math.abs(b))}</span> vs. ${FIN.m?"mes anterior":"año anterior"}`;
+  const chN=k=>chan(k).n, roomN=id=>{const r=roomById(id);return r?`Hab. ${r.number} · ${r.type||""}`:"Sin habitación";};
+  const rooms=Object.entries(P.room).map(([k,v])=>[roomN(k),v]).sort((a,b)=>b[1]-a[1]);
+  const cats=Object.entries(P.cat).sort((a,b)=>b[1]-a[1]), chans=Object.entries(P.chan).map(([k,v])=>[chN(k),v]).sort((a,b)=>b[1]-a[1]);
+  const yrRows=[...Array(12)].map((_,i)=>{const m=mk(y,i+1),Q=finSum(D,[m]);return {i,m,...Q};});
+  const YT=finSum(D,yrRows.map(r=>r.m));
+  const exps=(S.exps||[]).filter(x=>months.includes(ymOf(x.date))).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  box.innerHTML=`
+    <div class="fin-kpis">
+      <div class="fin-k hi"><small>Ventas · ${esc(label)}</small><b>${cop(P.ventas)}</b><em>${delta(P.ventas,PP.ventas)||"&nbsp;"}</em></div>
+      <div class="fin-k"><small>Egresos</small><b>${cop(P.egresos)}</b><em>${exps.length} gasto${exps.length===1?"":"s"} registrado${exps.length===1?"":"s"}</em></div>
+      <div class="fin-k"><small>Utilidad</small><b class="${P.util>=0?"up":"dn"}">${cop(P.util)}</b><em>Margen ${pct(P.margen)}</em></div>
+      <div class="fin-k"><small>Cobrado (caja)</small><b>${cop(P.cobrado)}</b><em>Por cobrar ${cop(P.porCobrar)}</em></div>
+      <div class="fin-k"><small>Ocupación</small><b>${pct(P.ocup)}</b><em>${P.noches} de ${P.cap} noches</em></div>
+      <div class="fin-k"><small>Tarifa promedio (ADR)</small><b>${cop(P.adr)}</b><em>por noche vendida</em></div>
+      <div class="fin-k"><small>RevPAR</small><b>${cop(P.revpar)}</b><em>venta por habitación disponible</em></div>
+      <div class="fin-k"><small>Punto de equilibrio</small><b>${P.adr?Math.ceil(P.egresos/P.adr)+" noches":"—"}</b><em>para cubrir los egresos</em></div>
+    </div>
+    ${finVerdict(P,D,y)}
+    <div class="fin-grid">
+      <div class="fin-card"><h3>Ventas y egresos por mes · ${y}</h3><div class="sub">Pasa el cursor por un mes para ver la utilidad.</div>
+        <div class="fin-leg"><span><i style="background:var(--s-in)"></i>Ventas</span><span><i style="background:var(--s-out)"></i>Egresos</span></div>${svgMonthly(D,y)}</div>
+      <div class="fin-card"><h3>Utilidad mensual · ${y}</h3><div class="sub">Ventas menos egresos. Abajo de la línea = pérdida.</div>
+        <div class="fin-leg"><span><i style="background:var(--s-in)"></i>Utilidad</span><span><i style="background:var(--s-out)"></i>Pérdida</span></div>${svgProfit(D,y)}</div>
+    </div>
+    <div class="fin-grid2">
+      <div class="fin-card"><h3>Ventas por habitación</h3><div class="sub">${esc(label)}</div>${hbars(rooms,"var(--s-in)",P.ventas)}</div>
+      <div class="fin-card"><h3>Egresos por categoría</h3><div class="sub">${esc(label)}</div>${hbars(cats,"var(--s-out)",P.egresos)}</div>
+      <div class="fin-card"><h3>Ventas por canal</h3><div class="sub">${esc(label)}</div>${hbars(chans,"var(--s-in)",P.ventas)}</div>
+    </div>
+    <div class="fin-card"><h3>Estado de resultados · ${y}</h3><div class="sub">Mes a mes: noches, ocupación, ventas, lo cobrado, egresos y utilidad.</div>
+      <div class="tablewrap" style="box-shadow:none"><table class="fin-table"><thead><tr><th>Mes</th><th class="n">Noches</th><th class="n">Ocupación</th><th class="n">Ventas</th><th class="n">Cobrado</th><th class="n">Egresos</th><th class="n">Utilidad</th><th class="n">Margen</th></tr></thead><tbody>
+      ${yrRows.map(r=>`<tr><td data-l="Mes">${MESL[r.i]}</td><td class="n" data-l="Noches">${r.noches}</td><td class="n" data-l="Ocupación">${pct(r.ocup)}</td><td class="n" data-l="Ventas">${cop(r.ventas)}</td><td class="n" data-l="Cobrado">${cop(r.cobrado)}</td><td class="n" data-l="Egresos">${cop(r.egresos)}</td><td class="n ${r.util<0?"neg":r.util>0?"pos":""}" data-l="Utilidad">${cop(r.util)}</td><td class="n" data-l="Margen">${pct(r.margen)}</td></tr>`).join("")}
+      <tr class="tot"><td data-l="Total">Total ${y}</td><td class="n" data-l="Noches">${YT.noches}</td><td class="n" data-l="Ocupación">${pct(YT.ocup)}</td><td class="n" data-l="Ventas">${cop(YT.ventas)}</td><td class="n" data-l="Cobrado">${cop(YT.cobrado)}</td><td class="n" data-l="Egresos">${cop(YT.egresos)}</td><td class="n ${YT.util<0?"neg":"pos"}" data-l="Utilidad">${cop(YT.util)}</td><td class="n" data-l="Margen">${pct(YT.margen)}</td></tr>
+      </tbody></table></div></div>
+    <div class="fin-card"><div class="toolbar"><div><h3>Gastos · ${esc(label)}</h3><div class="sub" style="margin:2px 0 0">Cada gasto con su recibo. Toca la miniatura para verlo.</div></div>
+      <div class="grp fin-noprint">${FIN.m?`<button class="btn sm" type="button" id="finFixed">Copiar gastos fijos del mes anterior</button>`:""}<button class="btn sm primary" type="button" id="finAdd2">+ Registrar gasto</button></div></div>
+      ${exps.length?`<div class="tablewrap" style="box-shadow:none;margin-top:10px"><table><thead><tr><th>Recibo</th><th>Fecha</th><th>Categoría</th><th>Concepto</th><th>Proveedor</th><th>Pago</th><th class="r">Valor</th><th class="fin-noprint"></th></tr></thead><tbody>
+        ${exps.map(x=>`<tr><td data-l="Recibo">${x.photoId?`<button type="button" class="xthumb" data-payview="${esc(x.photoId)}" data-cap="${esc(x.concept+" · "+cop(x.amount))}" aria-label="Ver recibo"><img data-idimg="${esc(x.photoId)}" alt=""></button>`:`<span class="xthumb">—</span>`}</td>
+          <td data-l="Fecha">${fd(x.date,{year:"numeric"})}</td><td data-l="Categoría"><span class="chip" style="font-family:var(--body)">${esc(x.category)}</span>${x.fixed?` <span class="pill">Fijo</span>`:""}</td><td data-l="Concepto">${esc(x.concept)}</td><td data-l="Proveedor">${esc(x.provider||"—")}</td><td data-l="Pago">${esc(x.method||"—")}</td><td class="r num" data-l="Valor"><b>${cop(x.amount)}</b></td>
+          <td class="fin-noprint" data-l=""><div class="grp" style="gap:6px;justify-content:flex-end"><button class="btn sm" type="button" data-xedit="${esc(x.id)}">Editar</button><button class="btn sm danger" type="button" data-xdel="${esc(x.id)}">Borrar</button></div></td></tr>`).join("")}
+        </tbody></table></div>`:`<div class="empty" style="padding:18px">No hay gastos en este periodo. Usa «+ Registrar gasto» y toma la foto del recibo.</div>`}
+    </div>`;
+  hydrateIdImgs(box);
+  const a2=$("#finAdd2"); if(a2) a2.onclick=()=>openExpense({});
+  const fx=$("#finFixed"); if(fx) fx.onclick=copyFixed;
+  box.querySelectorAll("[data-xedit]").forEach(b=>b.onclick=()=>openExpense((S.exps||[]).find(x=>x.id===b.dataset.xedit)||{}));
+  box.querySelectorAll("[data-xdel]").forEach(b=>confirmBtn(b,"¿Borrar?",async()=>{try{await del("expenses/"+b.dataset.xdel);toast("Gasto borrado");}catch(e){toast(e.message);}}));
+}
+async function copyFixed(){
+  const m=mk(FIN.y,FIN.m), pm=FIN.m>1?mk(FIN.y,FIN.m-1):mk(FIN.y-1,12);
+  const fixed=(S.exps||[]).filter(x=>x.fixed&&ymOf(x.date)===pm), have=new Set((S.exps||[]).filter(x=>ymOf(x.date)===m).map(x=>x.concept));
+  const todo=fixed.filter(x=>!have.has(x.concept));
+  if(!todo.length){toast(fixed.length?"Los gastos fijos ya están copiados en este mes.":"El mes anterior no tiene gastos marcados como fijos.");return;}
+  for(const x of todo){ const d=m+"-"+x.date.slice(8,10); const day=Math.min(+d.slice(8,10),daysIn(FIN.y,FIN.m));
+    await save("expenses/"+genId("X"),{date:`${m}-${String(day).padStart(2,"0")}`,amount:x.amount,category:x.category,concept:x.concept,provider:x.provider||"",method:x.method||"",note:"Copiado del mes anterior: revisa el valor y sube el recibo.",fixed:true,photoId:""}); }
+  toast(`${todo.length} gasto${todo.length>1?"s":""} fijo${todo.length>1?"s":""} copiado${todo.length>1?"s":""}. Revisa los valores.`);
+}
+function openExpense(x){
+  const isNew=!x.id, used=[...new Set([...XCATS,...(S.exps||[]).map(e=>e.category).filter(Boolean)])];
+  let photo=x.photoId||"", fresh="";
+  const body=`<div class="grid g2">
+      <label class="f">Valor (COP)<input type="number" id="xAmt" min="0" step="100" inputmode="numeric" value="${esc(x.amount||"")}" placeholder="Ej. 85000"></label>
+      <label class="f">Fecha<input type="date" id="xDate" value="${esc(x.date||todayISO())}"></label>
+      <label class="f">Categoría<input id="xCat" list="xCats" value="${esc(x.category||"")}" placeholder="Elige o escribe una nueva"><datalist id="xCats">${used.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></label>
+      <label class="f">Concepto<input id="xCon" maxlength="160" value="${esc(x.concept||"")}" placeholder="Ej. Recibo de luz de octubre"></label>
+      <label class="f">Proveedor<input id="xProv" maxlength="120" value="${esc(x.provider||"")}" placeholder="Ej. Enel, D1, Lavandería…"></label>
+      <label class="f">Forma de pago<select id="xPay">${XPAY.map(p=>opt(p,p,x.method||"Transferencia")).join("")}</select></label>
+    </div>
+    <label class="f chk"><input type="checkbox" id="xFix" ${x.fixed?"checked":""}> Gasto fijo mensual (arriendo, servicios, internet…): se puede copiar al mes siguiente con un toque.</label>
+    <label class="f">Nota<textarea id="xNote" rows="2" maxlength="500">${esc(x.note||"")}</textarea></label>
+    <div class="f"><span>Foto del recibo o factura</span>
+      <div class="grp" style="align-items:center"><span class="xthumb" id="xPrev" style="width:64px;height:64px">${photo?`<img data-idimg="${esc(photo)}" alt="">`:"🧾"}</span>${pickBtns('data-xph="1"',"environment")}</div>
+      <div id="xMsg" class="muted" style="font-size:.8rem;margin-top:4px"></div></div>`;
+  const foot=`${isNew?"":`<button class="btn danger" id="xDel">Borrar</button><span style="flex:1"></span>`}<button class="btn" id="xCancel">Cancelar</button><button class="btn primary" id="xSave">${isNew?"Registrar gasto":"Guardar cambios"}</button>`;
+  openModal(isNew?"Registrar gasto":"Editar gasto",body,foot,ov=>{
+    hydrateIdImgs(ov);
+    ov.querySelector("#xCancel").onclick=()=>{ if(fresh) api("DELETE","admin/ids/"+encodeURIComponent(fresh)).catch(()=>{}); closeModal(); };
+    const xd=ov.querySelector("#xDel"); if(xd) confirmBtn(xd,"¿Borrar?",async()=>{try{await del("expenses/"+x.id);toast("Gasto borrado");closeModal();}catch(e){toast(e.message);}});
+    ov.querySelectorAll("[data-xph]").forEach(inp=>inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; const msg=ov.querySelector("#xMsg"); msg.textContent="Subiendo foto…";
+      try{ const blob=await shrink(f); const d=await api("POST","admin/ids",undefined,blob); if(fresh) api("DELETE","admin/ids/"+encodeURIComponent(fresh)).catch(()=>{}); fresh=d.id; photo=d.id;
+        ov.querySelector("#xPrev").innerHTML=`<img src="${URL.createObjectURL(blob)}" alt="">`; msg.textContent="✓ Recibo adjunto"; }
+      catch(e){ msg.innerHTML=`<span style="color:var(--bad)">${esc(e.message)}</span>`; } inp.value=""; });
+    ov.querySelector("#xSave").onclick=async()=>{
+      const v=s=>ov.querySelector(s).value.trim(), amount=Math.round(Number(v("#xAmt")));
+      if(!(amount>0)){toast("Escribe el valor del gasto.");return;} if(!v("#xCat")){toast("Elige o escribe la categoría.");return;} if(!v("#xCon")){toast("Escribe el concepto.");return;}
+      const rec={date:v("#xDate")||todayISO(),amount,category:v("#xCat"),concept:v("#xCon"),provider:v("#xProv"),method:v("#xPay"),note:ov.querySelector("#xNote").value.trim(),fixed:ov.querySelector("#xFix").checked,photoId:photo};
+      const btn=ov.querySelector("#xSave"); btn.disabled=true;
+      try{ await save("expenses/"+(x.id||genId("X")),rec); toast(isNew?"Gasto registrado":"Gasto guardado"); fresh=""; closeModal(); }catch(_){ btn.disabled=false; }
+    };
+  });
+}
+function finCsv(){
+  const {months,label}=finPeriod(), D=finData(), y=FIN.y, q=s=>`"${String(s??"").replace(/"/g,'""')}"`, n=v=>Math.round(v||0);
+  const L=[["Informe financiero",`Hotel Portal Norte 170 · ${label}`],[],["Mes","Noches","Ocupación %","Ventas","Cobrado","Egresos","Utilidad","Margen %"]];
+  for(let i=0;i<12;i++){const Q=finSum(D,[mk(y,i+1)]); L.push([MESL[i],Q.noches,Math.round(Q.ocup*100),n(Q.ventas),n(Q.cobrado),n(Q.egresos),n(Q.util),isFinite(Q.margen)?Math.round(Q.margen*100):""]);}
+  const P=finSum(D,months);
+  L.push([],["Ventas por habitación",label]); Object.entries(P.room).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>{const r=roomById(k);L.push([r?`Hab. ${r.number} ${r.type||""}`:k,n(v)]);});
+  L.push([],["Egresos por categoría",label]); Object.entries(P.cat).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>L.push([k,n(v)]));
+  L.push([],["Gastos",label],["Fecha","Categoría","Concepto","Proveedor","Forma de pago","Valor","Fijo","Recibo"]);
+  (S.exps||[]).filter(x=>months.includes(ymOf(x.date))).sort((a,b)=>String(a.date).localeCompare(String(b.date))).forEach(x=>L.push([x.date,x.category,x.concept,x.provider||"",x.method||"",n(x.amount),x.fixed?"Sí":"",x.photoId?"Sí":"No"]));
+  const csv="﻿"+L.map(r=>r.map(q).join(";")).join("\r\n");
+  PNDocs.download(new Blob([csv],{type:"text/csv;charset=utf-8"}),`finanzas-portal-norte-170-${label.replace(/\s+/g,"-").toLowerCase()}.csv`);
+}
+function renderFinMini(){
+  const box=$("#finMini"); if(!box) return;
+  const t=todayISO(), m=t.slice(0,7), D=finData(), P=finSum(D,[m]);
+  box.innerHTML=`<div class="fin-mini"><div><small>Ventas del mes</small><b>${cop(P.ventas)}</b></div><div><small>Egresos del mes</small><b>${cop(P.egresos)}</b></div>
+    <div><small>Utilidad</small><b style="color:${P.util>=0?"#15803D":"var(--bad)"}">${cop(P.util)}</b></div><div><small>Margen</small><b>${pct(P.margen)}</b></div>
+    <button class="btn sm primary" type="button" data-go-fin>Ver finanzas</button></div>`;
+}
+document.addEventListener("click",e=>{ if(e.target.closest("[data-go-fin]")) setTab("fin"); });
+$("#finY").addEventListener("change",()=>{FIN.y=+$("#finY").value;renderFin();});
+$("#finM").addEventListener("change",()=>{FIN.m=+$("#finM").value||0;renderFin();});
+$("#finAdd").onclick=()=>openExpense({});
+$("#finCsv").onclick=finCsv;
+$("#finPrint").onclick=()=>{document.body.classList.add("print-fin");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("print-fin"),500);},50);};
+// Tooltip compartido para gráficas y barras de finanzas.
+(()=>{const tip=document.createElement("div");tip.className="fin-tip";tip.hidden=true;document.body.appendChild(tip);
+  document.addEventListener("mousemove",e=>{const t=e.target.closest&&e.target.closest("#t-fin [data-tip]");if(!t){tip.hidden=true;return;}
+    tip.innerHTML=t.dataset.tip;tip.hidden=false;const w=tip.offsetWidth,h=tip.offsetHeight;tip.style.left=Math.min(innerWidth-w-8,e.clientX+14)+"px";tip.style.top=Math.max(8,e.clientY-h-12)+"px";});
+  document.addEventListener("scroll",()=>{tip.hidden=true;},{passive:true});})();
 
 /* ---------- plano de habitaciones (para responder llamadas) ---------- */
 const PL={in:null,out:null,pax:1,find:""};

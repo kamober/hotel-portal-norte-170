@@ -18,7 +18,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TOKEN_TTL_MS = 7 * 24 * 3600 * 1000;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const KINDS = { rooms: "rooms/", guests: "guests/", reservations: "res/", requests: "req/", messages: "msg/" };
+const KINDS = { rooms: "rooms/", guests: "guests/", reservations: "res/", requests: "req/", messages: "msg/", expenses: "exp/" };
 
 const data = () => getStore({ name: "portal-norte", consistency: "strong" });
 const photos = () => getStore({ name: "portal-norte-photos" });
@@ -550,12 +550,12 @@ async function handleAdmin(req, parts, store) {
 
   if (kind === "state" && m === "GET") {
     await ensureSeed(store);
-    const [hotel, rooms, guests, reservations, requests, messages] = await Promise.all([
-      store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/"), listJSON(store, "req/"), listJSON(store, "msg/"),
+    const [hotel, rooms, guests, reservations, requests, messages, expenses] = await Promise.all([
+      store.get("hotel", { type: "json" }), listJSON(store, "rooms/"), listJSON(store, "guests/"), listJSON(store, "res/"), listJSON(store, "req/"), listJSON(store, "msg/"), listJSON(store, "exp/"),
     ]);
     const links = {};
     if (secret()) for (const r of reservations) links[r.id] = guestPath(r.id);
-    return json({ hotel, rooms, guests, reservations, requests, messages, links, today: todayBogota() });
+    return json({ hotel, rooms, guests, reservations, requests, messages, expenses, links, today: todayBogota() });
   }
 
   if (kind === "link" && m === "GET" && id && ID_RE.test(id)) {
@@ -748,6 +748,10 @@ async function handleAdmin(req, parts, store) {
       if (res.some((r) => r.roomId === id && isActive(r) && r.checkOut >= today)) return fail(409, "La habitación tiene reservas activas. Muévelas o cancélalas primero.");
     }
     const before = kind === "reservations" ? await store.get(key, { type: "json" }) : null;
+    if (kind === "expenses") {
+      const x = await store.get(key, { type: "json" });
+      if (x && x.photoId) await idPhotos().delete(x.photoId).catch(() => {});
+    }
     if (kind === "guests") {
       const g = await store.get(key, { type: "json" });
       if (g) await Promise.all(["selfie", "docFront", "docBack"].filter((k) => g[k]).map((k) => idPhotos().delete(g[k]).catch(() => {})));
@@ -794,6 +798,19 @@ async function handleAdmin(req, parts, store) {
     if (kind === "rooms" && !str(b.number)) return fail(400, "El número de habitación es obligatorio.");
     if (kind === "rooms") { const f = cleanFeeds(b.icalFeeds); if (f === undefined) delete b.icalFeeds; else b.icalFeeds = f; }
     if (kind === "guests" && !str(b.first)) return fail(400, "El nombre del huésped es obligatorio.");
+    if (kind === "expenses") {
+      const amount = Math.round(Number(b.amount));
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) return fail(400, "Escribe un valor mayor que cero.");
+      if (!DATE_RE.test(b.date || "")) return fail(400, "La fecha del gasto no es válida.");
+      if (!str(b.category, 60)) return fail(400, "Elige o escribe la categoría del gasto.");
+      if (!str(b.concept, 160)) return fail(400, "Escribe el concepto del gasto.");
+      const photoId = str(b.photoId, 80);
+      if (photoId && !(ID_RE.test(photoId) && photoId.startsWith("ADM_"))) return fail(400, "Foto del recibo no válida.");
+      const prevX = await store.get(key, { type: "json" });
+      if (prevX && prevX.photoId && prevX.photoId !== photoId) await idPhotos().delete(prevX.photoId).catch(() => {});
+      Object.assign(b, { amount, date: b.date, category: str(b.category, 60), concept: str(b.concept, 160), provider: str(b.provider, 120),
+        method: str(b.method, 40), note: str(b.note, 500), photoId, fixed: b.fixed === true, createdAt: prevX?.createdAt || new Date().toISOString() });
+    }
     const rec = cleanRecord(b, id);
     if (kind === "reservations") {
       // La firma del contrato solo la escribe el módulo de firma: nunca se toma del panel (evita perderla o alterarla con una copia vieja).
