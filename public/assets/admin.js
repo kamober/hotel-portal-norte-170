@@ -917,11 +917,20 @@ function renderGcal(){
       <div class="grp">${g.configured?`<button class="btn sm" id="gcalTest" type="button">Probar conexión</button><button class="btn sm primary" id="gcalSync" type="button">Sincronizar todas las reservas</button>`:""}</div></div>
     <div class="grid g2" style="margin-top:12px">
       <div><div class="eyebrow">Tiempo real</div>
-        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Al instante, en el calendario <b>${esc(g.calendarId)}</b>: reservas nuevas, cambios de fechas, habitación o estado, cancelaciones, check-in en línea, contrato firmado y cambios en la ficha del huésped o la habitación. Conexión: ${g.mode==="oauth"?`cuenta de Google${g.connectedEmail?` <b>${esc(g.connectedEmail)}</b>`:" (OAuth)"}`:"cuenta de servicio"}.${g.connectedEmail?` <button class="btn sm" id="gcalOff" type="button" style="margin-left:6px">Desconectar</button>`:""}</p>${lastHtml}${qHtml}`
+        ${g.configured?`<p style="margin:.4em 0 0;font-size:.88rem">Al instante, en el calendario <b style="overflow-wrap:anywhere">${esc(g.calendarName||g.calendarId)}</b>: reservas nuevas, cambios de fechas, habitación o estado, cancelaciones, check-in en línea, contrato firmado y cambios en la ficha del huésped o la habitación. Conexión: ${g.mode==="oauth"?`cuenta de Google${g.connectedEmail?` <b>${esc(g.connectedEmail)}</b>`:" (OAuth)"}`:"cuenta de servicio"}.${g.connectedEmail?` <button class="btn sm" id="gcalOff" type="button" style="margin-left:6px">Desconectar</button>`:""}</p>${lastHtml}${qHtml}`
           :g.hasClient?`<div class="note warn" style="margin-top:8px"><b>Último paso:</b> pulsa el botón, entra con <b>${esc(g.calendarId||"cbernal@gesoltec.co")}</b> y acepta los permisos.</div>
             <button class="btn primary" id="gcalConnect" type="button" style="margin-top:10px">Conectar con Google</button>`
           :`<p style="margin:.4em 0 0;font-size:.88rem">Aún no está conectado: por eso las reservas solo llegan por el enlace iCal (Google lo revisa cada pocas horas). Sigue la guía del README, sección «Google Calendar». Cuando Google te pida el <b>URI de redireccionamiento autorizado</b>, copia este:</p>
             <div class="grp" style="margin-top:6px"><input id="gcalRedir" readonly value="${esc(g.redirectUri||"")}" style="flex:1 1 220px;font-family:var(--mono);font-size:.78rem"><button class="btn sm" id="gcalRedirCp" type="button">Copiar</button></div>`}
+        <div class="gcal-dest" style="margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:12px">
+          <div class="eyebrow">Calendario de destino</div>
+          <div style="font-size:.86rem;margin:.3em 0 .6em">Las reservas se escriben en <b>${esc(g.calendarName||g.calendarId)}</b>. ${g.calendarName?`<span class="muted num" style="font-size:.7rem;overflow-wrap:anywhere;display:block;margin:2px 0">${esc(g.calendarId)}</span>`:""}${g.calendarSource==="netlify"?"Elegido con la variable GOOGLE_CALENDAR_ID de Netlify.":g.calendarSource==="panel"?"Elegido aquí en el panel.":"Calendario por defecto del hotel."}</div>
+          <div class="grp"><input id="gcalCal" value="${esc(g.calendarId)}" placeholder="ID del calendario (…@group.calendar.google.com)" style="flex:1 1 220px;min-width:0;font-family:var(--mono);font-size:.74rem" aria-label="ID del calendario de destino">
+            <button class="btn sm" id="gcalCalSave" type="button">Cambiar</button>${g.calendarId!==g.defaultCalendar?`<button class="btn sm" id="gcalCalDef" type="button">Usar «${esc(g.defaultCalendarName)}»</button>`:""}</div>
+          <div class="muted" style="font-size:.74rem;margin-top:6px">El ID está en Google Calendar → Configuración del calendario → «Integrar el calendario» → ID del calendario.</div>
+          ${(g.previousCalendars||[]).filter(c=>c!==g.calendarId).length&&g.configured?`<div style="margin-top:10px;font-size:.84rem">Eventos de reservas en calendarios anteriores:
+            ${(g.previousCalendars||[]).filter(c=>c!==g.calendarId).map(c=>`<div class="grp" style="margin-top:6px"><span class="num" style="font-size:.74rem;overflow-wrap:anywhere">${esc(c)}</span><button class="btn sm danger" type="button" data-gclean="${esc(c)}">Borrar eventos de reservas de ese calendario</button></div>`).join("")}</div>`:""}
+        </div>
         <div id="gcalNote" style="margin-top:8px"></div></div>
       <div><div class="eyebrow">Enlace privado iCal (respaldo)</div>
         ${feed?`<p style="margin:.4em 0 6px;font-size:.88rem">Solo lectura y lento: Google lo revisa cada varias horas. ${g.configured?"Con la conexión en tiempo real activa no lo necesitas en Google Calendar (si lo tienes suscrito, verás cada reserva duplicada).":""} Úsalo en Apple Calendar u Outlook. No lo compartas: muestra nombres y teléfonos.</p>
@@ -932,6 +941,12 @@ function renderGcal(){
   const cn=$("#gcalConnect"); if(cn) cn.onclick=async()=>{ cn.disabled=true; cn.textContent="Abriendo Google…"; try{ const r=await api("GET","admin/gcal/connect"); location.href=r.url; }catch(e){ toast(e.message); cn.disabled=false; cn.textContent="Conectar con Google"; } };
   const rc=$("#gcalRedirCp"); if(rc) rc.onclick=()=>copyText($("#gcalRedir").value);
   const off=$("#gcalOff"); if(off) confirmBtn(off,"¿Seguro? Toca otra vez",async()=>{ try{ await api("DELETE","admin/gcal/connect"); toast("Google Calendar desconectado"); S.gcal=null; renderGcal(); }catch(e){ toast(e.message); } });
+  const setCal=async(cal,name)=>{ try{ await api("PUT","admin/gcal/calendar",{calendarId:cal,calendarName:name||""}); toast("Calendario cambiado. Pulsa «Sincronizar todas las reservas» para pasarlas al nuevo."); S.gcal=null; renderGcal(); }catch(e){ toast(e.message); } };
+  const cs=$("#gcalCalSave"); if(cs) cs.onclick=()=>{ const v=$("#gcalCal").value.trim(); if(v===g.calendarId){toast("Ese ya es el calendario actual.");return;} setCal(v,""); };
+  const cd=$("#gcalCalDef"); if(cd) cd.onclick=()=>setCal(g.defaultCalendar,g.defaultCalendarName);
+  box.querySelectorAll("[data-gclean]").forEach(b=>confirmBtn(b,"¿Seguro? Toca otra vez para borrar",async()=>{ b.disabled=true; b.textContent="Borrando…";
+    try{ const r=await api("POST","admin/gcal/cleanup",{calendarId:b.dataset.gclean}); toast(r.failed?`Se borraron ${r.ok}; ${r.failed} fallaron: ${r.error}`:`Listo: se quitaron los eventos de reservas de ese calendario (${r.ok} revisadas).`); }catch(e){ toast(e.message); }
+    b.disabled=false; b.textContent="Borrar eventos de reservas de ese calendario"; }));
   const ts=$("#gcalTest"); if(ts) ts.onclick=async()=>{
     ts.disabled=true; ts.textContent="Probando…"; const n=$("#gcalNote");
     try{const r=await api("POST","admin/gcal/test");

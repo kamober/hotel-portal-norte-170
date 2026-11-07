@@ -591,11 +591,37 @@ async function handleAdmin(req, parts, store) {
   if (kind === "gcal") {
     if (id === "status" && m === "GET") {
       const t = feedToken();
+      const cs = gcal.calendarSettings() || {};
       return json({ configured: gcal.isConfigured(), mode: gcal.authMode(), calendarId: gcal.calendarId(), feedPath: t ? `/api/calendar/${t}.ics` : null,
+        calendarSource: gcal.calendarSource(), calendarName: cs.calendarId ? cs.calendarName || "" : gcal.calendarSource() === "default" ? gcal.DEFAULT_CALENDAR_NAME : "",
+        defaultCalendar: gcal.DEFAULT_CALENDAR, defaultCalendarName: gcal.DEFAULT_CALENDAR_NAME, previousCalendars: cs.previous || ["cbernal@gesoltec.co"],
         hasClient: gcal.hasClient(), connectedEmail: gcal.connectedEmail(), envToken: !!env("GOOGLE_REFRESH_TOKEN"), redirectUri: new URL(req.url).origin + "/api/oauth/google",
         last: await store.get("gcal/last", { type: "json" }), queue: await calsync.queueInfo(store) });
     }
     if (id === "test" && m === "POST") return json(await calsync.testConnection());
+    // Elegir el calendario de destino desde el panel (sin variables de Netlify).
+    if (id === "calendar" && m === "PUT") {
+      const b = await readBody(req, 2_000);
+      const cal = str(b.calendarId, 200);
+      if (!gcal.CAL_RE.test(cal)) return fail(400, "El identificador del calendario no es válido. Cópialo de Google Calendar → Configuración del calendario → «ID del calendario».");
+      const prevId = gcal.calendarId(), cur = gcal.calendarSettings() || {};
+      const previous = [...new Set([...(cur.previous || ["cbernal@gesoltec.co"]), prevId])].filter((x) => x !== cal).slice(-5);
+      const next = { calendarId: cal, calendarName: str(b.calendarName, 80), previous, at: new Date().toISOString() };
+      await store.setJSON("gcal/settings", next); gcal.setSettings(next);
+      return json({ ok: true, calendarId: cal, previous });
+    }
+    // Borra los eventos de reservas que quedaron en un calendario anterior (p. ej. el personal).
+    if (id === "cleanup" && m === "POST") {
+      if (!gcal.isConfigured()) return fail(400, "Google Calendar no está conectado.");
+      const b = await readBody(req, 2_000); const from = str(b.calendarId, 200);
+      if (!gcal.CAL_RE.test(from)) return fail(400, "Calendario no válido.");
+      if (from === gcal.calendarId()) return fail(400, "Ese es el calendario actual: no se borra.");
+      const all = await listJSON(store, "res/"); let ok = 0; const errors = [];
+      for (let i = 0; i < all.length; i += 5) {
+        await Promise.all(all.slice(i, i + 5).map(async (r) => { try { await gcal.deleteReservation(r.id, fetch, from); ok++; } catch (e) { errors.push(e.message); } }));
+      }
+      return json({ total: all.length, ok, failed: errors.length, error: errors[0] });
+    }
     if (id === "connect" && m === "GET") {
       if (!gcal.hasClient()) return fail(400, "Primero agrega GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en Netlify y vuelve a desplegar.");
       return json({ url: gcal.authUrl(new URL(req.url).origin + "/api/oauth/google", sign({ role: "gcal", exp: Date.now() + 15 * 60_000 })) });
