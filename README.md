@@ -19,6 +19,7 @@ lib/ical.mjs                 Importación/exportación iCal con Booking.com y Ai
 netlify/functions/api.mjs    API: /api/public, /api/requests, /api/photos, /api/login, /api/admin/*
 netlify/functions/ical-sync.mjs  Tarea programada: lee los calendarios de los canales cada 15 min
 lib/notify.mjs               Notificaciones por correo (Resend o Gmail)
+lib/telegram.mjs             Bot de Telegram del administrador: gastos con foto, reservas y avisos
 public/reserva.html          Página del huésped: confirmación + check-in en línea (TRA, selfie y documento)
 public/assets/pdf.js         Generador de PDF propio, sin librerías externas
 public/assets/promo.js       Portada rotativa y galería por categorías del sitio público
@@ -170,6 +171,37 @@ El formulario «Escríbenos» muestra el horario y si en ese momento están aten
 ### Mensajes de contacto
 
 Están en la pestaña **Solicitudes**, debajo de las solicitudes de reserva. Desde cada uno puedes llamar, escribir por WhatsApp o por correo, marcarlo como atendido o eliminarlo.
+
+## Bot de Telegram
+
+Un bot privado para manejar el hotel desde el celular. Solo responde a **una** cuenta de Telegram: la que vincules desde el panel.
+
+**Qué puedes hacer:**
+
+- **Registrar gastos:** envía la foto del recibo. Si escribes en el pie de foto el valor y el concepto (`45000 aseo detergente y cloro`), el bot toma el valor y adivina la categoría; si falta algo, lo pregunta con botones (valor, categoría, concepto, forma de pago). Antes de guardar puedes cambiar la fecha, poner el proveedor o marcarlo como gasto fijo mensual. Queda en **Finanzas** con la foto del recibo, igual que si lo hubieras registrado en el panel. Sin foto: `/gasto` → «Sin foto».
+- **Reservas:**
+  - `/hoy`: llegadas, salidas, huéspedes en casa, habitaciones libres esta noche, solicitudes y comprobantes pendientes.
+  - `/disponible 15/11 3` (llegada y noches), `/disponible 15/11 al 18/11` o solo `/disponible`: habitaciones libres con su tarifa. Toca una para reservarla.
+  - `/reservar`: crea la reserva paso a paso (fechas, habitación, nombre, teléfono, personas, total, abono). Se crea como «Directo / WhatsApp», confirmada; registra o reutiliza la ficha del huésped por su teléfono, va a Google Calendar y te da el botón para enviarle la confirmación con el enlace de check-in por WhatsApp.
+  - `/reservas`: próximas reservas. Desde cada una: confirmar, check-in, check-out, cancelar, registrar abono, verificar comprobantes y escribirle al huésped.
+  - `/solicitudes`: solicitudes del sitio por atender, con **Crear reserva** y **Rechazar**. Si la habitación pedida ya se ocupó, el bot ofrece las que siguen libres.
+- **Avisos** (con botones para actuar ahí mismo): solicitud de reserva nueva, mensaje de contacto, comprobante de pago (con la foto y los botones **Verificar** / **Rechazar**), y reservas nuevas, canceladas o cruzadas de Booking y Airbnb.
+
+`/menu` muestra los botones principales y `/cancelar` abandona lo que estés haciendo. Las fechas se pueden escribir como `hoy`, `mañana`, `15/11`, `15 nov` o `2026-11-15`, y los valores como `45000`, `45.000`, `45k` o `45 mil`.
+
+**Configuración (una sola vez):**
+
+1. En Telegram, abre **@BotFather** → `/newbot`. Ponle un nombre (por ejemplo «Portal Norte 170 Admin») y un usuario que termine en `bot`. Copia el **token** que te entrega.
+2. En Netlify agrega `TELEGRAM_BOT_TOKEN` con ese token y haz *Trigger deploy*. (`TOKEN_SECRET` ya debe existir: con ella se firma el webhook.)
+3. En el panel publicado, ve a **Alojamiento → Bot de Telegram → Conectar bot**. Eso registra el webhook (`/api/telegram/webhook`) y los comandos, y muestra un **enlace de vinculación** que vence en 30 minutos.
+4. Abre ese enlace en el celular y pulsa **Iniciar**. El bot confirma que quedó vinculado. Pulsa **Enviar prueba** para comprobar los avisos.
+
+Notas:
+
+- Telegram exige https: conecta el bot desde el sitio publicado, no desde `netlify dev`.
+- Los avisos por Telegram se pausan desde la misma tarjeta, sin afectar WhatsApp ni el correo. Se envían además de esos canales, no en su lugar.
+- Para cambiar de cuenta: **Desvincular cuenta** y vuelve a pulsar **Conectar bot**. Si cambias `TOKEN_SECRET`, pulsa **Reconectar** para que Telegram use la nueva firma.
+- Si el token se filtra, revócalo en @BotFather (`/revoke`), pon el nuevo en Netlify, despliega y pulsa **Reconectar**.
 
 ## Pagos con comprobante
 

@@ -10,6 +10,7 @@ import * as notifier from "../../lib/notify.mjs";
 import * as contract from "../../lib/contract.mjs";
 import * as calsync from "../../lib/calsync.mjs";
 import * as wa from "../../lib/whatsapp.mjs";
+import * as tg from "../../lib/telegram.mjs";
 
 export const config = { path: "/api/*" };
 
@@ -161,7 +162,8 @@ async function handleNewRequest(req, store) {
     `👥 ${adults} adulto(s)${children ? `, ${children} niño(s)` : ""} · ≈ $${item.estimate.toLocaleString("es-CO")}`,
     item.notes ? `📝 ${item.notes}` : null, open ? null : `⏰ Llegó fuera del horario de atención (${hours}). Al huésped se le informó el horario.`,
     `Responder: https://wa.me/${waNum(phone)}`, `Panel: ${base}/admin`].filter(Boolean).join("\n");
-  await Promise.all([wa.send(store, hotel, waText, { kind: "solicitud" }), notifier.notify(store, hotel, {
+  const tgA = tg.requestAlert(item, room, { base, afterHours: !open, hours });
+  await Promise.all([wa.send(store, hotel, waText, { kind: "solicitud" }), tg.alert(store, tgA.text, { buttons: tgA.buttons, kind: "solicitud" }), notifier.notify(store, hotel, {
     subject: `Nueva solicitud ${id}`, title: "Nueva solicitud de reserva", tone: "ok",
     intro: `${first} ${item.last} pidió la habitación ${room.number} desde el sitio web.`,
     rows: [["Código", id], ["Habitación", `${room.number} · ${room.name || room.type || ""}`], ["Llegada", checkIn], ["Salida", `${checkOut} (${nights} noche${nights === 1 ? "" : "s"})`],
@@ -195,7 +197,8 @@ async function handleContact(req, store) {
   const waText = [`💬 *Nuevo mensaje de contacto* ${id}`, `👤 ${name}`, `📞 ${phone}${email ? " · " + email : ""}`, item.topic ? `🏷 ${item.topic}` : null, `📝 ${message}`,
     open ? null : `⏰ Llegó fuera del horario de atención (${hours}). Al cliente se le informó el horario.`,
     `Responder: https://wa.me/${waNum(phone)}`, `Panel: ${base}/admin`].filter(Boolean).join("\n");
-  await Promise.all([wa.send(store, hotel, waText, { kind: "contacto" }), notifier.notify(store, hotel, {
+  const tgC = tg.contactAlert(item, { afterHours: !open, hours });
+  await Promise.all([wa.send(store, hotel, waText, { kind: "contacto" }), tg.alert(store, tgC.text, { buttons: tgC.buttons, kind: "contacto" }), notifier.notify(store, hotel, {
     subject: `Mensaje de contacto ${id}`, title: "Nuevo mensaje de contacto", tone: "info",
     intro: `${name} escribió desde el sitio web.`,
     rows: [["Código", id], ["Teléfono", phone], ["Correo", email], ["Asunto", item.topic], ["Mensaje", message], ...(open ? [] : [["Horario", `Llegó fuera del horario de atención (${hours})`]])],
@@ -456,7 +459,9 @@ async function handleGuest(req, rest, store) {
     const { next, p } = await addPayment(store, r, b, "huesped");
     const [hotel, room] = await Promise.all([store.get("hotel", { type: "json" }), store.get("rooms/" + r.roomId, { type: "json" })]);
     const name = (r.guestName || "").trim() || "El huésped", base = notifier.baseUrl(req);
+    const tgP = tg.paymentAlert(r, p, name, room), payPhoto = p.photoId ? await idPhotos().getWithMetadata(p.photoId, { type: "arrayBuffer" }).catch(() => null) : null;
     await Promise.all([
+      tg.alert(store, tgP.text, { buttons: tgP.buttons, kind: "pago", photo: payPhoto ? { data: payPhoto.data, type: payPhoto.metadata?.contentType } : null }),
       wa.send(store, hotel, [`💳 *Comprobante de pago* · reserva ${r.id}`, `👤 ${name} · Hab. ${room ? room.number : r.roomId}`, `💵 $${p.amount.toLocaleString("es-CO")} · ${p.method}${p.ref ? " · ref. " + p.ref : ""}`, `Por verificar en el panel: ${base}/admin`].join("\n"), { kind: "pago" }),
       notifier.notify(store, hotel, { subject: `Comprobante de pago ${r.id}`, title: "Comprobante de pago recibido", tone: "info",
         intro: `${name} subió un comprobante de pago desde su enlace. Revísalo y márcalo como verificado para sumarlo al abonado.`,
@@ -653,6 +658,8 @@ async function handleAdmin(req, parts, store) {
     return fail(404, "Ruta no encontrada.");
   }
 
+  if (kind === "telegram") return await tg.adminRoute(req, id, store, { secret: secret(), origin: new URL(req.url).origin });
+
   if (kind === "payments") {
     const [, payId] = parts.slice(1);
     if (!ID_RE.test(id || "")) return fail(404, "Ruta no encontrada.");
@@ -832,6 +839,13 @@ async function handleAdmin(req, parts, store) {
   return fail(405, "Método no permitido.");
 }
 
+/* ---------- bot de Telegram: funciones del panel que usa el bot ---------- */
+const tgDeps = {
+  listJSON, todayBogota, ensureSeed, idPhotos, addPayment, changePayment, syncToCalendar,
+  notifyResChange: (store, req, prev, rec, opts) => notifyResChange(store, req, prev, rec, opts),
+  guestUrl: (resId, req) => { const p = guestPath(resId); return p ? notifier.baseUrl(req) + p : null; },
+};
+
 /* ---------- router ---------- */
 export default async (req, context) => {
   reqCtx = context || null;
@@ -876,6 +890,16 @@ export default async (req, context) => {
       const [room, res] = await Promise.all([store.get("rooms/" + roomId, { type: "json" }), listJSON(store, "res/")]);
       if (!room) return new Response("No encontrado", { status: 404 });
       return new Response(ical.buildRoomIcs(room, res, channel), { headers: { "Content-Type": "text/calendar; charset=utf-8", "Cache-Control": "no-store" } });
+    }
+
+    // Bot de Telegram: Telegram envía cada mensaje aquí con la cabecera secreta que se fijó al conectar el webhook.
+    if (head === "telegram" && rest[0] === "webhook" && req.method === "POST") {
+      const want = tg.webhookSecret(secret()), got = req.headers.get("x-telegram-bot-api-secret-token") || "";
+      if (!want || !tg.isConfigured() || !sameStr(got, want)) return new Response("No autorizado", { status: 401 });
+      const update = await req.json().catch(() => null);
+      try { await ensureSeed(store); await tg.handleUpdate(update, { store, req, deps: tgDeps }); }
+      catch (e) { console.error("telegram", e); }
+      return json({ ok: true }); // siempre 200: si no, Telegram reintenta el mismo mensaje
     }
 
     if (head === "login" && req.method === "POST") {
