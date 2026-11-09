@@ -461,7 +461,7 @@ async function handleGuest(req, rest, store) {
     const name = (r.guestName || "").trim() || "El huésped", base = notifier.baseUrl(req);
     const tgP = tg.paymentAlert(r, p, name, room), payPhoto = p.photoId ? await idPhotos().getWithMetadata(p.photoId, { type: "arrayBuffer" }).catch(() => null) : null;
     await Promise.all([
-      tg.alert(store, tgP.text, { buttons: tgP.buttons, kind: "pago", photo: payPhoto ? { data: payPhoto.data, type: payPhoto.metadata?.contentType } : null }),
+      tg.alert(store, tgP.text, { buttons: tgP.buttons, kind: "pago", onlyAdmins: true, photo: payPhoto ? { data: payPhoto.data, type: payPhoto.metadata?.contentType } : null }),
       wa.send(store, hotel, [`💳 *Comprobante de pago* · reserva ${r.id}`, `👤 ${name} · Hab. ${room ? room.number : r.roomId}`, `💵 $${p.amount.toLocaleString("es-CO")} · ${p.method}${p.ref ? " · ref. " + p.ref : ""}`, `Por verificar en el panel: ${base}/admin`].join("\n"), { kind: "pago" }),
       notifier.notify(store, hotel, { subject: `Comprobante de pago ${r.id}`, title: "Comprobante de pago recibido", tone: "info",
         intro: `${name} subió un comprobante de pago desde su enlace. Revísalo y márcalo como verificado para sumarlo al abonado.`,
@@ -658,7 +658,7 @@ async function handleAdmin(req, parts, store) {
     return fail(404, "Ruta no encontrada.");
   }
 
-  if (kind === "telegram") return await tg.adminRoute(req, id, store, { secret: secret(), origin: new URL(req.url).origin });
+  if (kind === "telegram") return await tg.adminRoute(req, id, store, { secret: secret(), origin: new URL(req.url).origin, arg: parts[2] });
 
   if (kind === "payments") {
     const [, payId] = parts.slice(1);

@@ -1311,40 +1311,50 @@ async function loadTg(){ try{ S.tg=await api("GET","admin/telegram/status"); }ca
 function renderTg(){
   const box=$("#tgCard"); if(!box) return;
   if(!S.tg){ box.innerHTML=`<div class="empty">Consultando el bot de Telegram…</div>`; loadTg(); return; }
-  const t=S.tg, wh=t.webhook||{}, linked=t.linked, ready=t.configured&&wh.ours&&linked, last=t.last;
+  const t=S.tg, wh=t.webhook||{}, users=t.users||[], ready=t.configured&&wh.ours&&users.length, last=t.last, roles=t.roles||{admin:"Completo",recepcion:"Recepción"};
   const pill=!t.configured?'<span class="pill warn">Sin configurar</span>':ready?(t.off?'<span class="pill warn">Avisos en pausa</span>':'<span class="pill ok">Activo</span>'):'<span class="pill warn">Falta conectar</span>';
+  const userRow=u=>`<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line,#e5e7eb)">
+      <div style="font-size:.86rem"><b>${esc(u.name||"Sin nombre")}</b>${u.username?` <span class="muted">@${esc(u.username)}</span>`:""}<br><span class="muted" style="font-size:.78rem">desde ${fdt(u.at)}</span></div>
+      <div style="display:flex;gap:6px;align-items:center"><select data-tgrole="${esc(u.userId)}" style="width:auto">${Object.entries(roles).map(([k,v])=>`<option value="${k}" ${u.role===k?"selected":""}>${esc(v)}</option>`).join("")}</select>
+      <button class="btn sm danger" type="button" data-tgdel="${esc(u.userId)}">Quitar</button></div></div>`;
   box.innerHTML=`
     <div class="toolbar"><div class="grp"><h3>Bot de Telegram</h3>${pill}</div>
-      <div class="grp">${t.configured?`<button class="btn sm${ready?"":" primary"}" type="button" id="tgSetup">${wh.ours?"Reconectar":"Conectar bot"}</button>`:""}${ready?`<button class="btn sm primary" type="button" id="tgTest">Enviar prueba</button>`:""}</div></div>
+      <div class="grp">${t.configured?`<button class="btn sm${wh.ours?"":" primary"}" type="button" id="tgSetup">${wh.ours?"Reconectar":"Conectar bot"}</button>`:""}${ready?`<button class="btn sm primary" type="button" id="tgTest">Enviar prueba</button>`:""}</div></div>
     <div class="grid g2" style="margin-top:12px">
       <div><div class="eyebrow">Desde Telegram puedes</div>
-        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>registrar gastos enviando la foto del recibo (pie de foto: «45000 aseo detergente»)</li><li>ver hoy, la disponibilidad y las próximas reservas; crear, confirmar, cancelar y hacer check-in/check-out</li><li>registrar abonos y verificar comprobantes de pago</li><li>aceptar o rechazar las solicitudes del sitio</li></ul>
-        <div class="eyebrow" style="margin-top:10px">Te avisa cuando</div>
-        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>llega una solicitud de reserva o un mensaje de contacto</li><li>un huésped sube un comprobante (con la foto)</li><li>entra, se cancela o se cruza una reserva de Booking o Airbnb</li></ul></div>
+        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>registrar gastos enviando la foto del recibo (pie de foto: «45000 aseo detergente»)</li><li>ver hoy, la disponibilidad y las próximas reservas; crear, confirmar y hacer check-in/check-out</li><li>registrar abonos y aceptar o rechazar las solicitudes del sitio</li><li>con acceso <b>Completo</b>, además: cancelar reservas y verificar comprobantes de pago</li></ul>
+        <div class="eyebrow" style="margin-top:10px">Avisos</div>
+        <ul style="margin:.4em 0 0;padding-left:18px;font-size:.86rem;line-height:1.6"><li>a todas las cuentas: solicitudes, mensajes de contacto y novedades de Booking/Airbnb</li><li>solo a las de acceso Completo: comprobantes de pago (con la foto)</li></ul></div>
       <div>
         ${!t.configured?`<div class="note">Falta la variable <b>TELEGRAM_BOT_TOKEN</b> en Netlify. Crea el bot con <b>@BotFather</b> en Telegram (/newbot), copia el token, agrégalo en Netlify y vuelve a desplegar. Detalles en el README, sección «Bot de Telegram».</div>`:`
         <div style="font-size:.86rem;line-height:1.6">${t.bot?`Bot: <a href="https://t.me/${esc(t.bot.username)}" target="_blank" rel="noopener">@${esc(t.bot.username)}</a>`:`<span class="muted">No se pudo consultar el bot.</span>`}<br>
-          Webhook: ${wh.ours?"<b>conectado</b>":wh.url?`apunta a otro sitio (${esc(wh.url)})`:"<b>sin conectar</b>"}${wh.pending?` · ${wh.pending} pendiente(s)`:""}<br>
-          Cuenta vinculada: ${linked?`<b>${esc(linked.name||"")}</b>${linked.username?` (@${esc(linked.username)})`:""} desde ${fdt(linked.at)}`:"<b>ninguna</b>"}</div>
+          Webhook: ${wh.ours?"<b>conectado</b>":wh.url?`apunta a otro sitio (${esc(wh.url)})`:"<b>sin conectar</b>"}${wh.pending?` · ${wh.pending} pendiente(s)`:""}</div>
         ${t.error?`<div class="note bad" style="margin-top:8px">${esc(t.error)}</div>`:""}
         ${wh.lastError?`<div class="note bad" style="margin-top:8px">Último error de Telegram (${fdt(wh.lastErrorAt)}): ${esc(wh.lastError)}</div>`:""}
-        ${!linked&&t.pendingLink?`<div class="note ok" style="margin-top:8px">Abre este enlace en el celular donde tienes Telegram y pulsa <b>Iniciar</b> (vence ${fdt(t.pendingLink.exp)}):<br><a href="${esc(t.pendingLink.url)}" target="_blank" rel="noopener"><b>${esc(t.pendingLink.url)}</b></a></div>`:""}
-        ${!linked&&!t.pendingLink&&wh.ours?`<div class="note" style="margin-top:8px">Pulsa «Reconectar» para generar el enlace de vinculación.</div>`:""}
+        <div class="eyebrow" style="margin-top:12px">Cuentas vinculadas (${users.length})</div>
+        ${users.map(userRow).join("")||`<div class="muted" style="font-size:.86rem;padding:6px 0">Ninguna todavía.</div>`}
+        ${wh.ours?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px"><select id="tgNewRole" style="width:auto">${Object.entries(roles).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join("")}</select><button class="btn sm" type="button" id="tgAdd">+ Agregar cuenta</button></div>`:""}
+        ${t.pendingLink?`<div class="note ok" style="margin-top:8px">Enlace para vincular una cuenta (acceso ${esc(t.pendingLink.roleName||"")}, vence ${fdt(t.pendingLink.exp)}, un solo uso). Ábrelo en el celular de esa persona y pulsa <b>Iniciar</b>:<br><a href="${esc(t.pendingLink.url)}" target="_blank" rel="noopener"><b>${esc(t.pendingLink.url)}</b></a>
+          <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" type="button" id="tgCopy">Copiar enlace</button><a class="btn sm" href="https://wa.me/?text=${encodeURIComponent("Vincula tu Telegram al bot del Hotel Portal Norte 170: "+t.pendingLink.url)}" target="_blank" rel="noopener">Enviar por WhatsApp</a><button class="btn sm" type="button" id="tgLinkDel">Anular</button></div></div>`:""}
         ${last?`<div class="note ${last.ok?"ok":last.skipped?"":"bad"}" style="margin-top:8px">Último aviso ${fdt(last.at)} (${esc(last.kind||"")}): ${last.ok?"enviado":esc(last.error||last.reason||"no enviado")}</div>`:""}
-        ${linked?`<label class="f chk" style="margin-top:8px"><input type="checkbox" id="tgOff" ${t.off?"checked":""}> Pausar los avisos por Telegram (el bot sigue respondiendo)</label>
-          <button class="btn sm danger" type="button" id="tgUnlink" style="margin-top:6px">Desvincular cuenta</button>`:""}
-        <p class="muted" style="font-size:.8rem;margin:.6em 0 0">Solo responde a la cuenta vinculada. Para cambiarla, desvincúlala y vuelve a conectar.</p>`}
+        ${users.length?`<label class="f chk" style="margin-top:8px"><input type="checkbox" id="tgOff" ${t.off?"checked":""}> Pausar los avisos por Telegram (el bot sigue respondiendo)</label>`:""}
+        <p class="muted" style="font-size:.8rem;margin:.6em 0 0">Solo responde a las cuentas vinculadas aquí (máximo 5).</p>`}
         <div id="tgNote" style="margin-top:8px"></div></div>
     </div>`;
   const note=(h)=>{$("#tgNote").innerHTML=h;};
+  const reload=()=>{S.tg=null;return loadTg();};
   const su=$("#tgSetup"); if(su) su.onclick=async()=>{ su.disabled=true; su.textContent="Conectando…";
-    try{ const r=await api("POST","admin/telegram/setup"); S.tg=null; await loadTg();
-      if(r.link) note(`<div class="note ok">Bot conectado. Abre el enlace de vinculación de arriba en tu celular.</div>`); else note(`<div class="note ok">Webhook y comandos actualizados.</div>`); }
+    try{ const r=await api("POST","admin/telegram/setup"); await reload(); note(`<div class="note ok">${r.link?"Bot conectado. Abre el enlace de vinculación en tu celular.":"Webhook y comandos actualizados."}</div>`); }
     catch(e){ note(`<div class="note bad">${esc(e.message)}</div>`); su.disabled=false; su.textContent="Conectar bot"; } };
+  const add=$("#tgAdd"); if(add) add.onclick=async()=>{ add.disabled=true;
+    try{ await api("POST","admin/telegram/link",{role:$("#tgNewRole").value}); await reload(); }catch(e){ note(`<div class="note bad">${esc(e.message)}</div>`); add.disabled=false; } };
+  const cp=$("#tgCopy"); if(cp) cp.onclick=async()=>{ try{ await navigator.clipboard.writeText(t.pendingLink.url); toast("Enlace copiado"); }catch(_){ toast("No se pudo copiar"); } };
+  const ld=$("#tgLinkDel"); if(ld) ld.onclick=async()=>{ try{ await api("DELETE","admin/telegram/link"); await reload(); }catch(e){toast(e.message);} };
   const te=$("#tgTest"); if(te) te.onclick=async()=>{ te.disabled=true;
-    try{ await api("POST","admin/telegram/test"); note(`<div class="note ok">Mensaje de prueba enviado. Revisa Telegram.</div>`); }catch(e){ note(`<div class="note bad">${esc(e.message)}</div>`); } te.disabled=false; };
-  const off=$("#tgOff"); if(off) off.onchange=async()=>{ try{ await api("PUT","admin/telegram/settings",{off:off.checked}); toast(off.checked?"Avisos de Telegram en pausa":"Avisos de Telegram activos"); S.tg=null; loadTg(); }catch(e){toast(e.message);} };
-  const un=$("#tgUnlink"); if(un) confirmBtn(un,"¿Desvincular?",async()=>{ try{ await api("DELETE","admin/telegram/link"); toast("Cuenta desvinculada"); S.tg=null; loadTg(); }catch(e){toast(e.message);} });
+    try{ await api("POST","admin/telegram/test"); note(`<div class="note ok">Mensaje de prueba enviado a todas las cuentas.</div>`); }catch(e){ note(`<div class="note bad">${esc(e.message)}</div>`); } te.disabled=false; };
+  const off=$("#tgOff"); if(off) off.onchange=async()=>{ try{ await api("PUT","admin/telegram/settings",{off:off.checked}); toast(off.checked?"Avisos de Telegram en pausa":"Avisos de Telegram activos"); reload(); }catch(e){toast(e.message);} };
+  box.querySelectorAll("[data-tgrole]").forEach(sel=>sel.onchange=async()=>{ try{ await api("PATCH","admin/telegram/users/"+encodeURIComponent(sel.dataset.tgrole),{role:sel.value}); toast("Acceso actualizado"); }catch(e){ toast(e.message); } reload(); });
+  box.querySelectorAll("[data-tgdel]").forEach(b=>confirmBtn(b,"¿Quitar?",async()=>{ try{ await api("DELETE","admin/telegram/users/"+encodeURIComponent(b.dataset.tgdel)); toast("Cuenta quitada"); reload(); }catch(e){toast(e.message);} }));
 }
 
 /* ---------- finanzas y contabilidad ---------- */

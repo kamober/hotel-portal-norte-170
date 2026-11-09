@@ -174,7 +174,12 @@ Están en la pestaña **Solicitudes**, debajo de las solicitudes de reserva. Des
 
 ## Bot de Telegram
 
-Un bot privado para manejar el hotel desde el celular. Solo responde a **una** cuenta de Telegram: la que vincules desde el panel.
+Un bot privado para manejar el hotel desde el celular. Solo responde a las cuentas de Telegram que vincules desde el panel (hasta 5), cada una con un acceso:
+
+- **Completo:** todo lo de abajo, incluido cancelar reservas y verificar o rechazar comprobantes de pago.
+- **Recepción:** todo menos cancelar reservas y revisar comprobantes. No recibe los avisos de comprobantes.
+
+Para agregar a alguien (por ejemplo, tu asistente): **Alojamiento → Bot de Telegram**, elige el acceso y pulsa **+ Agregar cuenta**. Sale un enlace de un solo uso que vence en 30 minutos; envíaselo (hay botón de WhatsApp) y que lo abra en su celular y pulse **Iniciar**. Desde la misma tarjeta se cambia el acceso de cada cuenta o se quita.
 
 **Qué puedes hacer:**
 
@@ -200,7 +205,7 @@ Notas:
 
 - Telegram exige https: conecta el bot desde el sitio publicado, no desde `netlify dev`.
 - Los avisos por Telegram se pausan desde la misma tarjeta, sin afectar WhatsApp ni el correo. Se envían además de esos canales, no en su lugar.
-- Para cambiar de cuenta: **Desvincular cuenta** y vuelve a pulsar **Conectar bot**. Si cambias `TOKEN_SECRET`, pulsa **Reconectar** para que Telegram use la nueva firma.
+- Si cambias `TOKEN_SECRET`, pulsa **Reconectar** para que Telegram use la nueva firma.
 - Si el token se filtra, revócalo en @BotFather (`/revoke`), pon el nuevo en Netlify, despliega y pulsa **Reconectar**.
 
 ## Pagos con comprobante
