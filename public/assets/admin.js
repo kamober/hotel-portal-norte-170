@@ -102,7 +102,7 @@ function setTab(t){S.tab=t;document.querySelectorAll("#tabs button").forEach(b=>
   render();}
 document.addEventListener("click", e=>{
   const a=e.target.closest("[data-act]"); if(a){const act=a.dataset.act;
-    if(act==="newRes") openResForm({}); if(act==="newGuest") openGuestForm({}); if(act==="newRoom") openRoomForm({}); if(act==="editHotel") openHotelForm(); return;}
+    if(act==="newRes") openResForm({}); if(act==="newGroup") openResForm({_multi:true}); if(act==="newGuest") openGuestForm({}); if(act==="newRoom") openRoomForm({}); if(act==="editHotel") openHotelForm(); return;}
   const o=e.target.closest("[data-open]"); if(o){e.preventDefault();openResDetail(o.dataset.open);return;}
   const ci=e.target.closest("[data-ci]"); if(ci){doCheckIn(ci.dataset.ci);return;}
   const co=e.target.closest("[data-co]"); if(co){doCheckOut(co.dataset.co);return;}
@@ -273,7 +273,7 @@ function renderRes(){
   list.sort((a,b)=>w==="past"?b.checkIn.localeCompare(a.checkIn):a.checkIn.localeCompare(b.checkIn));
   S.resList=list;
   $("#rBody").innerHTML = list.map(r=>{const ro=roomById(r.roomId);const bal=balance(r);return `<tr data-open="${esc(r.id)}">
-    <td class="num">${esc(r.id)}</td><td>${esc(resGuest(r))}</td><td class="num">${esc(ro?ro.number:"?")}</td>
+    <td class="num">${esc(r.id)}</td><td>${esc(resGuest(r))}${r.groupId?` <span class="chip" title="Reserva de grupo">Grupo</span>`:""}</td><td class="num">${esc(ro?ro.number:"?")}</td>
     <td>${fd(r.checkIn,{weekday:"short"})}</td><td>${fd(r.checkOut,{weekday:"short"})}</td><td class="r num">${nights(r)}</td>
     <td><span class="ch" style="--c:${chan(r.channel).c}">${esc(chan(r.channel).n)}</span></td>
     <td><span class="pill ${STATUS[r.status]?.cls||""}">${esc(STATUS[r.status]?.n||r.status)}</span></td>
@@ -402,15 +402,20 @@ function openResForm(r){
   if(!d.roomId && rooms[0]) d.roomId=rooms[0].id;
   const guests=S.guests.slice().sort((a,b)=>gName(a).localeCompare(gName(b),"es"));
   const pg=d._prefGuest||{};
+  const sibs=(!isNew&&d.groupId)?S.res.filter(x=>x.groupId===d.groupId&&x.id!==d.id&&x.status!=="cancelada"):[];
   const body=`
     <fieldset><legend>Estancia</legend><div class="grid g3">
-      <label class="f">Habitación<select id="fRoom">${rooms.map(x=>opt(x.id,`${x.number} · ${x.type||""} (${x.capacity||"?"} pers.)`,d.roomId)).join("")}</select></label>
+      <label class="f" id="fRoomL">Habitación<select id="fRoom">${rooms.map(x=>opt(x.id,`${x.number} · ${x.type||""} (${x.capacity||"?"} pers.)`,d.roomId)).join("")}</select></label>
       <label class="f">Entrada<input type="date" id="fIn" value="${esc(d.checkIn)}" required></label>
       <label class="f">Salida<input type="date" id="fOut" value="${esc(d.checkOut)}" required></label>
       <label class="f">Adultos<input type="number" id="fAd" min="1" max="6" value="${esc(d.adults)}"></label>
       <label class="f">Niños<input type="number" id="fCh" min="0" max="4" value="${esc(d.children)}"></label>
       <label class="f">Hora estimada de llegada<input type="time" id="fEta" value="${esc(d.eta||"")}"></label>
-    </div><div id="fAvail"></div></fieldset>
+    </div>
+    ${isNew&&rooms.length>1?`<label class="f chk" style="margin-top:4px"><input type="checkbox" id="fMulti" ${d._multi?"checked":""}> <span><b>Varias habitaciones</b> para el mismo titular (reserva de grupo, empresa o el hotel completo)</span></label>
+      <div id="fRooms" class="grp-pick" hidden></div>`:""}
+    ${sibs.length?`<label class="f chk" style="margin-top:4px"><input type="checkbox" id="fGrpAll" checked> <span>Aplicar fechas, hora de llegada, titular, canal y estado a las <b>${sibs.length+1} habitaciones</b> de este grupo (${[d,...sibs].map(x=>esc(roomById(x.roomId)?.number||"?")).join(", ")})</span></label>`:""}
+    <div id="fAvail"></div></fieldset>
     <fieldset><legend>Huésped titular</legend>
       <label class="f">Huésped<select id="fGuest">${d.source==="ical"?`<option value="__none">${esc(d.guestName||"Sin ficha todavía")} (sin ficha)</option>`:""}<option value="__new">+ Registrar huésped nuevo</option>${guests.map(g=>opt(g.id,`${gName(g)} · ${g.docType||""} ${g.docNumber||""}`,d.guestId)).join("")}</select></label>
       <div id="fNewG" class="grid g3">
@@ -436,7 +441,53 @@ function openResForm(r){
     if(!d.guestId) g.value=d.source==="ical"?"__none":"__new";
     const syncG=()=>ov.querySelector("#fNewG").hidden = g.value!=="__new";
     g.onchange=syncG; syncG();
+    const multiCb=ov.querySelector("#fMulti"), pick=ov.querySelector("#fRooms");
+    let chosen=new Set(d._rooms||[]);
+    const isMulti=()=>!!(multiCb&&multiCb.checked);
+    const freeRooms=(a,b)=>rooms.filter(x=>x.status!=="mantenimiento"&&!conflicts(x.id,a,b).length);
+    function drawPick(a,b){
+      const n=(a&&b)?diff(a,b):0;
+      pick.innerHTML=`<div class="grp-tools"><span class="muted">Toca las habitaciones que quieres reservar:</span><span style="flex:1"></span>
+        <button type="button" class="btn sm" data-gp="all">Todas las libres</button><button type="button" class="btn sm" data-gp="none">Ninguna</button></div>
+        <div class="grp-grid">${rooms.map(x=>{const c=n>0?conflicts(x.id,a,b):[];const busy=c.length>0;if(busy)chosen.delete(x.id);
+          return `<label class="grp-room${busy?" busy":""}${chosen.has(x.id)?" on":""}" title="${busy?esc("Ocupada por "+c.map(resGuest).join(", ")):""}"><input type="checkbox" data-gr="${esc(x.id)}" ${chosen.has(x.id)?"checked":""} ${busy?"disabled":""}>
+            <b>${esc(x.number)}</b><small>${busy?"Ocupada":esc((x.type||"")+" · "+(x.capacity||"?")+" p.")}</small><small class="num">${cop(x.rate||0)}</small></label>`;}).join("")}</div>`;
+    }
+    if(multiCb){
+      const syncMode=()=>{const m=isMulti();pick.hidden=!m;ov.querySelector("#fRoomL").hidden=m;
+        ov.querySelector("#fAd").max=m?60:6; ov.querySelector("#fCh").max=m?40:4;
+        ov.querySelector("#fRate").closest("label").firstChild.textContent=m?"Tarifa por noche, cada habitación (vacío = la de cada una)":"Tarifa por noche (COP)";
+        if(m){ if(!chosen.size) chosen.add(ov.querySelector("#fRoom").value); if(!rateTouched) ov.querySelector("#fRate").value=""; }
+        else rateTouched=false;
+        totalTouched=false; recalc();};
+      multiCb.onchange=syncMode;
+      pick.addEventListener("change",e=>{const c=e.target.closest("[data-gr]");if(!c)return;c.checked?chosen.add(c.dataset.gr):chosen.delete(c.dataset.gr);totalTouched=false;recalc();});
+      pick.addEventListener("click",e=>{const b=e.target.closest("[data-gp]");if(!b)return;
+        if(b.dataset.gp==="all") freeRooms(ov.querySelector("#fIn").value,ov.querySelector("#fOut").value).forEach(x=>chosen.add(x.id)); else chosen.clear();
+        totalTouched=false;recalc();});
+      if(d._multi) setTimeout(syncMode);
+    }
+    // reparte personas y dinero entre las habitaciones elegidas
+    function groupPlan(){
+      const a=ov.querySelector("#fIn").value, b=ov.querySelector("#fOut").value, n=Math.max(0,diff(a,b));
+      const list=rooms.filter(x=>chosen.has(x.id));
+      const rateIn=ov.querySelector("#fRate").value.trim(), fixedRate=rateTouched&&rateIn!==""?Number(rateIn)||0:null;
+      const base=list.map(x=>(fixedRate??(Number(x.rate)||0))*n), baseSum=base.reduce((s,v)=>s+v,0);
+      const total=Number(ov.querySelector("#fTotal").value)||0, paid=Number(ov.querySelector("#fPaid").value)||0;
+      const split=(amt)=>{if(!list.length)return[];const w=baseSum>0?base:list.map(()=>1),ws=w.reduce((s,v)=>s+v,0);
+        const out=w.map(v=>Math.floor(amt*v/ws));out[0]+=amt-out.reduce((s,v)=>s+v,0);return out;};
+      const tots=totalTouched?split(total):base, pays=split(Math.min(paid,tots.reduce((s,v)=>s+v,0)));
+      // reparte respetando la capacidad de cada habitación; lo que sobre se reparte en orden
+      const caps=list.map(x=>Math.max(1,Number(x.capacity)||1)), used=list.map(()=>0);
+      const deal=(k,min)=>{const o=list.map(()=>0);if(!list.length)return o;
+        if(min){for(let i=0;i<list.length&&k>0;i++){o[i]++;used[i]++;k--;}}
+        for(let pass=0;k>0&&pass<200;pass++){let moved=false;for(let i=0;i<list.length&&k>0;i++)if(used[i]<caps[i]){o[i]++;used[i]++;k--;moved=true;}if(!moved)break;}
+        for(let i=0;k>0;i=(i+1)%list.length){o[i]++;k--;} return o;};
+      const ads=deal(Math.max(+ov.querySelector("#fAd").value||1,list.length),true), chs=deal(+ov.querySelector("#fCh").value||0,false);
+      return {list,n,baseSum,items:list.map((x,i)=>({room:x,rate:fixedRate??(Number(x.rate)||0),total:tots[i],paid:pays[i]||0,adults:ads[i]||1,children:chs[i]||0}))};
+    }
     function recalc(){
+      if(isMulti()) return recalcMulti();
       const ro=roomById(ov.querySelector("#fRoom").value), a=ov.querySelector("#fIn").value, b=ov.querySelector("#fOut").value;
       const n=(a&&b)?diff(a,b):0;
       if(!rateTouched && ro) ov.querySelector("#fRate").value = ro.rate||0;
@@ -452,8 +503,32 @@ function openResForm(r){
         else if(ro.status==="mantenimiento") msg=`<div class="note warn">La habitación está marcada en mantenimiento.</div>`;
         else if(pax>(Number(ro.capacity)||1)) msg=`<div class="note warn">${pax} personas superan la capacidad de la habitación (${ro.capacity}).</div>`;
         else msg=`<div class="note ok">Habitación ${esc(ro.number)} disponible · ${n} noche${n>1?"s":""}.</div>`;}
+      if(sibs.length && n>0 && ov.querySelector("#fGrpAll")?.checked){
+        const sc=sibs.flatMap(x=>conflicts(x.roomId,a,b,x.id).filter(c=>c.groupId!==d.groupId).map(c=>[x,c]));
+        if(sc.length) msg+=`<div class="note bad">Con esas fechas se cruzan otras habitaciones del grupo: ${sc.map(([x,c])=>"hab. "+esc(roomById(x.roomId)?.number||"?")+" con "+esc(resGuest(c))).join(", ")}.</div>`;
+      }
       av.innerHTML=msg;
       return {ok:n>0&&ro&&!conflicts(ro.id,a,b,d.id).length};
+    }
+    function recalcMulti(){
+      const a=ov.querySelector("#fIn").value, b=ov.querySelector("#fOut").value, n=(a&&b)?diff(a,b):0;
+      drawPick(a,b);
+      const P=groupPlan();
+      if(!totalTouched) ov.querySelector("#fTotal").value=P.baseSum;
+      const total=Number(ov.querySelector("#fTotal").value)||0, paid=Number(ov.querySelector("#fPaid").value)||0;
+      const pax=(+ov.querySelector("#fAd").value||0)+(+ov.querySelector("#fCh").value||0), cap=P.list.reduce((s,x)=>s+(Number(x.capacity)||1),0);
+      ov.querySelector("#fSum").innerHTML=`<span>Habitaciones <b>${P.list.length}</b></span><span>Noches <b>${Math.max(n,0)}</b></span><span>Total del grupo <b>${cop(total)}</b></span><span>Saldo <b style="color:${total-paid>0?"var(--warn)":"var(--ok)"}">${cop(total-paid)}</b></span>`;
+      let msg="";
+      if(n<=0) msg=`<div class="note bad">La salida debe ser posterior a la entrada.</div>`;
+      else if(!P.list.length) msg=`<div class="note warn">Elige al menos una habitación.</div>`;
+      else {
+        const busy=rooms.filter(x=>conflicts(x.id,a,b).length).length;
+        msg=`<div class="note ok">${P.list.length} ${P.list.length>1?"habitaciones":"habitación"} (${P.list.map(x=>esc(x.number)).join(", ")}) · ${n} noche${n>1?"s":""} · se creará una reserva por habitación, todas a nombre del mismo titular y unidas como grupo.${busy?` ${busy} ocupada${busy>1?"s":""} en esas fechas no se puede${busy>1?"n":""} elegir.`:""}</div>`;
+        if(pax>cap) msg+=`<div class="note warn">${pax} personas superan la capacidad de las habitaciones elegidas (${cap}).</div>`;
+        if(P.list.some(x=>x.status==="mantenimiento")) msg+=`<div class="note warn">Alguna habitación elegida está marcada en mantenimiento.</div>`;
+      }
+      ov.querySelector("#fAvail").innerHTML=msg;
+      return {ok:n>0&&P.list.length>0&&P.list.every(x=>!conflicts(x.id,a,b).length)};
     }
     ov.querySelector("#fRate").addEventListener("input",()=>{rateTouched=true;recalc();});
     ov.querySelector("#fTotal").addEventListener("input",()=>{totalTouched=true;recalc();});
@@ -476,6 +551,22 @@ function openResForm(r){
             phone:ov.querySelector("#ngPhone").value.trim(),email:ov.querySelector("#ngEmail").value.trim(),nationality:ov.querySelector("#ngNat").value.trim(),
             consent:!!d._prefGuest,createdAt:new Date().toISOString()});
         }
+        if(isMulti()){
+          const P=groupPlan(), gid=genId("GR"), common={checkIn:ov.querySelector("#fIn").value,checkOut:ov.querySelector("#fOut").value,eta:ov.querySelector("#fEta").value,
+            guestId:guestId==="__none"?"":guestId,guestName:guestId==="__none"?(d.guestName||""):gName(guestById(guestId)),channel:ov.querySelector("#fChan").value,externalRef:ov.querySelector("#fExt").value.trim(),
+            status:ov.querySelector("#fSt").value,payMethod:ov.querySelector("#fPay").value,notes:ov.querySelector("#fNotes").value,groupId:gid,groupSize:P.items.length,createdAt:new Date().toISOString()};
+          const made=[];
+          try{
+            for(let i=0;i<P.items.length;i++){const it=P.items[i], rid=genId("PN");
+              btn.textContent=`Creando ${i+1} de ${P.items.length}…`;
+              await save("reservations/"+rid,{...common,roomId:it.room.id,adults:it.adults,children:it.children,rate:it.rate,total:it.total,paid:it.paid,
+                ...(i<P.items.length-1?{_silent:true}:{})},false);
+              made.push(rid);}
+          }catch(e){ btn.disabled=false; btn.textContent="Crear reserva";
+            if(made.length) toast(`Se crearon ${made.length} de ${P.items.length} reservas del grupo. Revisa la habitación que falló y créala aparte.`); return; }
+          if(d._onSaved) try{await d._onSaved(made[0]);}catch(_){}
+          toast(`Reserva de grupo creada · ${made.length} habitaciones`); closeModal(); openResDetail(made[0]); return;
+        }
         const id=d.id||genId("PN");
         const rec={roomId:ov.querySelector("#fRoom").value,checkIn:ov.querySelector("#fIn").value,checkOut:ov.querySelector("#fOut").value,
           adults:+ov.querySelector("#fAd").value||1,children:+ov.querySelector("#fCh").value||0,eta:ov.querySelector("#fEta").value,
@@ -483,7 +574,13 @@ function openResForm(r){
           rate:Number(ov.querySelector("#fRate").value)||0,total:Number(ov.querySelector("#fTotal").value)||0,paid:Number(ov.querySelector("#fPaid").value)||0,
           payMethod:ov.querySelector("#fPay").value,notes:ov.querySelector("#fNotes").value,
           createdAt:d.createdAt||new Date().toISOString()};
-        await save("reservations/"+id,rec,true);
+        const grpAll=sibs.length&&ov.querySelector("#fGrpAll")?.checked;
+        await save("reservations/"+id,grpAll?{...rec,_silent:true}:rec,true);
+        if(grpAll){ const keep={checkIn:rec.checkIn,checkOut:rec.checkOut,eta:rec.eta,guestId:rec.guestId,guestName:rec.guestName,channel:rec.channel,externalRef:rec.externalRef,status:rec.status};
+          let bad=[];
+          for(let i=0;i<sibs.length;i++){ try{ await save("reservations/"+sibs[i].id,{...keep,...(i<sibs.length-1?{_silent:true}:{})},true);}catch(_){bad.push(roomById(sibs[i].roomId)?.number||sibs[i].id);} }
+          if(bad.length) toast("No se pudieron actualizar las habitaciones "+bad.join(", ")+": revísalas una por una.");
+        }
         if(d._onSaved) try{await d._onSaved(id);}catch(_){}
         toast(isNew?`Reserva ${id} creada`:"Reserva actualizada");
         closeModal();
@@ -497,6 +594,8 @@ function openResDetail(id){
   const r=S.res.find(x=>x.id===id); if(!r){toast("Reserva no encontrada.");return;}
   const ro=roomById(r.roomId), g=guestById(r.guestId), st=STATUS[r.status]||{n:r.status,cls:""};
   const tr=g?tra(g):{ok:false,miss:[]};
+  const grp=r.groupId?S.res.filter(x=>x.groupId===r.groupId).sort((a,b)=>String(roomById(a.roomId)?.number||"").localeCompare(String(roomById(b.roomId)?.number||""),"es",{numeric:true})):[];
+  const gAct=grp.filter(x=>x.status!=="cancelada"), gSum=(k)=>gAct.reduce((s,x)=>s+(Number(x[k])||0),0);
   const body=`
     <div class="toolbar"><div class="grp"><span class="pill ${st.cls}">${st.n}</span><span class="ch" style="--c:${chan(r.channel).c}">${esc(chan(r.channel).n)}${r.externalRef?" · "+esc(r.externalRef):""}</span></div><span class="muted num">${esc(r.id)}</span></div>
     <div class="grid g2">
@@ -509,6 +608,10 @@ function openResDetail(id){
         <dt>Tarifa</dt><dd class="num">${cop(r.rate)} / noche</dd><dt>Total</dt><dd class="num">${cop(r.total)}</dd>
         <dt>Abonado</dt><dd class="num">${cop(r.paid)}</dd><dt>Saldo</dt><dd class="num" style="color:${balance(r)>0?"var(--warn)":"var(--ok)"}">${cop(balance(r))}</dd><dt>Medio</dt><dd>${esc(r.payMethod||"—")}</dd></dl></div>
     </div>
+    ${grp.length>1?`<div class="panel grp-panel"><div class="toolbar"><div><div class="eyebrow">Reserva de grupo · ${gAct.length} ${gAct.length===1?"habitación":"habitaciones"}</div>
+        <span class="muted" style="font-size:.84rem">Total del grupo <b class="num">${cop(gSum("total"))}</b> · abonado <b class="num">${cop(gSum("paid"))}</b> · saldo <b class="num" style="color:${gSum("total")-gSum("paid")>0?"var(--warn)":"var(--ok)"}">${cop(gSum("total")-gSum("paid"))}</b></span></div>
+        ${gAct.length>1&&r.status!=="cancelada"?`<button class="btn sm danger" id="dGrpDel">Cancelar todo el grupo</button>`:""}</div>
+      <div class="grp-links">${grp.map(x=>{const xr=roomById(x.roomId);return `<a href="#" data-open="${esc(x.id)}" class="grp-link${x.id===r.id?" on":""}${x.status==="cancelada"?" off":""}"><b>Hab. ${esc(xr?xr.number:"?")}</b><small>${esc(STATUS[x.status]?.n||x.status)} · ${cop(balance(x))} saldo</small></a>`;}).join("")}</div></div>`:""}
     <div class="panel"><div class="toolbar"><div><div class="eyebrow">Huésped titular</div><b>${esc(resGuest(r))}</b> <span class="muted">${g?esc((g.docType||"")+" "+(g.docNumber||"")):""}</span></div>
       ${g?`<button class="btn sm" id="dGuest">Ver ficha</button>`:""}</div>
       ${g?`<div class="muted" style="font-size:.84rem;margin-top:6px">${esc(g.phone||"Sin teléfono")} · ${esc(g.email||"sin correo")} · ${esc(g.nationality||"")}</div>`:""}
@@ -538,6 +641,10 @@ function openResDetail(id){
     const delB=ov.querySelector("#dDel");
     if(r.status==="cancelada"){delB.textContent="Eliminar definitivamente";confirmBtn(delB,"Toca otra vez para eliminar",async()=>{try{await del("reservations/"+r.id);toast("Reserva eliminada");closeModal();}catch(e){toast(e.message);}});}
     else confirmBtn(delB,"Toca otra vez para confirmar",async()=>{try{await save("reservations/"+r.id,{status:"cancelada"},true);toast("Reserva cancelada");closeModal();}catch(_){}});
+    const gd=ov.querySelector("#dGrpDel");
+    if(gd) confirmBtn(gd,`Toca otra vez: cancela ${gAct.length} habitaciones`,async()=>{
+      let bad=0; for(let i=0;i<gAct.length;i++){try{await save("reservations/"+gAct[i].id,{status:"cancelada",...(i<gAct.length-1?{_silent:true}:{})},true);}catch(_){bad++;}}
+      toast(bad?`Se cancelaron ${gAct.length-bad} de ${gAct.length}.`:`Grupo cancelado · ${gAct.length} habitaciones liberadas`); closeModal();});
     bindPays(ov,r);
     if(r.status==="cancelada") ov.querySelector("#dPayBox").hidden=true;
   }, true);

@@ -240,12 +240,23 @@ async function notifyResChange(store, req, prev, rec, { deleted = false, extra =
   const titles = { nueva: "Reserva nueva", modificada: "Reserva modificada", cancelada: "Reserva cancelada", "check-in": "Check-in registrado", "check-out": "Check-out registrado", eliminada: "Reserva eliminada", pago: "Pago registrado" };
   const k = extra?.kind || kind;
   const nights = Math.max(0, diffDays(r.checkIn, r.checkOut));
+  let group = [], groupN = 0;
+  if (r.groupId) {
+    const all = (await listJSON(store, "res/")).filter((x) => x.groupId === r.groupId && (x.status !== "cancelada" || kind === "cancelada"));
+    if (all.length > 1) {
+      groupN = all.length;
+      const rms = await Promise.all(all.map((x) => store.get("rooms/" + x.roomId, { type: "json" })));
+      const tot = all.reduce((s, x) => s + (Number(x.total) || 0), 0), paid = all.reduce((s, x) => s + (Number(x.paid) || 0), 0);
+      group = [["— Reserva de grupo —", ""], ["Habitaciones", `${all.length}: ${rms.map((ro) => (ro ? ro.number : "?")).sort((a, b) => String(a).localeCompare(String(b), "es", { numeric: true })).join(", ")}`],
+        ["Personas del grupo", String(all.reduce((s, x) => s + (Number(x.adults) || 1) + (Number(x.children) || 0), 0))], ["Total del grupo", `${pesos(tot)} · saldo ${pesos(tot - paid)}`]];
+    }
+  }
   await notifier.notify(store, hotel, {
-    subject: `${titles[k]} ${r.id} · Hab. ${room ? room.number : "?"}`, title: titles[k], tone: extra?.tone || tone,
+    subject: groupN ? `${titles[k]} de grupo · ${groupN} habitaciones · ${name}` : `${titles[k]} ${r.id} · Hab. ${room ? room.number : "?"}`, title: titles[k], tone: extra?.tone || tone,
     intro: `${name} · ${r.checkIn} → ${r.checkOut} (${nights} noche${nights === 1 ? "" : "s"}).${extra?.intro ? " " + extra.intro : ""}`,
     rows: [["Reserva", r.id], ["Habitación", roomTxt(room)], ["Huésped", name], ["Personas", `${r.adults || 1} adulto(s)${r.children ? `, ${r.children} niño(s)` : ""}`], ["Canal", CH_N[r.channel] || r.channel || "—"],
       ["Estado", STATUS_N[r.status] || r.status], ["Total / saldo", `${pesos(r.total)} · saldo ${pesos((Number(r.total) || 0) - (Number(r.paid) || 0))}`],
-      ...(changes.length ? [["— Cambios —", ""], ...changes] : []), ...(extra?.rows || [])],
+      ...(changes.length ? [["— Cambios —", ""], ...changes] : []), ...group, ...(extra?.rows || [])],
     button: { url: notifier.baseUrl(req) + "/admin", label: "Ver en el panel" },
   });
 }
@@ -310,7 +321,7 @@ async function handlePhoto(id) {
 /* ---------- administración ---------- */
 function cleanRecord(body, id) {
   const rec = { ...body, id, updatedAt: new Date().toISOString() };
-  delete rec._gcal; delete rec._link;
+  delete rec._gcal; delete rec._link; delete rec._silent;
   return rec;
 }
 
@@ -818,6 +829,7 @@ async function handleAdmin(req, parts, store) {
       Object.assign(b, { amount, date: b.date, category: str(b.category, 60), concept: str(b.concept, 160), provider: str(b.provider, 120),
         method: str(b.method, 40), note: str(b.note, 500), photoId, fixed: b.fixed === true, createdAt: prevX?.createdAt || new Date().toISOString() });
     }
+    const silent = b._silent === true; // reservas de grupo: se avisa una sola vez, con el resumen del grupo
     const rec = cleanRecord(b, id);
     if (kind === "reservations") {
       // La firma del contrato solo la escribe el módulo de firma: nunca se toma del panel (evita perderla o alterarla con una copia vieja).
@@ -829,7 +841,7 @@ async function handleAdmin(req, parts, store) {
       if (prev && prev.payments) rec.payments = prev.payments; else delete rec.payments;
     }
     await store.setJSON(key, rec);
-    if (kind === "reservations") { const g = await syncToCalendar(store, rec); const w = later(notifyResChange(store, req, prevRes, rec)); if (w) await w; return json({ ...rec, _gcal: g, _link: guestPath(rec.id) }); }
+    if (kind === "reservations") { const g = await syncToCalendar(store, rec); if (!silent) { const w = later(notifyResChange(store, req, prevRes, rec)); if (w) await w; } return json({ ...rec, _gcal: g, _link: guestPath(rec.id) }); }
     // Cambios en el huésped (nombre, teléfono) o en la habitación (número, nombre) se reflejan en sus eventos.
     if (kind === "guests") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.guestId === id || (r.companions || []).includes(id)) });
     if (kind === "rooms") return json({ ...rec, _gcal: await calsync.resyncWhere(store, (r) => r.roomId === id) });

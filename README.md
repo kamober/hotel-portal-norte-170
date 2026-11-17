@@ -208,6 +208,18 @@ Notas:
 - Si cambias `TOKEN_SECRET`, pulsa **Reconectar** para que Telegram use la nueva firma.
 - Si el token se filtra, revócalo en @BotFather (`/revoke`), pon el nuevo en Netlify, despliega y pulsa **Reconectar**.
 
+## Reservas de grupo (varias habitaciones, un solo titular)
+
+Botón **+ Reserva de grupo** (o la casilla «Varias habitaciones» en *Nueva reserva*):
+
+- Se eligen las habitaciones tocándolas, o con **Todas las libres** para el hotel completo. Las ocupadas en esas fechas aparecen bloqueadas.
+- Se crea una reserva por habitación, todas con el mismo titular y unidas por un código de grupo. Así el calendario, el plano, Booking/Airbnb y Finanzas siguen funcionando por habitación.
+- Tarifa: vacía usa la tarifa de cada habitación. Si se escribe una tarifa, aplica a todas. Si se escribe un **total del grupo** (precio negociado), se reparte en proporción.
+- El **abonado** y las **personas** se reparten entre las habitaciones, respetando la capacidad de cada una.
+- En el detalle de cualquiera de ellas aparece el bloque **Reserva de grupo**: total, abonado y saldo del grupo, enlaces a cada habitación y **Cancelar todo el grupo**.
+- Al editar una, la casilla «Aplicar … a las N habitaciones» cambia fechas, hora de llegada, titular, canal y estado en todo el grupo.
+- Llega **un solo aviso** (correo y WhatsApp) con el resumen del grupo, no uno por habitación.
+
 ## Pagos con comprobante
 
 - **El huésped** entra a su enlace de reserva y, en «Pagos», ve los medios de pago del hotel (el campo «Medios de pago» de la ficha del alojamiento) y su saldo. Ahí sube la foto del comprobante con el valor, el medio, la fecha y la referencia. El pago queda **por verificar** y te llega un WhatsApp y un correo.

@@ -100,6 +100,21 @@ body.admin .empty{color:var(--muted)}
 .chip{display:inline-flex;align-items:center;gap:3px;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;background:#E4EEF6;color:var(--navy);font-family:var(--mono);white-space:nowrap}
 .chip.up{background:#E6F0DE;color:#3E7A1F} .chip.down{background:#FBE3E1;color:var(--accent)}
 .chip.ghost{background:rgba(255,255,255,.16);color:#fff}
+.grp-pick{margin-top:8px;border:1px solid var(--line,#DCE3EC);border-radius:12px;padding:10px;background:#F6F9FD}
+.grp-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px;font-size:.84rem}
+.grp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.grp-room{position:relative;display:flex;flex-direction:column;gap:1px;padding:9px 10px;border:1.5px solid #CFDAE8;border-radius:10px;background:#fff;cursor:pointer;line-height:1.25;transition:border-color .15s,background .15s}
+.grp-room input{position:absolute;top:8px;right:8px;margin:0;accent-color:#1E74F0}
+.grp-room b{font-size:1.02rem;color:var(--navy,#0A1F44)} .grp-room small{font-size:.72rem;color:var(--muted,#5B6B80)}
+.grp-room.on{border-color:#1E74F0;background:#EAF2FE;box-shadow:0 0 0 2px rgba(30,116,240,.12)}
+.grp-room.busy{cursor:not-allowed;opacity:.55;background:repeating-linear-gradient(135deg,#fff 0 6px,#F3F5F8 6px 12px)}
+.grp-room.busy small{color:#E3261C}
+.grp-panel{border-left:4px solid #1E74F0}
+.grp-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.grp-link{display:flex;flex-direction:column;padding:6px 10px;border:1px solid #CFDAE8;border-radius:9px;text-decoration:none;color:inherit;background:#fff;line-height:1.25}
+.grp-link small{font-size:.7rem;color:var(--muted,#5B6B80)} .grp-link.on{border-color:#1E74F0;background:#EAF2FE} .grp-link.off{opacity:.5;text-decoration:line-through}
+.f.chk>span{flex:1}
+
 
 /* Tablero */
 .dash{display:grid;gap:18px;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.25fr)}
@@ -453,7 +468,7 @@ body.admin{--s-in:#1E74F0;--s-out:#E3261C}
       <div class="grp">
         <div class="seg" role="group" aria-label="Periodo" id="dashRange"><button type="button" data-r="7" aria-pressed="true">7 días</button><button type="button" data-r="14" aria-pressed="false">14 días</button><button type="button" data-r="30" aria-pressed="false">30 días</button></div>
         <button class="btn" type="button" id="dashPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v5h14v-5"/></svg>Exportar</button>
-        <button class="btn primary" data-act="newRes">+ Nueva reserva</button>
+        <button class="btn" data-act="newGroup">+ Reserva de grupo</button><button class="btn primary" data-act="newRes">+ Nueva reserva</button>
       </div>
     </div>
     <div id="panelAlerts"></div>
@@ -542,7 +557,7 @@ body.admin{--s-in:#1E74F0;--s-out:#E3261C}
         <select id="rCh" style="width:auto"></select>
         <select id="rWhen" style="width:auto"><option value="up">Actuales y próximas</option><option value="past">Pasadas</option><option value="all">Todas</option></select>
         <button class="btn" id="rPrint" type="button">Imprimir listado</button>
-        <button class="btn primary" data-act="newRes">+ Nueva reserva</button>
+        <button class="btn" data-act="newGroup">+ Reserva de grupo</button><button class="btn primary" data-act="newRes">+ Nueva reserva</button>
       </div>
     </div>
     <div class="tablewrap"><table><thead><tr><th>Código</th><th>Huésped</th><th>Hab.</th><th>Entrada</th><th>Salida</th><th class="r">Noches</th><th>Canal</th><th>Estado</th><th class="r">Total</th><th class="r">Saldo</th></tr></thead><tbody id="rBody"></tbody></table></div>
